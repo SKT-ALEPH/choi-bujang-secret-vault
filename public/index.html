@@ -3,50 +3,72 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BYTE BACK | 점령된 자료실</title>
+  <meta name="theme-color" content="#101a28">
+  <title>BYTE BACK | 내 자료실</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; background: #101a28; color: #ecf4ff; }
-    main { max-width: 760px; margin: 0 auto; padding: 44px 22px 64px; }
-    .eyebrow { color: #8ad8df; font-size: 14px; font-weight: 700; letter-spacing: .08em; }
-    h1 { margin: 16px 0; font-size: clamp(30px, 7vw, 48px); line-height: 1.2; }
-    p { font-size: 17px; line-height: 1.7; color: #bfd0e5; }
-    .notice { margin: 26px 0; padding: 18px; border: 1px solid #d07384; border-radius: 14px; color: #ffe3e8; background: #612a3544; }
-    ul { list-style: none; display: grid; gap: 12px; padding: 0; }
-    li { border: 1px solid #51667c; border-radius: 14px; padding: 17px 19px; background: #1a2a3d; }
-    strong { display: block; font-size: 18px; margin-bottom: 5px; }
-    li span { color: #bfd0e5; }
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; --bg:#101a28; --surface:#1a2a3d; --ink:#ecf4ff; --muted:#bfd0e5; --accent:#8ad8df; --line:#51667c; --s1:8px; --s2:16px; --s3:24px; --s4:40px; }
+    * { box-sizing:border-box; } [hidden] { display:none !important; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); }
+    main { max-width:760px; margin:0 auto; padding:var(--s4) 22px 64px; }
+    .brand { color:var(--accent); font-size:14px; font-weight:700; }
+    h1 { margin:16px 0; font-size:clamp(30px,7vw,48px); line-height:1.2; letter-spacing:-.02em; }
+    h2 { font-size:22px; margin:0 0 16px; } p { line-height:1.7; color:var(--muted); }
+    #auth-panel { max-width:400px; margin:32px auto; padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+    label { display:block; margin:16px 0 8px; font-weight:600; }
+    input, textarea { width:100%; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:6px; padding:12px; font:inherit; font-size:16px; }
+    textarea { min-height:120px; resize:vertical; }
+    button { min-height:44px; padding:10px 16px; border-radius:6px; border:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; cursor:pointer; }
+    button:hover { border-color:var(--ink); } button:disabled { opacity:.6; cursor:wait; }
+    button.primary { color:var(--bg); background:var(--accent); border-color:var(--accent); font-weight:700; }
+    :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    #auth-submit { width:100%; margin-top:24px; }
+    .password-row { display:flex; gap:8px; align-items:center; } .password-row input { min-width:0; }
+    .quiet { color:var(--muted); font-size:14px; } .error { color:#ffe3e8; }
+    #status { min-height:24px; } #workspace > header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 0; border-block:1px solid var(--line); }
+    #editor { margin:24px 0; } ul { list-style:none; padding:0; }
+    li { padding:20px 0; border-bottom:1px solid var(--line); }
+    li strong { display:block; font-size:18px; margin-bottom:8px; } li p { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+    .skip { position:absolute; left:16px; top:-60px; } .skip:focus { top:16px; background:var(--bg); }
+    @media(max-width:480px) { main { padding-top:28px; } #auth-panel { padding:20px; } }
   </style>
 </head>
 <body>
-  <main>
-    <div class="eyebrow">BYTE BACK · 2단계 자료 이전</div>
+  <a class="skip" href="#main">본문으로 이동</a>
+  <main id="main">
+    <div class="brand">BYTE BACK · 3단계</div>
     <h1>내 자료실</h1>
-    <p>아래 기록은 실습용 가상 자료입니다. 자료는 서버를 통해 불러옵니다.</p>
-    <div class="notice">현재 자료 조회 API는 로그인 없이 열립니다. 다음 단계에서 사용자 인증을 추가합니다.</div>
-    <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
+    <p>로그인하고 내 메모를 이어 쓰세요. 실습용 가상 자료만 입력해 주세요.</p>
+    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하는 중입니다.</p>
+    <section id="auth-panel" aria-labelledby="auth-title" hidden>
+      <h2 id="auth-title">자료실 로그인</h2>
+      <form id="auth-form">
+        <label for="email">이메일</label>
+        <input id="email" name="email" type="email" autocomplete="username" required aria-describedby="auth-error">
+        <label for="password">비밀번호</label>
+        <div class="password-row">
+          <input id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="auth-error">
+          <button id="show-password" type="button" aria-label="비밀번호 표시" aria-pressed="false">표시</button>
+        </div>
+        <p id="auth-error" class="error" role="alert" tabindex="-1"></p>
+        <button id="auth-submit" class="primary" type="submit">로그인</button>
+      </form>
+      <div class="actions"><button id="auth-mode" type="button">계정 만들기</button><button id="reset-password" type="button">비밀번호 재설정</button></div>
+      <p id="auth-help" class="quiet">가입한 이메일과 비밀번호로 로그인하세요.</p>
+    </section>
+    <section id="workspace" aria-label="내 메모" hidden>
+      <header><h2>내 메모</h2><button id="logout" type="button">로그아웃</button></header>
+      <form id="editor">
+        <h2 id="editor-title">메모 추가</h2>
+        <label for="note-title">제목</label><input id="note-title" name="title" maxlength="200" required>
+        <label for="note-body">내용</label><textarea id="note-body" name="body" maxlength="10000"></textarea>
+        <div class="actions"><button id="save-note" class="primary" type="submit">메모 추가</button><button id="cancel-edit" type="button" hidden>수정 취소</button></div>
+      </form>
+      <div class="actions"><button id="refresh" type="button">목록 새로고침</button></div>
+      <ul id="notes" aria-live="polite"></ul>
+    </section>
   </main>
-  <script type="module">
-    const list = document.querySelector('#notes');
-    try {
-      const response = await fetch('/api/notes', { cache: 'no-store' });
-      if (!response.ok) throw new Error('자료를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.');
-      const data = await response.json();
-      if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
-      list.replaceChildren(...data.notes.map(note => {
-        const item = document.createElement('li');
-        const title = document.createElement('strong');
-        const content = document.createElement('span');
-        title.textContent = note.title;
-        content.textContent = note.content;
-        item.append(title, content);
-        return item;
-      }));
-    } catch (error) {
-      const item = document.createElement('li');
-      item.textContent = error.message;
-      list.replaceChildren(item);
-    }
-  </script>
+  <script src="/vendor/supabase.js" defer></script>
+  <script src="/app.js" defer></script>
 </body>
 </html>

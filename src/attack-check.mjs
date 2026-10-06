@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -13,6 +13,31 @@ export async function runAttackChecks(config) {
     throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
   }
   if (typeof config.sampleMarker !== 'string' || !config.sampleMarker) throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
+  if (config.step === 3) {
+    const request = (path, options = {}) => fetch(new URL(path, app), {
+      ...options, redirect: 'error', signal: AbortSignal.timeout(10000),
+    });
+    const attempts = [];
+    for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
+      const path = ['PUT','DELETE'].includes(method) ? '/api/notes/00000000-0000-4000-8000-000000000001' : '/api/notes';
+      const response = await request(path, {method});
+      let safe = false;
+      try { const body = await response.json(); safe = [401,403].includes(response.status)
+        && typeof body.error === 'string' && !Object.hasOwn(body, 'notes'); } catch {}
+      attempts.push({attackId:'anonymous_' + method.toLowerCase(),expected:'로그인 없는 자료 요청을 JSON 오류로 거부',
+        observed:(safe?'확인':'실패') + ' · HTTP ' + response.status});
+    }
+    const forged = await request('/api/notes', {headers:{Authorization:'Bearer invalid.invalid.invalid'}});
+    attempts.push({attackId:'invalid_login_token',expected:'유효하지 않은 로그인 토큰 거부',observed:'HTTP ' + forged.status});
+    const metadata = await request('/aleph.json');
+    const identity = metadata.ok ? await metadata.json() : {};
+    attempts.push({attackId:'deployment_identity',expected:'3단계와 실제 저장소의 배포 정보',observed:
+      (identity.step===3 && identity.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase()?'확인':'실패')+' · HTTP '+metadata.status});
+    const page = await request('/');
+    attempts.push({attackId:'security_header',expected:'첫 화면 nosniff 헤더',observed:
+      (page.headers.get('x-content-type-options')==='nosniff'?'확인':'실패')+' · HTTP '+page.status});
+    return attempts;
+  }
   if (config.step === 2) {
     const request = path => fetch(new URL(path, app), {
       redirect: 'error', signal: AbortSignal.timeout(10000),

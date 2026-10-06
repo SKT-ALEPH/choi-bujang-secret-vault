@@ -19,6 +19,11 @@ if (config.step === 1) {
 } else {
   throw new Error('현재 단계를 확인하세요.');
 }
+if (config.step >= 3) {
+  await mkdir(resolve(root, 'public', 'vendor'), { recursive: true });
+  await copyFile(resolve(root, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'),
+    resolve(root, 'public/vendor/supabase.js'));
+}
 console.log('현재 단계의 정적 자료 파일을 준비했습니다.');
 if (!process.argv.includes('--local')) {
   const identity = deploymentIdentity(process.env, config);
