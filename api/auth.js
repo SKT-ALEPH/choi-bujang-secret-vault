@@ -46,8 +46,11 @@ export function createAuthHandler(upstreamFetch = fetch) {
       if (upstream.status === 204) return response.status(200).json({});
       const result = await upstream.json();
       // Forward sessions only to the caller; omit upstream diagnostics on errors.
-      if (!upstream.ok) return response.status(upstream.status).json({ code: result.code ?? result.error_code ?? 'auth_failed',
-        msg: '인증 요청에 실패했습니다.' });
+      if (!upstream.ok) {
+        const code = typeof result.error_code === 'string' ? result.error_code
+          : typeof result.code === 'string' ? result.code : 'auth_failed';
+        return response.status(upstream.status).json({ code, error_code: code, msg: '인증 요청에 실패했습니다.' });
+      }
       return response.status(upstream.status).json(result);
     } catch {
       return response.status(502).json({ code: 'auth_unavailable', msg: '인증 서버에 연결하지 못했습니다.' });

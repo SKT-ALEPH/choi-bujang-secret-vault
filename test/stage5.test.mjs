@@ -14,7 +14,7 @@ test('Auth proxy permits only fixed Auth routes, keeps public key upstream, and 
     assert.equal(url.origin,settings.url); assert.equal(url.pathname,'/auth/v1/token');
     assert.equal(options.headers.apikey,settings.publishableKey);
     assert.equal(options.headers.Authorization,undefined); assert.equal(options.redirect,'error');
-    return new Response(JSON.stringify({code:'invalid_credentials',msg:'private diagnostic'}),{status:400});
+    return new Response(JSON.stringify({code:400,error_code:'invalid_credentials',msg:'private diagnostic'}),{status:400});
   });
   const bad=response(); await handler({method:'GET',query:{path:'rest/v1/notes'}},bad);
   assert.equal(bad.statusCode,404); assert.equal(calls,0);
@@ -26,7 +26,17 @@ test('Auth proxy permits only fixed Auth routes, keeps public key upstream, and 
     headers:{authorization:'Bearer auth-via-server'},body:{}},result);
   assert.equal(result.statusCode,400); assert.equal(result.headers['Cache-Control'],'no-store');
   assert.equal(result.body.code,'invalid_credentials'); assert.equal(JSON.stringify(result.body).includes('private diagnostic'),false);
+  assert.equal(result.body.error_code,'invalid_credentials');
   assert.equal(JSON.stringify(result.body).includes(settings.publishableKey),false);
+  const client=createClient(settings.url,'auth-via-server',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+    global:{fetch:async(target,options)=>{
+      const url=new URL(target),res=response();
+      await handler({method:options.method,query:{path:'token',grant_type:url.searchParams.get('grant_type')},
+        headers:Object.fromEntries(new Headers(options.headers)),body:options.body},res);
+      return Response.json(res.body,{status:res.statusCode});
+    }}});
+  const failed=await client.auth.signInWithPassword({email:'fixture',password:'fixture'});
+  assert.equal(failed.error.code,'invalid_credentials'); assert.equal(failed.data.session,null);
 });
 
 test('official SDK signs in, refreshes and signs out through the Auth proxy without a browser key', async () => {
