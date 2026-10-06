@@ -27,6 +27,7 @@ export default async function handler(request, response) {
       signal: AbortSignal.timeout(10000),
     });
     if (!result.ok) {
+      console.warn('Supabase read rejected', { status: result.status });
       return response.status(502).json({ error: 'DATABASE_READ_FAILED' });
     }
     const notes = await result.json();
@@ -35,7 +36,10 @@ export default async function handler(request, response) {
       return response.status(502).json({ error: 'DATABASE_RESPONSE_INVALID' });
     }
     return response.status(200).json({ notes });
-  } catch {
+  } catch (error) {
+    console.warn('Supabase request failed', {
+      type: error?.name === 'TimeoutError' ? 'timeout' : 'request_failed',
+    });
     // Do not echo upstream errors, URLs, or keys to the client or logs.
     return response.status(502).json({ error: 'DATABASE_READ_FAILED' });
   }
