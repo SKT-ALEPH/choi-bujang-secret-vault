@@ -53,6 +53,9 @@ export function createNotesHandler(getRuntime = productionRuntime) {
     let input;
     if (method === 'POST' || method === 'PUT') {
       try { input = typeof request.body === 'string' ? JSON.parse(request.body) : request.body; } catch { /* Invalid JSON is rejected below. */ }
+      if (input && (Object.hasOwn(input, 'owner_id') || Object.hasOwn(input, 'ownerId'))) {
+        return response.status(400).json({ error: 'OWNER_IMMUTABLE' });
+      }
       if (!input || typeof input.title !== 'string' || !input.title.trim() || input.title.length > 200
           || typeof input.body !== 'string' || input.body.length > 10000
           || (method === 'POST' && input.id !== undefined && (typeof input.id !== 'string' || !UUID.test(input.id)))) {
@@ -63,17 +66,17 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       let query;
       if (method === 'GET') {
         query = database.from('notes').select(fields);
-        query = id ? query.eq('id', id).maybeSingle()
+        query = id ? query.eq('id', id).eq('owner_id', identity.userId).maybeSingle()
           : query.eq('owner_id', identity.userId).order('id').limit(100);
       } else if (method === 'POST') {
         query = database.from('notes').insert({ id: input.id ?? randomUUID(),
           title: input.title.trim(), content: input.body, owner_id: identity.userId }).select('id').single();
       } else if (method === 'PUT') {
-        // Stage 3 intentionally verifies login only; ownership enforcement is stage 4.
+        // Match ownership in the same database statement; the owner remains unchanged.
         query = database.from('notes').update({ title: input.title.trim(), content: input.body })
-          .eq('id', id).select(fields).maybeSingle();
+          .eq('id', id).eq('owner_id', identity.userId).select(fields).maybeSingle();
       } else {
-        query = database.from('notes').delete().eq('id', id).select('id').maybeSingle();
+        query = database.from('notes').delete().eq('id', id).eq('owner_id', identity.userId).select('id').maybeSingle();
       }
       const { data, error } = await query.abortSignal(AbortSignal.timeout(10000));
       if (error) return response.status(error.code === '23505' ? 409 : 502)

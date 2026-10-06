@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2, 3].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -13,7 +13,7 @@ export async function runAttackChecks(config) {
     throw new Error('aleph.config.json의 실제 배포 주소를 먼저 넣어 주세요.');
   }
   if (typeof config.sampleMarker !== 'string' || !config.sampleMarker) throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
-  if (config.step === 3) {
+  if (config.step >= 3) {
     const request = (path, options = {}) => fetch(new URL(path, app), {
       ...options, redirect: 'error', signal: AbortSignal.timeout(10000),
     });
@@ -31,11 +31,22 @@ export async function runAttackChecks(config) {
     attempts.push({attackId:'invalid_login_token',expected:'유효하지 않은 로그인 토큰 거부',observed:'HTTP ' + forged.status});
     const metadata = await request('/aleph.json');
     const identity = metadata.ok ? await metadata.json() : {};
-    attempts.push({attackId:'deployment_identity',expected:'3단계와 실제 저장소의 배포 정보',observed:
-      (identity.step===3 && identity.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase()?'확인':'실패')+' · HTTP '+metadata.status});
+    attempts.push({attackId:'deployment_identity',expected:config.step+'단계와 실제 저장소의 배포 정보',observed:
+      (identity.step===config.step && identity.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase()?'확인':'실패')+' · HTTP '+metadata.status});
     const page = await request('/');
     attempts.push({attackId:'security_header',expected:'첫 화면 nosniff 헤더',observed:
       (page.headers.get('x-content-type-options')==='nosniff'?'확인':'실패')+' · HTTP '+page.status});
+    if (config.step === 4) {
+      const { readFile } = await import('node:fs/promises');
+      const publicConfig = JSON.parse(await readFile(new URL('../public/auth-config.json', import.meta.url), 'utf8'));
+      const direct = await fetch(new URL('/rest/v1/notes?select=id', publicConfig.url), {
+        headers: { apikey: publicConfig.publishableKey }, redirect: 'error', signal: AbortSignal.timeout(10000),
+      });
+      let denied = false;
+      try { const body = await direct.json(); denied = [401,403].includes(direct.status) && !Array.isArray(body); } catch {}
+      attempts.push({attackId:'anonymous_direct_database',expected:'anon 키로 직접 DB 자료 조회 거부',
+        observed:(denied?'확인':'실패')+' · HTTP '+direct.status});
+    }
     return attempts;
   }
   if (config.step === 2) {
