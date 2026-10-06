@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 // Stage 2: the server holds the database key. Authentication comes in stage 3.
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
@@ -18,29 +20,23 @@ export default async function handler(request, response) {
     if (url.protocol !== 'https:' || !url.hostname.endsWith('.supabase.co')) {
       return response.status(503).json({ error: 'DATABASE_NOT_CONFIGURED' });
     }
-    url.searchParams.set('select', 'title,content');
-    url.searchParams.set('order', 'id.asc');
-    url.searchParams.set('limit', '100');
-    const headers = { apikey: secretKey };
-    // Legacy service_role JWTs need a Bearer token. New secret keys use apikey only.
-    if (secretKey.startsWith('eyJ')) headers.Authorization = `Bearer ${secretKey}`;
-    const result = await fetch(url, {
-      headers,
-      redirect: 'error',
-      signal: AbortSignal.timeout(10000),
+    const database = createClient(projectUrl, secretKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch: (target, options) => fetch(target, { ...options, redirect: 'error' }) },
     });
-    if (!result.ok) {
-      const failure = await result.json().catch(() => ({}));
+    const result = await database.from('notes').select('title,content')
+      .order('id').limit(100).abortSignal(AbortSignal.timeout(10000));
+    if (result.error) {
       console.warn('Supabase read rejected', {
         status: result.status,
-        code: /^[A-Z0-9]{5}$/u.test(failure.code || '') ? failure.code : 'unspecified',
+        code: /^[A-Z0-9]{5}$/u.test(result.error.code || '') ? result.error.code : 'unspecified',
         keyType: secretKey.startsWith('sb_secret_') ? 'secret'
           : secretKey.startsWith('eyJ') ? 'legacy'
           : secretKey.startsWith('sb_publishable_') ? 'publishable' : 'unrecognized',
       });
       return response.status(502).json({ error: 'DATABASE_READ_FAILED' });
     }
-    const notes = await result.json();
+    const notes = result.data;
     if (!Array.isArray(notes) || notes.some(note =>
       typeof note.title !== 'string' || typeof note.content !== 'string')) {
       return response.status(502).json({ error: 'DATABASE_RESPONSE_INVALID' });
