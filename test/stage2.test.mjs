@@ -39,7 +39,7 @@ test('server rejects writes and never exposes upstream errors or credentials', a
     assert.equal(write.statusCode, 405);
     globalThis.fetch = async (url, options) => {
       assert.equal(new URL(url).pathname, '/rest/v1/notes');
-      assert.equal(options.headers.apikey, 'test-only-credential');
+      assert.equal(new Headers(options.headers).get('apikey'), 'test-only-credential');
       assert.equal(options.redirect, 'error');
       return new Response('test-only-credential private upstream failure', { status: 403 });
     };
