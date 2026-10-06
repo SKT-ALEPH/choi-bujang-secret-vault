@@ -24,6 +24,10 @@ if (config.step >= 3) {
   await copyFile(resolve(root, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'),
     resolve(root, 'public/vendor/supabase.js'));
 }
+if (config.step >= 5) {
+  const settings = JSON.parse(await readFile(resolve(root, 'config/supabase-public.json'), 'utf8'));
+  await writeFile(resolve(root, 'public/auth-config.json'), `${JSON.stringify({url:settings.url})}\n`, 'utf8');
+}
 console.log('현재 단계의 정적 자료 파일을 준비했습니다.');
 if (!process.argv.includes('--local')) {
   const identity = deploymentIdentity(process.env, config);

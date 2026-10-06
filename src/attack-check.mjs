@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -36,16 +36,32 @@ export async function runAttackChecks(config) {
     const page = await request('/');
     attempts.push({attackId:'security_header',expected:'첫 화면 nosniff 헤더',observed:
       (page.headers.get('x-content-type-options')==='nosniff'?'확인':'실패')+' · HTTP '+page.status});
-    if (config.step === 4) {
+    if (config.step >= 4) {
       const { readFile } = await import('node:fs/promises');
-      const publicConfig = JSON.parse(await readFile(new URL('../public/auth-config.json', import.meta.url), 'utf8'));
-      const direct = await fetch(new URL('/rest/v1/notes?select=id', publicConfig.url), {
+      const publicConfig = JSON.parse(await readFile(new URL(config.step >= 5 ? '../config/supabase-public.json' : '../public/auth-config.json', import.meta.url), 'utf8'));
+      const directUrl = config.step >= 5 ? new URL(config.originalApiUrl) : new URL('/rest/v1/notes',publicConfig.url);
+      directUrl.searchParams.set('select','id');
+      const direct = await fetch(directUrl, {
         headers: { apikey: publicConfig.publishableKey }, redirect: 'error', signal: AbortSignal.timeout(10000),
       });
       let denied = false;
       try { const body = await direct.json(); denied = [401,403].includes(direct.status) && !Array.isArray(body); } catch {}
       attempts.push({attackId:'anonymous_direct_database',expected:'anon 키로 직접 DB 자료 조회 거부',
         observed:(denied?'확인':'실패')+' · HTTP '+direct.status});
+    }
+    if (config.step === 5) {
+      let clean = true;
+      const leaked = /sb_publishable_[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+/u;
+      for (const path of ['/', '/app.js', '/auth-config.json', '/vendor/supabase.js', '/data.json']) {
+        const response = await request(path);
+        const body = await response.text();
+        clean &&= response.ok && !leaked.test(body) && !body.includes(config.sampleMarker);
+      }
+      attempts.push({attackId:'public_assets_no_keys_or_seed',expected:'공개 화면·SDK·설정·자료 파일에 키와 시드 자료 없음',observed:clean?'확인 · 공개 파일 5개':'실패'});
+      attempts.push({attackId:'allowed_routes_metadata',expected:'배포 정보에 허용 자료 경로와 쿼리 없는 원본 HTTPS 주소',observed:
+        (identity.allowedRoutes?.length > 0 && identity.originalApiUrl===config.originalApiUrl && !new URL(config.originalApiUrl).search?'확인':'실패')});
+      const auth = await request('/api/auth?path=rest/v1/notes');
+      attempts.push({attackId:'auth_proxy_rejects_data_route',expected:'Auth 함수로 자료 주소 우회 불가',observed:'HTTP '+auth.status});
     }
     return attempts;
   }

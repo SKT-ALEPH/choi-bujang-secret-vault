@@ -1,9 +1,12 @@
-# BYTE BACK 자료실 · 4단계
+# BYTE BACK 자료실 · 5단계
 
 ## 현재 구현
 
 Supabase Auth 공식 SDK로 이메일·비밀번호 로그인과 로그아웃을 제공합니다.
-브라우저에는 공개 publishable key만 있고 서버 키는 Vercel 환경변수에 둡니다.
+브라우저에는 Supabase 키가 없습니다. 공식 SDK의 Auth 요청은 고정 경로의
+`/api/auth` 서버 함수로 보내고, 서버만 공개 키를 덧붙여 같은 Supabase Auth에
+전달합니다. 로그인·가입·이메일 확인·비밀번호 재설정·토큰 갱신·로그아웃을 유지합니다.
+서버 Secret key는 계속 Vercel 환경변수에 둡니다.
 서버 자료 API는 원본 `src/verify-login.mjs`로 토큰을 검증합니다. 해당 파일과
 운영 judgeIssuer는 변경하지 않았습니다. 토큰이 없거나 검증에 실패하면
 자료 없이 401 JSON 오류를 반환합니다.
@@ -24,8 +27,10 @@ ChoiTimo/aleph-defense-starter R5입니다.
 2. `sql/stage4-rls.sql`로 PUBLIC·anon·authenticated의 기존 테이블 권한을 회수하고
    authenticated에 CRUD만 부여합니다. SELECT·DELETE는 USING, INSERT는 WITH CHECK,
    UPDATE는 USING과 WITH CHECK 모두 auth.uid()=owner_id로 제한합니다. 다른 영구 테이블은 변경하지 않습니다.
-3. `public/auth-config.json`에 학습용 Supabase URL과 공개 publishable key를 둡니다.
-   서버 Secret key를 이 파일에 넣지 않습니다.
+3. 5단계에서는 `sql/stage5-revoke.sql`로 notes의 PUBLIC·anon·authenticated 직접
+   권한을 모두 회수합니다. 기존 행과 RLS 정책 및 서버 service_role 권한은 보존합니다.
+   공개 키는 서버 전용 `config/supabase-public.json`에 둡니다. 빌드가 만드는
+   `public/auth-config.json`에는 URL만 있으며 키는 없습니다. Secret key는 이 설정에도 넣지 않습니다.
 4. Vercel Production에 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 직접 저장합니다.
    실제 키·비밀번호·JWT는 채팅, Git, 로그, 응답, 제출 묶음에 넣지 않습니다.
 5. Supabase Auth의 Site URL을 실제 배포 주소로 설정합니다. 이메일 확인을
@@ -52,15 +57,17 @@ owner_id에 auth.users 외래키는 없습니다. 원본 검증 도우미가 일
 
 ## 확인과 제출
 
-`node --test test/r5.test.mjs test/stage2.test.mjs test/stage3.test.mjs`로 배포 신원,
+`node --test test/r5.test.mjs test/stage2.test.mjs test/stage3.test.mjs test/stage5.test.mjs`로 배포 신원,
 실제 암호학적 토큰 검증, 무로그인 거부, 사용자 ID 결합과 CRUD 계약을 시험합니다.
 DB를 대신하는 테스트 응답은 운영 DB 접속의 증거가 아닙니다.
 `npm run build -- --local`은 로컬 정적 빌드 확인입니다.
 
 배포 후 무로그인 GET·POST·PUT·DELETE 및 잘못된 토큰 요청의 실제 거부,
 현재 단계 aleph.json, nosniff 헤더와 anon 키 직접 DB 거부를 `npm run bundle`에서 직접 요청합니다.
-일반 A 계정으로 로그인한 뒤 가상 메모 추가·수정·삭제·로그아웃을 화면에서
-확인합니다. 심판 결과와 자기 점검을 구분합니다.
+5단계는 공개 파일의 키·시드 자료 부재, 허용 경로, 원본 API 주소, Auth 우회 경로
+거부도 직접 점검합니다. `npm run bundle`이 제출 명령이며 포털의 5단계 창에서
+「심판에게 제출하기」를 누릅니다. 본인 CRUD는 허용되고 타인 CRUD·무로그인 및
+직접 Data API는 거부돼야 합니다. 심판 결과와 자기 점검을 구분합니다.
 설명은 Git에서 제외한 bundle-notes.json에 적고 결과 artifacts/submission.json도
 커밋하지 않습니다. 실제 포털 제출 칸에는 배포 주소를 넣습니다.
 
@@ -71,7 +78,12 @@ DB를 대신하는 테스트 응답은 운영 DB 접속의 증거가 아닙니�
 3단계 DB 변경은 기존 4건 보존, id=uuid, RLS=true, anon/authenticated 읽기=false,
 service_role 쓰기=true로 확인했습니다. 3단계 a58e5fd 배포는 포털에서 조건 7개·가점 3개, 100/100점 통과를 확인했습니다.
 4단계 권한 적용 후 anon의 7개 테이블 권한은 모두 false, authenticated는 CRUD만
-true로 확인했습니다. 4단계 배포와 심판 판정은 제출 후 별도로 기록합니다.
+true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 100/100점으로
+통과했습니다. 5단계 권한 회수 후 anon·authenticated의 7개 권한은 모두 false입니다.
+실제 DB 트랜잭션에서 service_role CRUD 성공과 authenticated 직접 조회·수정
+거부를 확인하고 시험 변경은 모두 롤백했습니다. 기존 RLS도 유지했습니다.
+로컬 시험 8개 및 정적 빌드를 통과했습니다. 실제 A 화면의 서버 목록 조회는
+권한 회수 전에 확인했습니다. 5단계 배포와 심판 결과는 제출 후 별도로 기록합니다.
 
 최신 공개 data.json에는 notes가 0건입니다. 과거 공개 GitHub 커밋과 Vercel
 배포에는 가상 자료가 남을 수 있으며 최신 파일을 비웠다고 과거 노출이 회수되지는 않습니다.
@@ -86,6 +98,7 @@ true로 확인했습니다. 4단계 배포와 심판 판정은 제출 후 별도
 계정은 1개이므로 이 배정 SQL은 실행하지 않았습니다. 기존 자료는 보존했습니다.
 
 서버는 service_role로 DB를 조회하므로 RLS를 우회합니다. 따라서 서버의
-소유자 조건과 브라우저 직접 DB의 RLS 정책을 각각 유지해야 합니다.
+소유자 조건은 계속 유지합니다. 4단계 RLS 정책도 보존하지만 5단계에는
+클라이언트 테이블 권한 자체를 회수하므로 로그인했어도 직접 DB 자료 접근은 불가능합니다.
 실제 B 계정의 로그인·직접 Data API 검사는 미실행입니다. 운영 심판의 A/B
 시험 신원과 DB 트랜잭션의 가상 신원 검증을 일반 B 계정 로그인으로 보고하지 않습니다.

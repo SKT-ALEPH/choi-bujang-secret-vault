@@ -61,7 +61,13 @@
   }
   try {
     const config=await(await fetch('/auth-config.json')).json();
-    client=window.supabase.createClient(config.url,config.publishableKey);
+    client=window.supabase.createClient(config.url,'auth-via-server',{global:{fetch:(target,options)=>{
+      const url=new URL(target);
+      if(url.origin!==new URL(config.url).origin || !url.pathname.startsWith('/auth/v1/')) throw new Error('AUTH_ROUTE_ONLY');
+      const proxy=new URL('/api/auth',location.origin);
+      proxy.search=url.search; proxy.searchParams.set('path',url.pathname.slice('/auth/v1/'.length));
+      return fetch(proxy,options);
+    }}});
     client.auth.onAuthStateChange((event,session)=>{
       if(event==='PASSWORD_RECOVERY') {status('비밀번호 재설정 링크가 확인됐습니다. 새 비밀번호를 입력해 주세요.'); $('#auth-panel').hidden=false; $('#workspace').hidden=true; $('#auth-title').textContent='새 비밀번호 설정'; $('#auth-submit').textContent='비밀번호 저장'; $('#email').required=false; $('#auth-form').dataset.recovery='true'; return;}
       if(event !== 'TOKEN_REFRESHED') setTimeout(()=>updateSession(session),0);
