@@ -25,7 +25,7 @@ export function createXdrGuard(baseDecide, { getTrustedSource, getRules,
     const sourceAddress = await getTrustedSource(request.requestId);
     const rule = activeDenyRule(await getRules(), sourceAddress, now());
     if (rule) return { schema: 'aleph.decision.v1', requestId: request.requestId,
-      decision: 'deny', reasonCode: denyReasonCode, ruleIds: ['xdr.brute_force'] };
+      decision: 'deny', reasonCode: denyReasonCode, ruleIds: [rule.ruleId ?? 'xdr.brute_force'] };
     return base;
   };
 }

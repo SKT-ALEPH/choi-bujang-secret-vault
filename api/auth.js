@@ -1,6 +1,6 @@
 import settings from '../config/supabase-public.json' with { type: 'json' };
 import config from '../aleph.config.json' with { type: 'json' };
-import { getLiveXdr } from '../xdr/brute-force/live.mjs';
+import { getLiveXdr } from '../xdr/live.mjs';
 
 const routes = { token: ['POST'], signup: ['POST'], recover: ['POST'], user: ['GET', 'PUT'], logout: ['POST'] };
 
@@ -44,11 +44,11 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null }
     try {
       const xdr=getXdr();
       if(xdr && path!=='logout') {
-        const blocked=await xdr.check(request);
+        const blocked=await xdr.check(request) ?? (xdr.inspect ? await xdr.inspect(request) : null);
         if(blocked) {
           response.setHeader('Retry-After',String(blocked.retryAfter));
           response.setHeader('X-XDR-Evidence',blocked.evidenceId);
-          return response.status(429).json({code:'xdr_brute_force',error_code:'xdr_brute_force',msg:'반복 로그인 실패로 잠시 차단되었습니다.'});
+          return response.status(429).json({code:blocked.code ?? 'xdr_brute_force',error_code:blocked.code ?? 'xdr_brute_force',msg:'반복 공격 신호로 잠시 차단되었습니다.'});
         }
       }
       const upstream = await upstreamFetch(target, { method: request.method, headers, body,

@@ -9,7 +9,7 @@ const fields = 'action,confidence,createdAt,evidenceAlertIds,expiresAt,ruleId,so
 function validRule(rule) {
   const start = Date.parse(rule?.createdAt), end = Date.parse(rule?.expiresAt);
   return rule && Object.keys(rule).sort().join(',') === fields
-    && rule.ruleId === 'xdr.brute_force' && rule.action === 'deny'
+    && ['xdr.brute_force', 'xdr.web_injection'].includes(rule.ruleId) && rule.action === 'deny'
     && isIP(rule.sourceAddress ?? '') && Number.isFinite(rule.confidence)
     && rule.confidence >= policy.thresholds.block && rule.confidence <= 1
     && Number.isFinite(start) && Number.isFinite(end) && end > start

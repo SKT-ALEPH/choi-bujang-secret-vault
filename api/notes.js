@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import config from '../aleph.config.json' with { type: 'json' };
-import { getLiveXdr } from '../xdr/brute-force/live.mjs';
+import { getLiveXdr } from '../xdr/live.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const fields = 'id,title,content';
@@ -44,6 +44,18 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       response.setHeader('Allow', 'GET, POST, PUT, DELETE');
       return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
     }
+    let preview;
+    if (method === 'POST' || method === 'PUT') { try { preview = typeof request.body === 'string' ? JSON.parse(request.body) : request.body; } catch {} }
+    try {
+      if(xdr) {
+        const blocked=await xdr.check(request) ?? (xdr.inspect ? await xdr.inspect(request, preview) : null);
+        if(blocked) {
+          response.setHeader('Retry-After',String(blocked.retryAfter));
+          response.setHeader('X-XDR-Evidence',blocked.evidenceId);
+          return response.status(403).json({error:blocked.code === 'xdr_web_injection' ? 'XDR_WEB_INJECTION' : 'XDR_BRUTE_FORCE'});
+        }
+      }
+    } catch { return response.status(502).json({error:'DATABASE_REQUEST_FAILED'}); }
     const id = request.query?.id;
     if (id !== undefined && (typeof id !== 'string' || !UUID.test(id))) {
       return response.status(400).json({ error: 'INVALID_NOTE_ID' });
@@ -65,14 +77,6 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       }
     }
     try {
-      if(xdr) {
-        const blocked=await xdr.check(request);
-        if(blocked) {
-          response.setHeader('Retry-After',String(blocked.retryAfter));
-          response.setHeader('X-XDR-Evidence',blocked.evidenceId);
-          return response.status(403).json({error:'XDR_BRUTE_FORCE'});
-        }
-      }
       let query;
       if (method === 'GET') {
         query = database.from('notes').select(fields);

@@ -3,10 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-await build({
+for (const moduleKey of ['brute-force', 'web-injection']) await build({
   absWorkingDir: root,
-  entryPoints: ['xdr/brute-force/analyze.mjs'],
-  outfile: 'xdr/brute-force/decide.mjs',
+  entryPoints: [`xdr/${moduleKey}/analyze.mjs`],
+  outfile: `xdr/${moduleKey}/decide.mjs`,
   bundle: true, format: 'esm', platform: 'neutral', target: 'es2022',
   alias: { 'node:crypto': resolve(root, 'scripts/xdr-portable/crypto.mjs'),
     'node:net': resolve(root, 'scripts/xdr-portable/net.mjs') },

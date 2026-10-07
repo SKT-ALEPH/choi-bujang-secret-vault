@@ -3,6 +3,7 @@
   const status = message => { $('#status').textContent = message; };
   const authError = message => { $('#auth-error').textContent = message; if (message) $('#auth-error').focus(); };
   const authMessage = error => ({ invalid_credentials:'이메일 또는 비밀번호가 맞지 않습니다.',
+    xdr_web_injection:'반복된 웹 입력 공격 신호로 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.',
     xdr_brute_force:'로그인 실패가 반복돼 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.',
     email_not_confirmed:'가입 확인 이메일의 링크를 먼저 눌러 주세요.',
     over_email_send_rate_limit:'확인 이메일 요청이 많습니다. 잠시 뒤 다시 시도해 주세요.',
@@ -16,7 +17,7 @@
       headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+data.session.access_token } });
     const body = await response.json();
     if (!response.ok) throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.'
-      : response.status === 403 && body.error === 'XDR_BRUTE_FORCE' ? '로그인 실패가 반복돼 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.'
+      : response.status === 403 && ['XDR_BRUTE_FORCE','XDR_WEB_INJECTION'].includes(body.error) ? '반복 공격 신호로 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.'
       : response.status === 404 ? '메모를 찾을 수 없습니다. 목록을 새로고침해 주세요.'
       : response.status === 409 ? '같은 메모 ID가 이미 있습니다.'
       : '자료 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.');

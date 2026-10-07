@@ -161,7 +161,7 @@ POST /v1/systemone·jev-latest·Noul 응답이다. IP·계정·설명은 전송�
 세부 설치·경계는 [서버 연결 문서](docs/XDR_OPERATOR_CONNECTION.md)를 따른다.
 이 연결은 자료실 HTTP 서버의 접근 통제다. 운영 반 엔진·실시간 Wazuh 수집기·PC 방화벽
 설치 완료로 보고하지 않는다. 미래 운영 엔진 어댑터 src/xdr-decider.mjs는 별도로 남겨 둔다.
-웹 입력 조작과 다른 XDR 모듈은 이번 작업 범위에 포함하지 않았다.
+당시 XDR-01 범위에는 웹 입력 조작과 다른 XDR 모듈을 포함하지 않았다.
 
 2026-10-07 배포2a42586에서 존재하지 않는 가상 계정의 실제 실패 요청20건 뒤21번째 요청429,
 위조 출발 주소 헤더 변경 뒤에도 같은 근거로429, DB의실패20·경보20·TTL900초를 확인했다.
@@ -173,3 +173,36 @@ POST /v1/systemone·jev-latest·Noul 응답이다. IP·계정·설명은 전송�
 제출 전 같은 fixture 명령으로 결과를 갱신하고 「보너스 xdr-01 저장점」으로 커밋한다.
 구현·DB 설정·실제 배포 검증이 모두 끝난 뒤 보너스 작전→무차별 로그인→과제 보기에서
 배포 주소와 공개 GitHub 주소를 제출한다. 심판은 저장소의 decide를 다시 실행한다.
+
+## 보너스 XDR-02 · 웹 입력 조작
+
+SQL 구문 결합·스크립트 삽입·경로 이탈·명령 구분자 신호가 같은 주소에서
+120초 안에8번 이상 반복되면15분 거부 후보로 추가한다. 이 수치는 구현 정책이다.
+단어 select/script/up 또는 따옴표만으로 차단하지 않는다. 애매한 경보만 실제
+Jev에 수치·불리언 요약으로 묻는다. 반복 근거가 없는 높은 AI 점수는.84 상한으로
+알림에 남긴다. 오류·시간 초과·미설정은.5 알림이며 실제 응답과 구분한다.
+
+`sql/xdr-web-injection.sql`을 같은 Supabase 프로젝트에 적용한다. 새 xdr_web_sources/
+xdr_web_alerts/RPC는 service_role 전용이고 기존 notes/Auth/XDR-01을 바꾸지 않는다.
+`xdr/live.mjs`가 기존 무차별 로그인 guard와 웹 입력 guard를 합성한다.
+Auth 프록시는 요청 인자만 검사하며 비밀번호/JWT/Auth 본문을 검사하지 않는다.
+로그인한 메모 요청에서는 인자·title/body의 문법 신호만 메모리에서 확인하고,
+본문·URL·계정·IP를 로그/DB/AI에 보내지 않는다. 운영 출발 주소는 Vercel의
+신뢰된 헤더만 쓰고 서버 키로 HMAC 처리해 저장한다. 출발 주소별 차단은 공유
+네트워크의 다른 사용자도 영향을 받을 수 있어 반복 근거와15분 만료로 제한한다.
+로그아웃은 계속 허용하며 인증/소유자 검사와 직접DB 권한 회수를 보존한다.
+추가 query 값은 기존 Auth의 고정 경로로 전달하지 않는다.
+
+재생: `npm run xdr:run -- web-injection` → 가상 fixture26건의 result.json,
+오프라인 block8·alert9·record9. 읽기 read-alerts는 원본/추출5필드를 동일하게
+처리한다. analyze가 판단 원본, `npm run xdr:build`가 외부import 없는 decide를
+만든다. respond는 alerts.log/만료·경보ID 후보를 저장하고 추가guard 재생의
+정상차단0을 기록한다. src/xdr-decider는 기존starter.deny를 보존한 연결 어댑터다.
+
+시험: `node --experimental-vm-modules --test test/web-injection.test.mjs test/xdr-portable.test.mjs test/xdr-live.test.mjs test/brute-force.test.mjs test/stage3.test.mjs test/stage5.test.mjs test/xdr-run.test.mjs`.
+빈 VM과 원본/추출의 동등성, 이름/순서 암기 부재, 만료/중복/정상/오류 및
+기존 규칙·인증·소유자 검사를 확인한다. 정책은 [영구 RULE](docs/XDR_WEB_INJECTION_RULES.md).
+[MITRE T1190](https://attack.mitre.org/techniques/T1190/)의 공개 앱 악용 범주를
+이용한 학습 감지기이며 모든 취약점/인코딩/웹 공격을 탐지하는 완전한 WAF는 아니다.
+이 감지기는 실행이나 쿼리 결합을 하지 않는다. 기존DB 쿼리는 SDK로 값/필터를
+전달하고 화면은 textContent로 메모를 출력한다.

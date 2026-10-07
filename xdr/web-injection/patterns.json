@@ -1,0 +1,14 @@
+{
+  "technique": "T1190",
+  "thresholds": {"block": 0.85, "alert": 0.5},
+  "minRepeats": 8,
+  "windowSeconds": 120,
+  "blockTtlSeconds": 900,
+  "patterns": [
+    {"name":"sql_injection","condition":"SQL 구문 결합·논리식·UNION SELECT 등의 구체 신호가 같은 주소에서 120초 내 8회 이상; 집계 경보 수준10 이상","evidence":"T1190 공개 앱 SQL 주입 악용; SQL/select 단어만으로 해당하지 않는다.","source":"https://attack.mitre.org/techniques/T1190/"},
+    {"name":"script_injection","condition":"실제 스크립트 태그/이벤트 핸들러 또는 삽입 표식 반복 8회 이상","evidence":"T1190 공개 웹 앱의 입력 처리 취약점 악용; 수업 script 단어는 근거 부족.","source":"https://attack.mitre.org/techniques/T1190/"},
+    {"name":"path_traversal","condition":"../ 연속 또는 경로 이탈 표기 반복 8회 이상","evidence":"T1190 공개 앱의 경로 처리 취약점 악용; up 단어는 경로 이탈이 아니다.","source":"https://attack.mitre.org/techniques/T1190/"},
+    {"name":"command_injection","condition":"명령 구분자와 실행 명령 결합 또는 명령 구분자 집계 경보 반복 8회 이상","evidence":"T1190 공개 앱에서 입력을 명령으로 해석하는 취약점 악용.","source":"https://attack.mitre.org/techniques/T1190/"},
+    {"name":"ambiguous_web_input","condition":"단일 표식/따옴표/긴 입력/수업 단어 등 명확한 반복 근거 부족","evidence":"T1190 범주만으로 공격을 확정할 수 없어 Jev로 수치 근거를 평가한다.","source":"https://attack.mitre.org/techniques/T1190/"}
+  ]
+}

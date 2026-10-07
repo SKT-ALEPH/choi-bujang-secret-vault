@@ -135,7 +135,7 @@ test('operator binding is mandatory and existing denial and step-up decisions re
   const request={requestId:'binding-test'};
   const connected=connectXdrDecider(binding);
   assert.deepEqual(await connected.decide(request),await originalDecide(request));
-  assert.deepEqual(connected.RULE_IDS,['starter.deny','xdr.brute_force']);
+  assert.deepEqual(connected.RULE_IDS,['starter.deny','xdr.brute_force','xdr.web_injection']);
   const stepUp={schema:'aleph.decision.v1',requestId:request.requestId,decision:'step_up',reasonCode:'step_up_required',ruleIds:['base.step_up']};
   assert.deepEqual(await createXdrGuard(async()=>stepUp,binding)(request),stepUp);
   assert.throws(()=>createXdrGuard(originalDecide,{...binding,allowedReasonCodes:[]}),/XDR_OPERATOR_BINDING_REQUIRED/);
