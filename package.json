@@ -11,7 +11,8 @@
     "detect:test": "node scripts/detect-test.mjs",
     "fixture:7": "node scripts/fixture-7.mjs",
     "xdr:run": "node scripts/xdr-run.mjs",
-    "xdr:verify-live": "node scripts/xdr-live-check.mjs"
+    "xdr:verify-live": "node scripts/xdr-live-check.mjs",
+    "xdr:build": "node scripts/build-xdr.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -19,5 +20,9 @@
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",
     "jose": "6.2.12"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.4.0",
+    "esbuild": "^0.28.2"
   }
 }

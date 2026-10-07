@@ -1,6 +1,6 @@
 // Official API: https://docs.typesafe.ai/api
-export function createJevClient({ enabled = process.env.XDR_JEV_LIVE === '1',
-  getApiKey = () => process.env.TYPESAFE_API_KEY, fetchImpl = globalThis.fetch,
+export function createJevClient({ enabled = typeof process !== 'undefined' && process.env?.XDR_JEV_LIVE === '1',
+  getApiKey = () => typeof process !== 'undefined' ? process.env?.TYPESAFE_API_KEY : undefined, fetchImpl = globalThis.fetch,
   onStatus = () => {} } = {}) {
   return async function askJev(summary, { signal } = {}) {
     if (!enabled) { onStatus('disabled'); return null; }

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -55,7 +55,17 @@ export async function runXdr({ root, moduleKey, writeError = (line) => console.e
   const outDir = join(root, 'xdr', moduleKey);
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'result.json'), `${JSON.stringify(result, null, 2)}\n`, 'utf8');
-  if (typeof loaded.respond === 'function') await loaded.respond({ root, result, alerts: fixture.alerts });
+  let respond = loaded.respond;
+  const responsePath = join(outDir, 'respond.mjs');
+  let hasResponseFile = true;
+  try { await access(responsePath); } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    hasResponseFile = false;
+  }
+  if (typeof respond !== 'function' && hasResponseFile) {
+    respond = (await import(pathToFileURL(responsePath).href)).respond;
+  }
+  if (typeof respond === 'function') await respond({ root, result, alerts: fixture.alerts });
   return result;
 }
 
