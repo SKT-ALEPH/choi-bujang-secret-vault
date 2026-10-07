@@ -55,6 +55,7 @@ export async function runXdr({ root, moduleKey, writeError = (line) => console.e
   const outDir = join(root, 'xdr', moduleKey);
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'result.json'), `${JSON.stringify(result, null, 2)}\n`, 'utf8');
+  if (typeof loaded.respond === 'function') await loaded.respond({ root, result, alerts: fixture.alerts });
   return result;
 }
 
@@ -62,7 +63,8 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLTo
 if (isMain) {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   try {
-    await runXdr({ root, moduleKey: process.argv[2] });
+    const result = await runXdr({ root, moduleKey: process.argv[2] });
+    console.log(`block ${result.counts.block} · alert ${result.counts.alert} · record ${result.counts.record}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : '실행 오류');
     process.exitCode = 1;

@@ -1,0 +1,49 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "brute-force",
+  "patterns": [
+    {
+      "name": "correlated_failure_burst",
+      "condition": "같은 출발 IP·같은 계정의 성공 없는 인증 실패를 120초 창에서 합산해, 중복 경보를 제외하고 20건 이상인 경우.",
+      "minFailures": 20,
+      "windowSeconds": 120,
+      "confidence": 0.9,
+      "evidence": "MITRE ATT&CK T1110: 같은 IP·사용자의 짧은 시간 연속 인증 실패를 상관 분석한다. 수치 기준은 이번 연습의 설정이며 MITRE가 지정한 고정값은 아니다.",
+      "source": "https://attack.mitre.org/techniques/T1110/"
+    },
+    {
+      "name": "repeated_password_guessing",
+      "condition": "로그인·비밀번호 실패가 20건 이상이고 규칙 수준이 10 이상이며, 유효한 시각·출발 IP가 있는 경보. 분 단위 폭주, 같은 계정 반복, 비밀번호 변형 시도를 포함한다.",
+      "minFailures": 20,
+      "minLevel": 10,
+      "confidence": 0.96,
+      "evidence": "MITRE ATT&CK T1110.001: 반복적인 비밀번호 추측으로 계정 접근을 시도한다.",
+      "source": "https://attack.mitre.org/techniques/T1110/001/"
+    },
+    {
+      "name": "password_spraying",
+      "condition": "여러 계정에 같은 비밀번호 실패가 반복됨을 경보가 명시하고 규칙 수준이 10 이상인 경우. 실제 비밀번호는 수집하지 않는다.",
+      "minLevel": 10,
+      "confidence": 0.96,
+      "evidence": "MITRE ATT&CK T1110.003: 하나 또는 소수의 비밀번호를 여러 계정에 대입한다.",
+      "source": "https://attack.mitre.org/techniques/T1110/003/"
+    },
+    {
+      "name": "automated_multi_account_attempts",
+      "condition": "8개 이상 계정의 로그인 실패와 일정 간격 자동 시도 또는 계정 순회를 함께 관찰하고 규칙 수준이 10 이상인 경우.",
+      "minAccounts": 8,
+      "minLevel": 10,
+      "confidence": 0.9,
+      "evidence": "MITRE ATT&CK T1110: 짧은 시간의 여러 계정 인증 실패를 상관 분석한다. 동일 비밀번호 여부를 근거 없이 추정하지 않는다.",
+      "source": "https://attack.mitre.org/techniques/T1110/"
+    },
+    {
+      "name": "ambiguous_authentication_failures",
+      "condition": "실패 신호가 있지만 명확한 공격 조건에 못 미치는 경우. 낮은 빈도, 성공 뒤섞임, 불규칙 간격만으로 자동 차단하지 않는다.",
+      "evidence": "MITRE ATT&CK T1110 탐지는 실패의 빈도·계정·시간을 함께 본다. 과도한 차단은 정상 사용자의 접속을 막을 수 있다.",
+      "source": "https://attack.mitre.org/techniques/T1110/"
+    }
+  ],
+  "thresholds": { "block": 0.85, "alert": 0.5 },
+  "blockTtlSeconds": 900
+}

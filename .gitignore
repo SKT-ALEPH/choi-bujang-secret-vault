@@ -7,3 +7,6 @@ public/aleph.json
 .local/
 public/vendor/
 public/auth-config.json
+xdr/alerts.log
+xdr/*/deny-rules.json
+xdr/*/verification.json
