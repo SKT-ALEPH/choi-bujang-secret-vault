@@ -1,10 +1,11 @@
 // Official API: https://docs.typesafe.ai/api
 export function createJevClient({ enabled = process.env.XDR_JEV_LIVE === '1',
-  getApiKey = () => process.env.TYPESAFE_API_KEY, fetchImpl = globalThis.fetch } = {}) {
+  getApiKey = () => process.env.TYPESAFE_API_KEY, fetchImpl = globalThis.fetch,
+  onStatus = () => {} } = {}) {
   return async function askJev(summary, { signal } = {}) {
-    if (!enabled) return null;
+    if (!enabled) { onStatus('disabled'); return null; }
     const apiKey = getApiKey();
-    if (typeof apiKey !== 'string' || !apiKey.trim()) return null;
+    if (typeof apiKey !== 'string' || !apiKey.trim()) { onStatus('missing_key'); return null; }
     // Whitelist evidence again at the provider boundary. Never transmit raw alerts.
     const state = {
       level: Number.isInteger(summary.level) ? summary.level : 0,
@@ -24,11 +25,13 @@ export function createJevClient({ enabled = process.env.XDR_JEV_LIVE === '1',
               false: 'Ordinary low-frequency user errors or insufficient evidence of automated guessing.' } },
         } }),
       });
-      if (!response.ok) return null;
+      if (!response.ok) { onStatus(`http_${response.status}`); return null; }
       const body = await response.json();
       const answer = body?.answers?.is_brute_force;
-      return answer?.type === 'noul' && typeof answer.noul === 'number'
-        && Number.isFinite(answer.noul) && answer.noul >= 0 && answer.noul <= 1 ? answer.noul : null;
-    } catch { return null; }
+      const valid = answer?.type === 'noul' && typeof answer.noul === 'number'
+        && Number.isFinite(answer.noul) && answer.noul >= 0 && answer.noul <= 1;
+      onStatus(valid ? 'answered' : 'invalid_response');
+      return valid ? answer.noul : null;
+    } catch { onStatus('request_failed'); return null; }
   };
 }

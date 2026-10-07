@@ -40,6 +40,7 @@ export async function respond({ root, result, alerts }) {
     const guarded = createXdrGuard(async request => ({ schema: 'aleph.decision.v1', requestId: request.requestId,
       decision: 'allow', reasonCode: 'approved', ruleIds: [] }), {
       getTrustedSource: async () => alert.sourceAddress, getRules: async () => rules,
+      denyReasonCode: 'xdr_brute_force', allowedReasonCodes: ['xdr_brute_force'],
       now: () => alert.timestamp,
     });
     const out = await guarded({ requestId: entry.alertId });

@@ -9,6 +9,8 @@ import { respond } from '../xdr/brute-force/respond.mjs';
 import { createXdrGuard } from '../xdr/brute-force/guard.mjs';
 import { decide as originalDecide } from '../src/decider.mjs';
 import { createJevClient } from '../xdr/brute-force/jev.mjs';
+import { verifyLiveJev } from '../scripts/xdr-live-check.mjs';
+import { connectXdrDecider } from '../src/xdr-decider.mjs';
 
 const fixture = JSON.parse(await readFile(new URL('../xdr/fixtures/brute-force.json', import.meta.url), 'utf8'));
 const sample = (description, level=5, id='sample', timestamp='2026-10-07T00:00:00Z') => ({ id, timestamp,
@@ -98,7 +100,8 @@ test('guard uses a trusted source, preserves base rules and request contract, an
     expiresAt:'2026-10-07T00:15:00Z',evidenceAlertIds:['sample']}];
   const request={requestId:'request-1',untrustedIp:'192.0.2.120'};const snapshot=structuredClone(request);
   const base=async req=>({schema:'aleph.decision.v1',requestId:req.requestId,decision:'allow',reasonCode:'approved',ruleIds:['base.allow']});
-  const guard=(source,at,decide=base)=>createXdrGuard(decide,{getTrustedSource:async id=>{assert.equal(id,request.requestId);return source;},getRules:async()=>rules,now:()=>at});
+  const guard=(source,at,decide=base)=>createXdrGuard(decide,{getTrustedSource:async id=>{assert.equal(id,request.requestId);return source;},getRules:async()=>rules,
+    denyReasonCode:'xdr_brute_force',allowedReasonCodes:['xdr_brute_force'],now:()=>at});
   const blocked=await guard('192.0.2.120','2026-10-07T00:01:00Z')(request);
   assert.equal(blocked.decision,'deny');assert.equal(Object.keys(blocked).length,5);
   assert.deepEqual(await guard('192.0.2.121','2026-10-07T00:01:00Z')(request),await base(request));
@@ -106,4 +109,26 @@ test('guard uses a trusted source, preserves base rules and request contract, an
   assert.equal((await guard('192.0.2.120','2026-10-07T00:15:00Z')(request)).decision,'allow');
   assert.deepEqual(await guard(null,'2026-10-07T00:01:00Z',originalDecide)(request),await originalDecide(request));
   assert.deepEqual(request,snapshot);
+});
+
+test('operator binding is mandatory and existing denial and step-up decisions remain unchanged',async()=>{
+  assert.throws(()=>connectXdrDecider({}),/XDR_OPERATOR_BINDING_REQUIRED/);
+  const binding={getTrustedSource:async()=>{throw new Error('must not override base rejection');},getRules:async()=>[],
+    denyReasonCode:'xdr_brute_force',allowedReasonCodes:['xdr_brute_force']};
+  const request={requestId:'binding-test'};
+  const connected=connectXdrDecider(binding);
+  assert.deepEqual(await connected.decide(request),await originalDecide(request));
+  assert.deepEqual(connected.RULE_IDS,['starter.deny','xdr.brute_force']);
+  const stepUp={schema:'aleph.decision.v1',requestId:request.requestId,decision:'step_up',reasonCode:'step_up_required',ruleIds:['base.step_up']};
+  assert.deepEqual(await createXdrGuard(async()=>stepUp,binding)(request),stepUp);
+  assert.throws(()=>createXdrGuard(originalDecide,{...binding,allowedReasonCodes:[]}),/XDR_OPERATOR_BINDING_REQUIRED/);
+});
+
+test('live verification rejects fallback and cannot claim success without model answers',async()=>{
+  const alerts=[sample('로그인이 성공했습니다.',3),sample('로그인 실패 4건 뒤 성공했습니다.',6)];
+  await assert.rejects(()=>verifyLiveJev({alerts,askJev:async()=>null}),/LIVE_JEV_RESPONSE_REQUIRED/);
+  const proof=await verifyLiveJev({alerts,askJev:async()=>0.7});
+  assert.equal(proof.modelRequests,1);assert.equal(proof.modelAnswers,1);
+  assert.deepEqual(proof.counts,{block:0,alert:1,record:1});
+  assert.equal(JSON.stringify(proof).includes('192.0.2'),false);
 });

@@ -133,6 +133,13 @@ true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 
 격리 심판과 기본 명령은 오프라인 경로로 재현합니다. 현재 실제 키를 설정하거나
 실제 Jev 응답을 받은 상태는 아닙니다.
 
+실제 연동 검증은 `npm run xdr:verify-live`입니다. 이 명령은 실제 API 응답이
+한 건도 없거나 애매한 경보의 어느 호출이라도 실패하면 실패하며, 오프라인 alert를
+실제 성공으로 취급하지 않습니다. Vercel Production의 Secret `TYPESAFE_API_KEY`와
+Config `XDR_VERIFY_JEV=1`을 설정한 배포는 빌드에서 같은 검증을 실행합니다.
+결과는 비밀값 없는 수치 증빙 `public/xdr-live-check.json`으로 남깁니다. 검증 후
+`XDR_VERIFY_JEV`를 끄면 다음 빌드에서 불필요한 유료 호출을 하지 않습니다.
+
 실행기는 `result.json`과 만료15분·근거 경보 ID를 가진 차단 후보를 만듭니다.
 알림은 `xdr/alerts.log`에 비밀값 없이 한 줄씩 기록하며 재실행 중복은 제거합니다.
 로그·deny-rules.json·verification.json은 Git에서 제외합니다. result.json은 가상
@@ -144,6 +151,13 @@ true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 
 없어 요청에 IP를 추가하지 않았고 `src/decider.mjs`의 starter.deny도 변경하지
 않았습니다. 실제 연결에는 운영자가 신뢰된 주소 제공과 xdr_brute_force 이유 코드
 등록을 제공해야 합니다. 현재 운영 엔진·실제 Wazuh·방화벽에는 연결하지 않았습니다.
+
+운영 측 진입점은 `src/xdr-decider.mjs`의 `connectXdrDecider(operatorBinding)`입니다.
+운영 측의 `getTrustedSource`, `getRules`, `denyReasonCode`, `allowedReasonCodes`가
+없거나 거부 사유가 등록되지 않았으면 시작에 실패합니다. 기존 판정이 deny 또는
+step_up이면 결과를 그대로 보존하며, allow일 때만 추가 주소 차단을 검사합니다.
+운영자가 이 진입점과 신뢰된 주소 제공·규칙 저장소를 연결한 실제 요청 증빙이
+없으면 차단 연결 완료로 보고하거나 과제를 제출하지 않습니다.
 
 `node --test test/brute-force.test.mjs test/xdr-run.test.mjs`는 비밀값 가림,
 중복·시간 창·계정 분리, Jev 실패와 경계값, 차단 만료, 기존 규칙 보존을 확인합니다.

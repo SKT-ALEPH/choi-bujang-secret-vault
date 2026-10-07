@@ -10,3 +10,4 @@ public/auth-config.json
 xdr/alerts.log
 xdr/*/deny-rules.json
 xdr/*/verification.json
+public/xdr-live-check.json
