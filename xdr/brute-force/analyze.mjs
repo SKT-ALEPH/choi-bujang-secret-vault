@@ -63,19 +63,19 @@ export function createDecider({ askJev = createJevClient(), timeoutMs = 1500 } =
       failureCount: signal.failures, accountCount: signal.accounts,
       multiAccount: signal.multiAccount, samePassword: signal.samePassword };
     let timer;
-    const controller = new AbortController();
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
     try {
-      const score = await Promise.race([
-        Promise.resolve().then(() => askJev(summary, { signal: controller.signal })),
-        new Promise(resolve => { timer = setTimeout(() => { controller.abort(); resolve(null); }, timeoutMs); }),
-      ]);
+      const response = Promise.resolve().then(() => askJev(summary, { signal: controller?.signal }));
+      const score = typeof setTimeout === 'function' ? await Promise.race([response,
+        new Promise(resolve => { timer = setTimeout(() => { controller?.abort(); resolve(null); }, timeoutMs); }),
+      ]) : await response;
       if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1) {
         return decision(0.5, 'ambiguous_authentication_failures: Jev 응답 없음 또는 형식 오류');
       }
       return decision(score, 'ambiguous_authentication_failures: Jev 판단');
     } catch {
       return decision(0.5, 'ambiguous_authentication_failures: Jev 응답 없음');
-    } finally { clearTimeout(timer); }
+    } finally { if (timer !== undefined && typeof clearTimeout === 'function') clearTimeout(timer); }
   };
 }
 

@@ -59,11 +59,17 @@ function isIP(value) {
     return value.split(".").every((part) => Number(part) <= 255) ? 4 : 0;
   }
   if (!value.includes(":") || /[^0-9a-f:.]/iu.test(value)) return 0;
-  try {
-    return new URL(`http://[${value}]/`).hostname.startsWith("[") ? 6 : 0;
-  } catch {
-    return 0;
+  let address = value;
+  if (address.includes(".")) {
+    const index = address.lastIndexOf(":");
+    if (isIP(address.slice(index + 1)) !== 4) return 0;
+    address = address.slice(0, index + 1) + "0:0";
   }
+  const halves = address.split("::");
+  if (halves.length > 2) return 0;
+  const groups = halves.flatMap((half) => half === "" ? [] : half.split(":"));
+  if (!groups.every((group) => /^[0-9a-f]{1,4}$/iu.test(group))) return 0;
+  return (halves.length === 2 ? groups.length < 8 : groups.length === 8) ? 6 : 0;
 }
 
 // node_modules/@noble/hashes/_u64.js
@@ -151,16 +157,6 @@ function bytesToHex(bytes) {
     hex += hexes[bytes[i]];
   }
   return hex;
-}
-function utf8ToBytes(str) {
-  if (typeof str !== "string")
-    throw new TypeError("string expected");
-  const encoded = new TextEncoder().encode(str);
-  try {
-    return new Uint8Array(encoded);
-  } finally {
-    clean(encoded);
-  }
 }
 function checkOpts(defaults, opts, title = "opts") {
   aopts(defaults, "defaults");
@@ -472,7 +468,7 @@ function createHash(algorithm) {
   const hash = sha256.create();
   return {
     update(value) {
-      hash.update(utf8ToBytes(value));
+      hash.update(utf8(value));
       return this;
     },
     digest(encoding) {
@@ -480,6 +476,18 @@ function createHash(algorithm) {
       return bytesToHex(hash.digest());
     }
   };
+}
+function utf8(value) {
+  const bytes = [];
+  for (const character of value) {
+    let point = character.codePointAt(0);
+    if (point >= 55296 && point <= 57343) point = 65533;
+    if (point < 128) bytes.push(point);
+    else if (point < 2048) bytes.push(192 | point >> 6, 128 | point & 63);
+    else if (point < 65536) bytes.push(224 | point >> 12, 128 | point >> 6 & 63, 128 | point & 63);
+    else bytes.push(240 | point >> 18, 128 | point >> 12 & 63, 128 | point >> 6 & 63, 128 | point & 63);
+  }
+  return Uint8Array.from(bytes);
 }
 
 // xdr/brute-force/normalize-alert.mjs
@@ -626,17 +634,18 @@ function createDecider({ askJev = createJevClient(), timeoutMs = 1500 } = {}) {
       samePassword: signal.samePassword
     };
     let timer;
-    const controller = new AbortController();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
     try {
-      const score = await Promise.race([
-        Promise.resolve().then(() => askJev(summary, { signal: controller.signal })),
+      const response = Promise.resolve().then(() => askJev(summary, { signal: controller?.signal }));
+      const score = typeof setTimeout === "function" ? await Promise.race([
+        response,
         new Promise((resolve) => {
           timer = setTimeout(() => {
-            controller.abort();
+            controller?.abort();
             resolve(null);
           }, timeoutMs);
         })
-      ]);
+      ]) : await response;
       if (typeof score !== "number" || !Number.isFinite(score) || score < 0 || score > 1) {
         return decision(0.5, "ambiguous_authentication_failures: Jev \uC751\uB2F5 \uC5C6\uC74C \uB610\uB294 \uD615\uC2DD \uC624\uB958");
       }
@@ -644,7 +653,7 @@ function createDecider({ askJev = createJevClient(), timeoutMs = 1500 } = {}) {
     } catch {
       return decision(0.5, "ambiguous_authentication_failures: Jev \uC751\uB2F5 \uC5C6\uC74C");
     } finally {
-      clearTimeout(timer);
+      if (timer !== void 0 && typeof clearTimeout === "function") clearTimeout(timer);
     }
   };
 }

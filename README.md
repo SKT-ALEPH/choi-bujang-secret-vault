@@ -111,7 +111,7 @@ true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 
 판단 원본은 `xdr/brute-force/analyze.mjs`이며, 변경 후 `npm run xdr:build`로
 외부 import·파일 접근이 없는 `decide.mjs`를 생성해 함께 커밋한다.
 알림·규칙 파일 저장은 판단이 끝난 뒤 실행기가 `respond.mjs`를 별도로 호출한다.
-격리 환경 동등성은 `node --experimental-vm-modules --test test/xdr-portable.test.mjs`로 확인한다.
+Node·파일·네트워크·브라우저 보조 기능이 없는 격리 환경 동등성은 `node --experimental-vm-modules --test test/xdr-portable.test.mjs`로 확인한다.
 원본 경보를 보존하며 시각·출발 주소·가명 계정·수준·설명만 추출한다.
 원본과 추출 입력 모두 같은 판정을 내며 비밀값은 제거한다.
 MITRE T1110·T1110.001·T1110.003 근거와 연습의 수치 기준은 patterns.json에 있다.
