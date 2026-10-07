@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, mkdir, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readAlerts, normalizeAlert } from '../xdr/brute-force/read-alerts.mjs';
@@ -11,6 +11,7 @@ import { decide as originalDecide } from '../src/decider.mjs';
 import { createJevClient } from '../xdr/brute-force/jev.mjs';
 import { verifyLiveJev } from '../scripts/xdr-live-check.mjs';
 import { connectXdrDecider } from '../src/xdr-decider.mjs';
+import { addDenyRules, readDenyRules } from '../xdr/brute-force/rule-store.mjs';
 
 const fixture = JSON.parse(await readFile(new URL('../xdr/fixtures/brute-force.json', import.meta.url), 'utf8'));
 const sample = (description, level=5, id='sample', timestamp='2026-10-07T00:00:00Z') => ({ id, timestamp,
@@ -55,6 +56,22 @@ test('clear evidence and normal activity skip Jev; ambiguous input uses only san
   for(const [score,action] of [[0.85,'block'],[0.5,'alert'],[0.49,'record']]) {
     const judge=createDecider({askJev:async()=>score}); assert.equal((await judge(sample('로그인 실패 4건 뒤 성공했습니다.'))).action,action);
   }
+});
+
+test('reader output can be passed to the decider without losing evidence or changing account identity', async()=>{
+  const rawDecide=createDecider();const extractedDecide=createDecider();
+  const rows=await readAlerts();
+  for(const [index,row] of rows.entries()) {
+    assert.deepEqual(await extractedDecide(row),await rawDecide(fixture.alerts[index]));
+  }
+  const privateRow=normalizeAlert({...sample('로그인 실패 48건입니다.',12),
+    data:{srcip:'192.0.2.120',srcuser:'private fixture account'}});
+  assert.deepEqual(normalizeAlert(privateRow),privateRow);
+  const unknownRow=normalizeAlert({...sample('로그인 실패 5건입니다.'),data:{srcip:'192.0.2.120'}});
+  assert.deepEqual(normalizeAlert(unknownRow),unknownRow);
+  assert.equal((await createDecider()(privateRow)).action,'block');
+  const partialRaw={...privateRow,rule:{level:12}};
+  assert.equal(normalizeAlert(partialRaw).sourceAddress,null);
 });
 
 test('Jev errors, invalid scores and timeouts cannot automatically block ambiguous events', async()=>{
@@ -122,6 +139,30 @@ test('operator binding is mandatory and existing denial and step-up decisions re
   const stepUp={schema:'aleph.decision.v1',requestId:request.requestId,decision:'step_up',reasonCode:'step_up_required',ruleIds:['base.step_up']};
   assert.deepEqual(await createXdrGuard(async()=>stepUp,binding)(request),stepUp);
   assert.throws(()=>createXdrGuard(originalDecide,{...binding,allowedReasonCodes:[]}),/XDR_OPERATOR_BINDING_REQUIRED/);
+});
+
+test('persisted rules survive later batches and restart, and malformed or overlong rules fail closed',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'xdr-store-'));const path=join(root,'rules.json');
+  const candidate={ruleId:'xdr.brute_force',action:'deny',sourceAddress:'192.0.2.120',
+    createdAt:'2026-10-07T00:00:00Z',expiresAt:'2026-10-07T00:15:00Z',confidence:0.9,evidenceAlertIds:['sample']};
+  try {
+    assert.deepEqual(await readDenyRules(path),[]);
+    await addDenyRules(path,[candidate]);await addDenyRules(path,[]);await addDenyRules(path,[candidate]);
+    assert.deepEqual(await readDenyRules(path),[candidate]);
+    assert.equal((await stat(path)).mode & 0o777,0o600);
+    const base=async request=>({schema:'aleph.decision.v1',requestId:request.requestId,
+      decision:'allow',reasonCode:'approved',ruleIds:[]});
+    const binding={getTrustedSource:async()=>candidate.sourceAddress,getRules:()=>readDenyRules(path),
+      denyReasonCode:'xdr_brute_force',allowedReasonCodes:['xdr_brute_force']};
+    assert.equal((await createXdrGuard(base,{...binding,now:()=>candidate.createdAt})({requestId:'restart'})).decision,'deny');
+    assert.equal((await createXdrGuard(base,{...binding,now:()=>candidate.expiresAt})({requestId:'expired'})).decision,'allow');
+    // The actual starter remains unchanged when using the disk-backed connector.
+    const connected=connectXdrDecider({...binding,getRules:undefined,rulesPath:path});
+    assert.deepEqual(await connected.decide({requestId:'base'}),await originalDecide({requestId:'base'}));
+    await assert.rejects(()=>addDenyRules(path,[{...candidate,expiresAt:'2026-10-07T00:16:00Z'}]),/XDR_RULE_STORE_INVALID/);
+    await assert.rejects(()=>addDenyRules(path,[{...candidate,confidence:1.1}]),/XDR_RULE_STORE_INVALID/);
+    await writeFile(path,'invalid json');await assert.rejects(()=>readDenyRules(path),/XDR_RULE_STORE_INVALID/);
+  } finally {await rm(root,{recursive:true,force:true});}
 });
 
 test('live verification rejects fallback and cannot claim success without model answers',async()=>{

@@ -9,5 +9,6 @@ public/vendor/
 public/auth-config.json
 xdr/alerts.log
 xdr/*/deny-rules.json
+xdr/*/deny-rules.json.*.tmp
 xdr/*/verification.json
 public/xdr-live-check.json

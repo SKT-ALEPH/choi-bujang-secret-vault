@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import policy from './patterns.json' with { type: 'json' };
 import { normalizeAlert } from './read-alerts.mjs';
 import { createXdrGuard } from './guard.mjs';
+import { addDenyRules, readDenyRules } from './rule-store.mjs';
 
 const safeId = value => typeof value === 'string' && /^[a-z0-9][a-z0-9_.-]{0,79}$/iu.test(value) ? value : null;
 
@@ -30,7 +31,8 @@ export async function respond({ root, result, alerts }) {
   const known = new Set(existing.split('\n'));
   const fresh = notices.filter(line => !known.has(line));
   if (fresh.length) await appendFile(logPath, fresh.join('\n') + '\n');
-  await writeFile(join(root, 'xdr/brute-force/deny-rules.json'), JSON.stringify({ rules }, null, 2) + '\n');
+  const rulesPath = join(root, 'xdr/brute-force/deny-rules.json');
+  await addDenyRules(rulesPath, rules);
 
   // Replay the guard with a known allow baseline, separately from the existing
   // starter.deny. This proves the added component does not block normal events.
@@ -39,7 +41,7 @@ export async function respond({ root, result, alerts }) {
     const alert = normalizeAlert(indexed.get(entry.alertId));
     const guarded = createXdrGuard(async request => ({ schema: 'aleph.decision.v1', requestId: request.requestId,
       decision: 'allow', reasonCode: 'approved', ruleIds: [] }), {
-      getTrustedSource: async () => alert.sourceAddress, getRules: async () => rules,
+      getTrustedSource: async () => alert.sourceAddress, getRules: () => readDenyRules(rulesPath),
       denyReasonCode: 'xdr_brute_force', allowedReasonCodes: ['xdr_brute_force'],
       now: () => alert.timestamp,
     });

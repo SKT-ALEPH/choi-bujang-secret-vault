@@ -110,6 +110,8 @@ true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 
 `npm run xdr:run -- brute-force`로 원본을 보존한 채 가상 Wazuh 경보 28건을
 분석합니다. `read-alerts.mjs`는 시각·출발 IP·가명 계정·수준·설명만 추출하고
 비밀값과 개인정보처럼 보이는 설명을 가립니다. 원본은 실제 PC 로그가 아닙니다.
+판단 모듈은 원본 Wazuh 경보와 읽기 모듈의 다섯 항목 출력 모두를 받습니다.
+같은 경보를 추출 후 판단해도 원본 입력과 같은 결과를 내며, 가명 계정을 다시 바꾸지 않습니다.
 
 `patterns.json`은 MITRE ATT&CK T1110·T1110.001·T1110.003 근거를 기록합니다.
 같은 IP·계정의 120초 실패 합계20건, 높은 수준의 실패20건, 반복적인 여러 계정
@@ -148,6 +150,10 @@ Config `XDR_VERIFY_JEV=1`을 설정한 배포는 빌드에서 같은 검증을 �
 알림은 `xdr/alerts.log`에 비밀값 없이 한 줄씩 기록하며 재실행 중복은 제거합니다.
 로그·deny-rules.json·verification.json은 Git에서 제외합니다. result.json은 가상
 경보의 판정만 담고 커밋합니다. 다른 XDR 과제의 판단 모듈은 아직 구현하지 않았습니다.
+차단 후보는 `rule-store.mjs`가 비공개 파일에 추가하며 다음 묶음이 이전 후보를
+지우지 않습니다. 파일을 소유자 전용 권한(0600)으로 원자적으로 교체하고 중복을
+제외합니다. 잘못된 형식·15분 초과 TTL은 거부합니다. 한 저장소에는 한 처리기만
+씁니다. 만료된 규칙은 판정에서 제외하며 저장 파일은 별도 운영 보관 정책에 따릅니다.
 
 `guard.mjs`는 기존 ZTNA 판정을 대체하지 않는 추가 검사입니다. 신뢰된 운영
 연결의 `getTrustedSource(requestId)`로 출발 IP를 받고, 활성 후보만 deny합니다.
@@ -157,7 +163,9 @@ Config `XDR_VERIFY_JEV=1`을 설정한 배포는 빌드에서 같은 검증을 �
 등록을 제공해야 합니다. 현재 운영 엔진·실제 Wazuh·방화벽에는 연결하지 않았습니다.
 
 운영 측 진입점은 `src/xdr-decider.mjs`의 `connectXdrDecider(operatorBinding)`입니다.
-운영 측의 `getTrustedSource`, `getRules`, `denyReasonCode`, `allowedReasonCodes`가
+기본 규칙 조회는 위 `deny-rules.json`을 직접 읽습니다. 운영 저장소를 따로 쓰면
+`getRules`를 제공하거나 서버 전용 파일의 `rulesPath`를 지정합니다.
+운영 측의 `getTrustedSource`, `denyReasonCode`, `allowedReasonCodes`가
 없거나 거부 사유가 등록되지 않았으면 시작에 실패합니다. 기존 판정이 deny 또는
 step_up이면 결과를 그대로 보존하며, allow일 때만 추가 주소 차단을 검사합니다.
 운영자가 이 진입점과 신뢰된 주소 제공·규칙 저장소를 연결한 실제 요청 증빙이
@@ -165,6 +173,7 @@ step_up이면 결과를 그대로 보존하며, allow일 때만 추가 주소 �
 
 `node --test test/brute-force.test.mjs test/xdr-run.test.mjs`는 비밀값 가림,
 중복·시간 창·계정 분리, Jev 실패와 경계값, 차단 만료, 기존 규칙 보존을 확인합니다.
+추출 입력의 판정 동등성, 다음 묶음·재시작 후 규칙 유지, 잘못된 저장 파일 거부도 확인합니다.
 정상 통과 검증은 명시적 allow 시험 기준 함수로 추가 검사만 재생한 것이며,
 기본 거부 판정기의 실제 허용이나 실제 PC 차단으로 보고하지 않습니다.
 가상 시험 결과 block10·alert9·record9, 정상 이벤트 차단0건입니다.
