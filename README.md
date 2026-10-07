@@ -107,77 +107,58 @@ true로 확인했습니다. 4단계 03434a2 배포는 조건 6개·가점 3개, 
 
 ## 보너스 XDR-01 · 무차별 로그인
 
-`npm run xdr:run -- brute-force`로 원본을 보존한 채 가상 Wazuh 경보 28건을
-분석합니다. `read-alerts.mjs`는 시각·출발 IP·가명 계정·수준·설명만 추출하고
-비밀값과 개인정보처럼 보이는 설명을 가립니다. 원본은 실제 PC 로그가 아닙니다.
-판단 모듈은 원본 Wazuh 경보와 읽기 모듈의 다섯 항목 출력 모두를 받습니다.
-같은 경보를 추출 후 판단해도 원본 입력과 같은 결과를 내며, 가명 계정을 다시 바꾸지 않습니다.
+제공된 가상 Wazuh 경보는 `npm run xdr:run -- brute-force`로 분석한다.
+원본 경보를 보존하며 시각·출발 주소·가명 계정·수준·설명만 추출한다.
+원본과 추출 입력 모두 같은 판정을 내며 비밀값은 제거한다.
+MITRE T1110·T1110.001·T1110.003 근거와 연습의 수치 기준은 patterns.json에 있다.
+같은 주소·계정120초 창의 반복 실패와 여러 계정 대입을 분석한다.
+명확한 공격과 정상은 규칙으로, 애매한 경보는 Jev로 판단한다.
+0.85 이상 block,0.5 이상 alert,나머지 record이며 Jev 실패는 alert이다.
+원본 fixture 재생은 네트워크 없는 경로로 block10·alert9·record9, 정상 차단0건이다.
 
-`patterns.json`은 MITRE ATT&CK T1110·T1110.001·T1110.003 근거를 기록합니다.
-같은 IP·계정의 120초 실패 합계20건, 높은 수준의 실패20건, 반복적인 여러 계정
-비밀번호 대입을 분류합니다. 수치와 확신도는 이번 연습의 정책값이며 MITRE가
-보장한 확률이나 고정 임계값이 아닙니다. 중복 경보를 합산하지 않습니다.
+### 실제 자료실 서버 연결
 
-판단 모듈은 명확한 공격과 정상 이벤트를 규칙으로 처리하고, 애매한 경보만
-`jev.mjs`에 수치·불리언 요약으로 요청합니다. 연결은
-[TypeSafe 공식 API](https://docs.typesafe.ai/api)의 POST `/v1/systemone`,
-`jev-latest`, Noul 질문을 사용하고 `answers.is_brute_force.noul`을 읽습니다.
-이 값은 공격이라는 명제의 확률이며 Choice의 별도 confidence와 구분합니다.
-기본 실행은 네트워크 없이 응답 없음 → alert입니다. 실패,
-형식 오류, 제한시간 초과도 alert이며 실제 Jev 호출 성공으로 기록하지 않습니다.
-0.85 이상 block, 0.5 이상 alert, 그 아래 record 계약을 유지합니다.
+`api/auth.js`의 실제 비밀번호 실패→`live.mjs`→서버 전용 Supabase 상태→
+`createXdrGuard`→로그인·메모 API 거부로 연결했다. 같은 출발 주소에서120초 안에
+20건 이상 실패하면 명확한 공격으로 보고15분 차단 후보를 만든다.
+그 아래 애매한 실패는 Jev가 판단하며, 응답 없음·오류·시간 초과는 알림으로 남긴다.
+차단 대상의 인증 요청은429, 인증된 메모 요청은403으로 거부하며 Retry-After를 준다.
+만료 후 기존 인증·소유자 검사로 복귀한다. 로그아웃은 허용한다.
 
-실제 호출은 [TypeSafe 대시보드](https://console.typesafe.ai/)에서 본인이 받은
-키를 서버 실행 환경의 `TYPESAFE_API_KEY`에 안전하게 저장한 뒤,
-`XDR_JEV_LIVE=1 npm run xdr:run -- brute-force`로 명시적으로 켭니다.
-키를 명령문·채팅·Git에 넣지 않습니다. 키가 없으면 외부 호출하지 않고 alert로
-돌아갑니다. 출발 IP·계정·설명·원본 로그는 전송하지 않고 재시도하지 않습니다.
-격리 심판과 기본 명령은 오프라인 경로로 재현합니다.
+Supabase SQL Editor에서 `sql/xdr-brute-force.sql`을 적용한다.
+`xdr_sources`·`xdr_alerts`와 RPC는 서버 service_role만 접근할 수 있다.
+실제 IP·이메일은 서버 키로 HMAC 처리하고 비밀번호·토큰·원본 로그를 저장하지 않는다.
+이미 설정한 서버 환경 SUPABASE_URL·SUPABASE_SECRET_KEY·TYPESAFE_API_KEY를 사용한다.
+Vercel이 덮어쓴 출발 주소 헤더만 믿으며 다른 호스팅에서는 신뢰 어댑터를 별도로 구성한다.
+기존 자료실의 로그인·경로·소유자 검사, src/verify-login.mjs, judgeIssuer,
+6단계 전의 src/decider.mjs 기본 거부 규칙을 보존했다.
 
-실제 연동 검증은 `npm run xdr:verify-live`입니다. 이 명령은 실제 API 응답이
-한 건도 없거나 애매한 경보의 어느 호출이라도 실패하면 실패하며, 오프라인 alert를
-실제 성공으로 취급하지 않습니다. Vercel Production의 Secret `TYPESAFE_API_KEY`와
-Config `XDR_VERIFY_JEV=1`을 설정한 배포는 빌드에서 같은 검증을 실행합니다.
-결과는 비밀값 없는 수치 증빙 `public/xdr-live-check.json`으로 남깁니다. 검증 후
-`XDR_VERIFY_JEV`를 끄면 다음 빌드에서 불필요한 유료 호출을 하지 않습니다.
-2026-10-07 배포 커밋 `8295b3bae97aa9565bcb523197203612ac418fcf`에서
-실제 Jev 요청9건·정상 응답9건을 확인했습니다. 실제 판정은 block10·alert1·record17이며
-오프라인 결과 block10·alert9·record9와 구분합니다. 이후 검증 플래그를0으로 변경했습니다.
-이 검증은 배포 빌드의 실제 외부 API 호출 증거이며 운영 반 엔진의 실시간 경보·접속
-차단 연결을 증명하지 않습니다. 자료실 API에 실시간 XDR 처리를 붙였다는 뜻도 아닙니다.
+실제 Jev 연결은 [TypeSafe 공식 API](https://docs.typesafe.ai/api)의
+POST /v1/systemone·jev-latest·Noul 응답이다. IP·계정·설명은 전송하지 않고
+수치·불리언만 전송한다. 실제 서버 실패 판단은 키가 있을 때 Jev를 호출한다.
+오프라인 fixture 명령은 네트워크를 사용하지 않는다.
+서버 환경에서 fixture 자체의 실호출을 확인하려면
+`XDR_JEV_LIVE=1 npm run xdr:run -- brute-force` 또는 `npm run xdr:verify-live`를 쓴다.
+키는 명령문·파일·채팅에 넣지 않는다. XDR_VERIFY_JEV=1을 켠 Vercel 빌드에서도
+실호출을 확인할 수 있으나 반복 검증을 막기 위해 평소0으로 둔다.
+2026-10-07 배포8295b3b에서 실제 요청9·응답9, block10·alert1·record17을 확인했다.
+실제 모델 값은 오프라인 대체 경로의10/9/9와 구분한다.
 
-실행기는 `result.json`과 만료15분·근거 경보 ID를 가진 차단 후보를 만듭니다.
-알림은 `xdr/alerts.log`에 비밀값 없이 한 줄씩 기록하며 재실행 중복은 제거합니다.
-로그·deny-rules.json·verification.json은 Git에서 제외합니다. result.json은 가상
-경보의 판정만 담고 커밋합니다. 다른 XDR 과제의 판단 모듈은 아직 구현하지 않았습니다.
-차단 후보는 `rule-store.mjs`가 비공개 파일에 추가하며 다음 묶음이 이전 후보를
-지우지 않습니다. 파일을 소유자 전용 권한(0600)으로 원자적으로 교체하고 중복을
-제외합니다. 잘못된 형식·15분 초과 TTL은 거부합니다. 한 저장소에는 한 처리기만
-씁니다. 만료된 규칙은 판정에서 제외하며 저장 파일은 별도 운영 보관 정책에 따릅니다.
+### 저장과 검증
 
-`guard.mjs`는 기존 ZTNA 판정을 대체하지 않는 추가 검사입니다. 신뢰된 운영
-연결의 `getTrustedSource(requestId)`로 출발 IP를 받고, 활성 후보만 deny합니다.
-정상·만료 주소는 원래 판정 함수로 그대로 돌아갑니다. 현재18필드 계약에는 IP가
-없어 요청에 IP를 추가하지 않았고 `src/decider.mjs`의 starter.deny도 변경하지
-않았습니다. 실제 연결에는 운영자가 신뢰된 주소 제공과 xdr_brute_force 이유 코드
-등록을 제공해야 합니다. 현재 운영 엔진·실제 Wazuh·방화벽에는 연결하지 않았습니다.
+로컬 fixture 후보는 rule-store.mjs가 deny-rules.json에 중복 없이 추가한다.
+0600 원자적 저장·재시작 유지·15분 이내 TTL 검증을 적용한다.
+파일·alerts.log·verification.json은 Git에서 제외한다. result.json은 가상 판정만 커밋한다.
+실제 자료실 운영 후보·경보는 Supabase에 영속 저장한다.
+실제 서버 이벤트는 UUID·시각·행동·확신도·정해진 패턴 이름만 기록한다.
 
-운영 측 진입점은 `src/xdr-decider.mjs`의 `connectXdrDecider(operatorBinding)`입니다.
-기본 규칙 조회는 위 `deny-rules.json`을 직접 읽습니다. 운영 저장소를 따로 쓰면
-`getRules`를 제공하거나 서버 전용 파일의 `rulesPath`를 지정합니다.
-운영 측의 `getTrustedSource`, `denyReasonCode`, `allowedReasonCodes`가
-없거나 거부 사유가 등록되지 않았으면 시작에 실패합니다. 기존 판정이 deny 또는
-step_up이면 결과를 그대로 보존하며, allow일 때만 추가 주소 차단을 검사합니다.
-운영자가 이 진입점과 신뢰된 주소 제공·규칙 저장소를 연결한 실제 요청 증빙이
-없으면 차단 연결 완료로 보고하거나 과제를 제출하지 않습니다.
+`node --test test/xdr-live.test.mjs test/brute-force.test.mjs test/stage3.test.mjs test/stage5.test.mjs test/xdr-run.test.mjs`
+으로 실패 합산·추가 거부·만료 복귀·저장 장애·토큰·소유자 검사 보존을 확인한다.
+세부 설치·경계는 [서버 연결 문서](docs/XDR_OPERATOR_CONNECTION.md)를 따른다.
+이 연결은 자료실 HTTP 서버의 접근 통제다. 운영 반 엔진·실시간 Wazuh 수집기·PC 방화벽
+설치 완료로 보고하지 않는다. 미래 운영 엔진 어댑터 src/xdr-decider.mjs는 별도로 남겨 둔다.
+웹 입력 조작과 다른 XDR 모듈은 이번 작업 범위에 포함하지 않았다.
 
-`node --test test/brute-force.test.mjs test/xdr-run.test.mjs`는 비밀값 가림,
-중복·시간 창·계정 분리, Jev 실패와 경계값, 차단 만료, 기존 규칙 보존을 확인합니다.
-추출 입력의 판정 동등성, 다음 묶음·재시작 후 규칙 유지, 잘못된 저장 파일 거부도 확인합니다.
-정상 통과 검증은 명시적 allow 시험 기준 함수로 추가 검사만 재생한 것이며,
-기본 거부 판정기의 실제 허용이나 실제 PC 차단으로 보고하지 않습니다.
-가상 시험 결과 block10·alert9·record9, 정상 이벤트 차단0건입니다.
-
-제출은 보너스 작전 → 무차별 로그인 → 과제 보기에서 실제 배포 주소와 공개
-GitHub 저장소 주소를 넣고 「심판에게 제출하기」를 누릅니다. 심판은 저장소에서
-같은 실행 명령을 재실행하며 결과 JSON만으로 완료를 판단하지 않습니다.
+제출 전 같은 fixture 명령으로 결과를 갱신하고 「보너스 xdr-01 저장점」으로 커밋한다.
+구현·DB 설정·실제 배포 검증이 모두 끝난 뒤 보너스 작전→무차별 로그인→과제 보기에서
+배포 주소와 공개 GitHub 주소를 제출한다. 심판은 저장소의 decide를 다시 실행한다.

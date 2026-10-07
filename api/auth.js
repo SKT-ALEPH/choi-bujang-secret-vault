@@ -1,10 +1,11 @@
 import settings from '../config/supabase-public.json' with { type: 'json' };
 import config from '../aleph.config.json' with { type: 'json' };
+import { getLiveXdr } from '../xdr/brute-force/live.mjs';
 
 const routes = { token: ['POST'], signup: ['POST'], recover: ['POST'], user: ['GET', 'PUT'], logout: ['POST'] };
 
 // Only Auth is proxied. The public credential never enters the browser bundle.
-export function createAuthHandler(upstreamFetch = fetch) {
+export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null } = {}) {
   return async function handler(request, response) {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
@@ -41,6 +42,15 @@ export function createAuthHandler(upstreamFetch = fetch) {
       if (Buffer.byteLength(body) > 16384) return response.status(413).json({ error: 'AUTH_INPUT_TOO_LARGE' });
     }
     try {
+      const xdr=getXdr();
+      if(xdr && path!=='logout') {
+        const blocked=await xdr.check(request);
+        if(blocked) {
+          response.setHeader('Retry-After',String(blocked.retryAfter));
+          response.setHeader('X-XDR-Evidence',blocked.evidenceId);
+          return response.status(429).json({code:'xdr_brute_force',error_code:'xdr_brute_force',msg:'반복 로그인 실패로 잠시 차단되었습니다.'});
+        }
+      }
       const upstream = await upstreamFetch(target, { method: request.method, headers, body,
         redirect: 'error', signal: AbortSignal.timeout(10000) });
       if (upstream.status === 204) return response.status(200).json({});
@@ -49,6 +59,10 @@ export function createAuthHandler(upstreamFetch = fetch) {
       if (!upstream.ok) {
         const code = typeof result.error_code === 'string' ? result.error_code
           : typeof result.code === 'string' ? result.code : 'auth_failed';
+        if(xdr && path==='token' && request.query?.grant_type==='password' && code==='invalid_credentials') {
+          let input;try{input=JSON.parse(body);}catch{input={};}
+          await xdr.failure(request,input);
+        }
         return response.status(upstream.status).json({ code, error_code: code, msg: '인증 요청에 실패했습니다.' });
       }
       return response.status(upstream.status).json(result);
@@ -58,4 +72,4 @@ export function createAuthHandler(upstreamFetch = fetch) {
   };
 }
 
-export default createAuthHandler();
+export default createAuthHandler(fetch,{getXdr:getLiveXdr});

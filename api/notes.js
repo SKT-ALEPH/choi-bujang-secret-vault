@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import config from '../aleph.config.json' with { type: 'json' };
+import { getLiveXdr } from '../xdr/brute-force/live.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const fields = 'id,title,content';
@@ -18,7 +19,7 @@ function productionRuntime() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: (target, options) => fetch(target, { ...options, redirect: 'error' }) },
   });
-  runtime = { database, verifyLoginAuthorization: createLoginVerifier({ config, supabaseSecretKey: secretKey }) };
+  runtime = { database, xdr:getLiveXdr(), verifyLoginAuthorization: createLoginVerifier({ config, supabaseSecretKey: secretKey }) };
   return runtime;
 }
 
@@ -28,10 +29,11 @@ export function createNotesHandler(getRuntime = productionRuntime) {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     const authorization = request.headers?.authorization;
     if (!authorization) return response.status(401).json({ error: 'LOGIN_REQUIRED' });
-    let database, identity;
+    let database, identity, xdr;
     try {
       const services = getRuntime();
       database = services.database;
+      xdr=services.xdr;
       identity = await services.verifyLoginAuthorization(authorization);
     } catch {
       return response.status(503).json({ error: 'AUTH_NOT_CONFIGURED' });
@@ -63,6 +65,14 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       }
     }
     try {
+      if(xdr) {
+        const blocked=await xdr.check(request);
+        if(blocked) {
+          response.setHeader('Retry-After',String(blocked.retryAfter));
+          response.setHeader('X-XDR-Evidence',blocked.evidenceId);
+          return response.status(403).json({error:'XDR_BRUTE_FORCE'});
+        }
+      }
       let query;
       if (method === 'GET') {
         query = database.from('notes').select(fields);
