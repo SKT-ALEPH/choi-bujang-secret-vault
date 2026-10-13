@@ -13,6 +13,6 @@
 | 검사커밋·설치·실행·중지·복구 | README 12단계 절, sourceHashes | 새 사본 npm install와 소스해시 대조 |
 | 학생/제공 엔진 출처 | README/작전실 설명 | ALEPH SDP 엔진 출처 및 책임 범위 명시 |
 | 기본 판정기 계약 보존 | 원본 decider/verify-login/judgeIssuer 보존 | 빈VM/18필드/5필드/RULE_IDS 기존 보안 시험 |
-| 단계12 저장점/bundle/실제 심판 | aleph.config step12,20HTTP 독립 관측 | 배포커밋 일치·실패시중단·실제100은 별도판정 |
+| 단계12 저장점/bundle/실제 심판 | aleph.config step12,20항목(19GET 관측+쓰기not_run1) | 배포커밋 일치·실패시중단·실제100은 별도판정 |
 
 실측 원본은 Git 제외 public/stage12-live-proof.json에 생성된다. 성공/정리/영수증/단계 커버리지가 모두 확인된 기록만 공개용 config/operations-verification.json에 옮긴다. 현재 운영 DB 전체의 사건/사용자 현황을 조회한 것으로 표현하지 않는다.

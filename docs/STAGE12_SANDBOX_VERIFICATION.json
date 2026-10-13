@@ -1,0 +1,23 @@
+{
+  "kind": "documented_sandbox_reproduction",
+  "testedCommit": "706ac5139f3caa1c0400915d2cb31f1438a7746a",
+  "requests": 19,
+  "methods": [
+    "GET"
+  ],
+  "gitReads": 7,
+  "notRun": 1,
+  "freshBundleProduced": true,
+  "modules": [
+    "node:fs",
+    "node:path",
+    "node:url",
+    "node:child_process(read-only Git)",
+    "node:crypto(randomUUID/sha256)"
+  ],
+  "initialReproduction": {
+    "commit": "71338b8793d68b927db4fa925a7d14d01b6c39da",
+    "firstFailure": "UNSUPPORTED_IMPORT: node:fs/promises"
+  },
+  "scope": "Published capability restrictions reproduced; private judge implementation not claimed"
+}
