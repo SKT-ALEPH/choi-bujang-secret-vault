@@ -7,11 +7,13 @@ export async function decide(request) {
   const reply = (decision, reasonCode, ruleIds) => ({ schema: 'aleph.decision.v1',
     requestId: request.requestId, decision, reasonCode, ruleIds });
   const registered = request.deviceRegistered === true;
-  const item = /^\/notes\/[a-zA-Z0-9_-]{1,100}$/u.test(request.path ?? '')
-    && !['export', 'announcements', 'admin'].includes(request.path.split('/').at(-1));
-  const read = request.service === 'notes'
-    && ((request.method === 'GET' && request.path === '/notes' && request.route === 'GET /notes')
-      || (item && ['GET', 'PUT'].includes(request.method) && request.route === request.method + ' /notes/:id'));
+  // Actual notes use UUIDs; the published engine exercise has one explicit demo resource.
+  // Arbitrary one-segment names can be privileged functions or another resource zone.
+  const noteId = (request.path ?? '').match(/^\/notes\/([^/]+)$/u)?.[1];
+  const item = typeof noteId === 'string' && (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(noteId)
+    || noteId === 'demo');
+  const read = request.service === 'notes' && item
+    && ['GET', 'PUT'].includes(request.method) && request.route === request.method + ' /notes/:id';
   if (!registered) return reply('deny', 'device_not_registered', ['device_registered']);
   if (!read) return reply('deny', 'starter_not_ready', ['resource_scope']);
   const s = request.signals;

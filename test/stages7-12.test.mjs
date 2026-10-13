@@ -22,7 +22,7 @@ test('step-up uses a trusted compound signal, keeps device denial, and checks fr
  test('resource scope checks exact method/path/route and the API rejects authority selectors before DB access', async () => {
   const { normal } = fixtureRequests();
   assert.equal((await decide({ ...normal, method: 'PUT', route: 'PUT /notes/:id' })).decision, 'allow');
-  for (const fields of [{path:'/notes/export'}, {path:'/notes/demo/export'}, {service:'announcements'},
+  for (const fields of [{path:'/notes'}, {path:'/notes/all'}, {path:'/notes/other'}, {path:'/notes/export'}, {path:'/notes/demo/export'}, {service:'announcements'},
     {method:'PUT',path:'/announcements/demo',route:'PUT /announcements/:id'}, {path:'/other/demo'}]) {
     assert.equal((await decide({ ...normal, ...fields })).decision, 'deny');
   }
