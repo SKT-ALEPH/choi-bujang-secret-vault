@@ -62,8 +62,9 @@ test('announcements use verified identity and a stored per-resource grant, never
       const admission=await decide({...normal,subjectId:'opaque-'+identity.userId,
         service:'announcements',method:'PUT',path:'/api/announcements/'+id,
         route:'PUT /api/announcements/:id'});
-      assert.equal(admission.decision,'allow');
-      // Stored per-announcement authority is still mandatory after admission.
+      assert.equal(admission.decision,'deny');
+      // The engine closes writes without a verified editor grant. Bypass that
+      // gate here to verify the API independently still enforces stored rights.
     }
     const response={headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.statusCode=n;return this;},json(v){this.body=v;}};
     await handler({method:'PUT',headers,query,body},response);return response;

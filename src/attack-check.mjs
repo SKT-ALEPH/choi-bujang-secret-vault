@@ -123,6 +123,7 @@ export async function runAttackChecks(config) {
       for (const fields of [{ path: '/notes/export' }, { path: '/notes/demo/export' },
         { path: '/notes/other' }, { path: '/other/demo' }, { subjectId: '' }, { queryLength: 1 },
         { role: 'teacher' }, { path: '/notes/demo', route: 'GET /api/notes/:id' },
+        { service: 'announcements', method: 'PUT', path: '/announcements/demo', route: 'PUT /announcements/:id' },
         { method: 'PUT', path: '/announcements/demo', route: 'GET /announcements/:id' }]) {
         denied.push((await decide({ ...normal, ...fields })).decision === 'deny');
       }

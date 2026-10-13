@@ -34,7 +34,7 @@ test('all eight declarations have matching admission for independent identities 
         signals:{source:'none',region:'unknown',network:'unknown',hour:14},
         service:route.service,method:route.method,path:pattern.replace(':id',randomUUID()),
         route:`${route.method} ${pattern}`};
-      assert.equal((await decide(request)).decision,'allow');
+      assert.equal((await decide(request)).decision,route.service==='announcements' && route.method==='PUT'?'deny':'allow');
       assert.equal((await decide({...request,path:request.path+'/export'})).decision,'deny');
       assert.equal((await decide({...request,deviceRegistered:false})).decision,'deny');
     }
@@ -65,6 +65,6 @@ test('isolated policy handles many independent grants and default admission does
     assert.equal((await decide({...request, subjectId:grants[(i + 1) % grants.length].subjectId})).decision, 'deny');
     assert.equal((await decide({...request, path:`/${grant.service}/${randomUUID()}`})).decision, 'deny');
     // Default route admission is data-independent. Data ownership is checked by the API.
-    assert.equal((await module.namespace.decide(request)).decision, 'allow');
+    assert.equal((await module.namespace.decide(request)).decision, grant.service==='announcements'?'deny':'allow');
   }
 });

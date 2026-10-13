@@ -40,6 +40,9 @@ export function createDecider(resourceGrants) {
       && request.querySha256 === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
       && /^[a-f0-9]{16}$/u.test(request.deviceId)
       && declaredResourceRoute(request)
+      // The v1 request has no verified instructor role. A route declaration
+      // alone cannot authorize announcement writes; require an installed ACL.
+      && (grants !== null || request.service !== 'announcements' || request.method !== 'PUT')
       && (grants === null || grants.some(g => ['none', 'judge_fixture'].includes(g.source)
         && g.source === request.signals?.source && g.classId === request.classId
         && g.policyRevision === request.policyRevision && g.projectId === request.projectId && g.subjectId === request.subjectId
