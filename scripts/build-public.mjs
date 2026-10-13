@@ -39,9 +39,3 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
-
-// Opt-in check of the previously deployed own-list and logical paths; removed after verification.
-if (process.env.STAGE8_VERIFY_AUTHORIZATION === '1' && config.step === 8) {
-  const {runLiveReadCheck} = await import('./stage8-live-read-check.mjs');
-  await runLiveReadCheck(config, {logicalPaths:true});
-}
