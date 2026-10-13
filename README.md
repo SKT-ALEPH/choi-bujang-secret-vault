@@ -408,3 +408,10 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 `xdr/persistence/read-alerts.mjs`는5필드 확인, `patterns.json`은근거, `decide.mjs`는판단만, `respond.mjs`는비공개규칙/만료15분/경보ID/알림을 담당한다. 기존 `src/xdr-decider.mjs` 연결에서 그 출발주소의PC 접속을 추가거부한다. fixture에 고유기기ID가 없으므로 **경보PC의 관찰된 출발주소 범위**이며 영구하드웨어ID 격리로 주장하지 않는다. 네트워크주소변경/NAT 공유 환경에는 신뢰된 기기매핑이 필요하다. 브라우저주소를 신뢰하거나18필드에임의필드를추가하지 않는다.
 
 `node --experimental-vm-modules --test test/persistence.test.mjs`로 빈VM·원본/5필드·ID/순서변경·오탐0·실제기본판정기추가guard·기존deny/step_up·주소별마지막규칙만료복귀를 검사한다. 실행중인프로그램을제거하는도구가아니며, 실제PC설치/수집기배포와가상경보재생을구분한다.
+
+## XDR-05 권한 가로채기
+`npm run xdr:run -- privilege`: 원본26건 차단9/알림8/기록9, 정상차단0. 독립`xdr/privilege/decide.mjs`는 관리자그룹추가/권한전환/명령실행에 낯선접속·직전권한상승·다른계정권한사용·시간밖사용이 결합된 경우만 차단한다. 관리자아닌그룹/취소/실패/단발명령은 알림, 기법코드나 심각도만으로 확정하지 않는다. 패턴 출처 T1068/T1078은 patterns.json에 기록하며 실제취약점악용확정과징후탐지를구분한다.
+
+`read-alerts.mjs`는5필드비밀제거, `respond.mjs`는 해당계정+출발주소 세션의 추가deny를15분간저장하고경보ID/알림을남긴다. `rule-store.mjs`는 privilege에만 가명화계정필드를허용하며, `guard.mjs`는 신뢰된계정과출발주소 모두일치할때만 거부한다. 같은주소의다른계정/다른주소의세션은이규칙으로차단하지않는다. 이는Supabase계정삭제·권한부여가아닌추가접속거부다.
+
+`connectXdrDecider`에 서버측 `getTrustedAccount(requestId)`와 기존 `getTrustedSource(requestId)`를 제공한다. 계정규칙이있는데신뢰된계정조회가없으면명시적오류로실패한다. 경보가명과엔진subjectId의자동동일성을가정하지않고, 브라우저계정값은받지않는다. fixture응답기는현재경보의서버측가명화계정으로실제기본판정기에연결하여재생한다. 운영반엔진에새계정매핑을설치했다는주장은하지않는다. `node --experimental-vm-modules --test test/privilege.test.mjs`로빈VM/원본·5필드/대상계정분리/누락조회실패/TTL/기존거부를검사한다.

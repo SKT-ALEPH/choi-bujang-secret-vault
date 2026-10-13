@@ -1,0 +1,37 @@
+{
+  "moduleKey": "privilege",
+  "blockTtlSeconds": 900,
+  "thresholds": {
+    "block": 0.85,
+    "alert": 0.5
+  },
+  "patterns": [
+    {
+      "name": "unexpected_admin_escalation",
+      "condition": "관리자그룹추가/관리자전환/명령실행과 원격·낯선주소·평범한계정·직전상승·다른계정권한·시간밖사용·반복재추가가 결합. 취소/실패/단순조회 제외.",
+      "evidence": "T1068/T1078의 권한 상승·정상 계정 악용 징후. 이 경보만으로 실제 소프트웨어 취약점 악용을 확정하지 않음.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1068/",
+        "https://attack.mitre.org/techniques/T1078/"
+      ]
+    },
+    {
+      "name": "possible_privilege_change",
+      "condition": "관리자아닌그룹추가·취소·실패·단발관리명령·계정종류조회 등 근거부족은 알림.",
+      "evidence": "T1068/T1078 문맥에서 관찰과 공격확정을 구분.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1068/",
+        "https://attack.mitre.org/techniques/T1078/"
+      ]
+    },
+    {
+      "name": "normal_activity",
+      "condition": "기존관리계정정상로그인/로그아웃/그룹읽기 등 공격근거없는 활동.",
+      "evidence": "정상 계정 사용 자체는 T1078 악용 증거가 아님.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1068/",
+        "https://attack.mitre.org/techniques/T1078/"
+      ]
+    }
+  ]
+}
