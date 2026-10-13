@@ -39,12 +39,3 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
-
-// One controlled production verification; disabled after the recorded run.
-if(process.env.STAGE11_VERIFY_DEVICE==='1'&&config.step===11){
-  const deployed=await(await fetch(new URL('/aleph.json',config.publicAppUrl),{cache:'no-store'})).json();
-  if(deployed.commit===process.env.VERCEL_GIT_COMMIT_SHA){
-    const {execFileSync}=await import('node:child_process');
-    execFileSync(process.execPath,['--experimental-vm-modules','scripts/stage11-live-check.mjs'],{stdio:'inherit'});
-  }else console.log('First deploy: verify this exact commit with an explicit redeploy.');
-}

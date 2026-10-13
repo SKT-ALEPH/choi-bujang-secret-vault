@@ -336,7 +336,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 제공 엔진의18필드 판정과 원본 심판 로그인 검증기는 변경하지 않습니다. 운영자가 서명하고 원본 검증기가 엄격히 확인하는 시험 신원은 기존 제공 엔진의 기기·요청서명 검증 통로를 유지합니다. 일반 Supabase 사용자에 적용하는 위 세션 키 흐름을 엔진의 하드웨어 인증이나 운영자 승인으로 과장하지 않습니다.
 
-적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 로그인/서명 변조 검사와 심판은 아직 미실행입니다.
+적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 접속 클라이언트 코드와 WebCrypto를 통해 배포된 서버의24조건이5532582에서전부통과했습니다. 정상A/B승인·목록·메모추가/읽기/수정/복원·공지읽기,서명누락/경로·본문·메서드변경/재전송/타인키/만료/직접DB거부와회수를확인했습니다. 기존20점검도통과했고새시험계정2/메모1/기기세션정리cleanupOk true입니다. [실측 기록](docs/STAGE11_VERIFICATION.json)에시각/커밋/방식을구분했습니다. 이는 실제클라이언트프로토콜실행이며 수동브라우저로그인이라고기록하지않습니다. 실제화면에서는승인전자료미표시/오프라인안내를확인했습니다. 심판은미실행입니다.
 
 참조: [WebCrypto 키 생성](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey), [Node.js 서명 검증](https://nodejs.org/api/crypto.html#cryptoverifyalgorithm-data-key-signature-callback), [PWA 캐시 경계](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching).
 
