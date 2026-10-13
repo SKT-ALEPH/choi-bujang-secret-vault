@@ -3,6 +3,7 @@
 import {readFile} from 'node:fs/promises';
 export async function runStage12Checks(config){
  const app=new URL(config.publicAppUrl);if(app.protocol!=='https:'||app.username||app.password||app.pathname!=='/'||app.search||app.hash)throw Error('INVALID_APP_URL');
+ const recorded=JSON.parse(await readFile(new URL('../config/operations-verification.json',import.meta.url),'utf8'));
  const out=[],uuid='00000000-0000-4000-8000-000000000001';
  async function probe(caseId,path,expected,accept,options={}){
   const r=await fetch(new URL(path,app),{...options,redirect:'error',signal:AbortSignal.timeout(10000),alephEvidence:{caseId,requestKey:'read'}});
@@ -26,7 +27,7 @@ export async function runStage12Checks(config){
  await probe('deployment_identity','/aleph.json','12단계와 저장소 배포 신원',(r,j)=>r.ok&&j?.step===12&&j.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase());
  await probe('security_header','/','첫 화면 nosniff',(r)=>r.ok&&r.headers.get('x-content-type-options')==='nosniff');
  await probe('installable_app_manifest','/manifest.webmanifest','같은 자료실 설치주소',(r,j)=>r.ok&&j?.start_url==='/'&&j.display==='standalone');
- await probe('operations_actual_api','/api/checks','서버 가린 기록과 검증 정책 API',(r,j)=>r.ok&&j?.schema==='aleph.operations.v1'&&j.policy?.verified===true&&Array.isArray(j.rules)&&Array.isArray(j.verification?.records));
+ await probe('operations_actual_api','/api/checks','서버 가린 기록과 검증 정책 API',(r,j)=>r.ok&&j?.schema==='aleph.operations.v1'&&j.policy?.verified===true&&Array.isArray(j.rules)&&j.verification?.result==='ALL_CHECKS_PASSED'&&recorded.result==='ALL_CHECKS_PASSED'&&j.verification.testedCommit===recorded.testedCommit&&JSON.stringify(j.verification.records)===JSON.stringify(recorded.records));
  for(const id of ['s06-normal','s06-unregistered','s07-compound','s08-unknown-route','s08-all-notes','s08-write-notice','s09-burst-read']){
   await probe(id,'/api/checks?case='+id,'고정 가상 입력 실제 HTTP 결과 대조',(r,j)=>r.ok&&j?.caseId===id&&j.kind==='synthetic_input_over_http'&&j.ready===true);
  }

@@ -44,6 +44,12 @@ try {
     fail('aleph.config.json의 repoUrl이 Git origin 주소와 다릅니다. 같은 저장소 주소로 맞춰 주세요.');
   }
   const notes = JSON.parse(readFileSync(join(root, 'bundle-notes.json'), 'utf8'));
+  if(config.step===12){
+    const proof=fromCommit('config/operations-verification.json');
+    if(proof.result!=='ALL_CHECKS_PASSED'||!proof.testedCommit||!proof.records?.length
+      ||proof.records.some(r=>r.result!=='passed'||!r.requestId||!Number.isFinite(Date.parse(r.checkedAt)))
+      ||!Array.from({length:11},(_,i)=>i+1).every(stage=>['normal','forbidden'].every(type=>proof.records.some(r=>r.stage===stage&&r.type===type))))fail('12단계 실제 정상·금지 요청 영수증이 완성되지 않았습니다.');
+  }
   if (!Number.isInteger(config.step) || config.step < 1 || config.step > 12) fail('aleph.config.json의 step을 확인해 주세요.');
   if (config.step >= 3 && (!config.identityProvider || typeof config.identityProvider !== 'object'
       || ['issuer', 'audience', 'jwksUrl'].some((key) => typeof config.identityProvider[key] !== 'string'
