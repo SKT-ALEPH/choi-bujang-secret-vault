@@ -61,3 +61,4 @@
 - R-S12-PROVENANCE: 검사커밋 기준 설치/실행/중지/복구절차,학생 판정/탐지/접속앱/자료실과 제공 ALEPH SDP 엔진 출처를 명시한다. 기존1~11통제를 보존한다.
 - R-S12-COMPLETE: 완전구현/실측/새사본설치/18필드·5필드·RULE_IDS검사/step12/배포커밋/bundle/실제100/최종E2E 이후에만 임시작업기록을 폐기한다. 영구 RULE/검증 이력은 보존한다.
 - R-S12-SANDBOX: 실제 S12_BUNDLE_UNSUPPORTED 안내에 따라 제출 경로는 node:fs·node:path·node:url·node:child_process의 Git 읽기·node:crypto(randomUUID/SHA-256)만 사용한다. node:fs/promises 등 계약 밖 모듈과 다른 명령을 실행하지 않는다. 공개 HTTPS GET/HEAD만 전송하고 쓰기 검사 항목의 observed는 not_run으로 남긴다. 쓰기의 별도 실제 서버 검증을 삭제하거나 미실행을 통과로 바꾸지 않는다. 제한된 모듈/명령/요청 시험으로 전체 bundle 경로를 검증한 뒤 재제출한다.
+- R-S12-RUNTIME: 일반 Node의 전체 능력이 격리 환경에도 있다고 가정하지 않는다. 실제 path_format 및 URL .set 실패를 문자열 파일 경로/읽기 전용 URL 모델로 재현하고 사용한 기능만 검증한다. 판정·자료·기기 통제를 바꾸지 않고 첫 실행 오류부터 수정한다. 공개 계약의 제한 재현과 비공개 심판 구현을 구분한다.

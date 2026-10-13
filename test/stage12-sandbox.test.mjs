@@ -24,7 +24,11 @@ test('12단계 제출은 제한된 모듈·Git 읽기·GET/HEAD만으로 실제 
    assert.equal(options.cwd,root);commands.push(sub[0]);return execFileSync(command,args,{...options,env:{PATH:process.env.PATH,GIT_TERMINAL_PROMPT:'0',GIT_OPTIONAL_LOCKS:'0'}});
   }},
  };
- const context=createContext({URL,process:safeProcess,fetch:async(target,options={})=>{
+ class ReadOnlyURL{
+  constructor(input,base){const value=new URL(input?.href??input,base?.href??base);for(const key of ['href','protocol','username','password','pathname','search','hash','hostname','origin'])this[key]=value[key];}
+  toString(){return this.href;}
+ }
+ const context=createContext({URL:ReadOnlyURL,process:safeProcess,fetch:async(target,options={})=>{
   const targetUrl=new URL(target);assert.equal(targetUrl.protocol,'https:');assert.equal(targetUrl.username,'');assert.equal(targetUrl.password,'');
   assert.ok(['GET','HEAD'].includes(options.method??'GET'),'write request is unavailable');requests.push({caseId:options.alephEvidence?.caseId,method:options.method??'GET'});
   return fetch(target,{...options,signal:AbortSignal.timeout(10000)});

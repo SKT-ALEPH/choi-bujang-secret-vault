@@ -21,8 +21,9 @@ export async function runStage12Checks(config){
  await probe('s03-fake-token','/api/my/notes','무효 토큰401',(r,j)=>r.status===401&&denied(r,j),{headers:{Authorization:'Bearer invalid.invalid.invalid'}});
  await probe('s04-header-identity','/api/my/notes','임의 신원 헤더로 로그인 대체 불가',denied,{headers:{'x-user-id':uuid,'x-role':'instructor'}});
  const settings=JSON.parse(readFileSync(join(root,'config/supabase-public.json'),'utf8'));
- const direct=new URL(config.originalApiUrl);direct.searchParams.set('select','id');
- await probe('s05-direct-table',direct.href,'anon 직접 DB 조회거부',(r,j)=>[401,403].includes(r.status)&&typeof j?.code==='string'&&!Array.isArray(j)&&! /"(?:notes|content|body)"\s*:/u.test(JSON.stringify(j)),{headers:{apikey:settings.publishableKey}});
+ const direct=new URL(config.originalApiUrl);
+ if(direct.protocol!=='https:'||direct.username||direct.password||direct.search||direct.hash)throw Error('INVALID_ORIGINAL_API_URL');
+ await probe('s05-direct-table',direct.href+'?select=id','anon 직접 DB 조회거부',(r,j)=>[401,403].includes(r.status)&&typeof j?.code==='string'&&!Array.isArray(j)&&! /"(?:notes|content|body)"\s*:/u.test(JSON.stringify(j)),{headers:{apikey:settings.publishableKey}});
  await probe('s08-other-zone','/api/announcements/'+uuid,'비로그인 공지 조회거부',denied);
  out.push({attackId:'s10-restore-unauth',expected:'POST 비로그인 복원거부',observed:'not_run · 격리 제출은 GET/HEAD만 허용; 실제 POST 복원/거부는 별도 서버 실측 기록'});
  await probe('s11-device','/api/device?operation=status','비로그인 기기 승인불가',denied);
