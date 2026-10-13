@@ -1,0 +1,37 @@
+{
+  "moduleKey": "persistence",
+  "blockTtlSeconds": 900,
+  "thresholds": {
+    "block": 0.85,
+    "alert": 0.5
+  },
+  "patterns": [
+    {
+      "name": "untrusted_persistence",
+      "condition": "서비스·예약작업·시작항목 변경에 서명부재/임시실행/평소목록미등록이 결합된 명확한 지속성 징후.",
+      "evidence": "T1543 / T1053: 서비스/예약 실행 경로의 불신 변경을 탐지.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1543/",
+        "https://attack.mitre.org/techniques/T1053/"
+      ]
+    },
+    {
+      "name": "possible_persistence",
+      "condition": "서명미확인·서비스설명만변경·실행없이시작폴더변경·임시파일생성만이면 알림.",
+      "evidence": "T1543 / T1053 문맥에서 증거가 부족한 변경은 자동격리하지 않음.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1543/",
+        "https://attack.mitre.org/techniques/T1053/"
+      ]
+    },
+    {
+      "name": "normal_activity",
+      "condition": "기존서명서비스/정상예약완료/목록읽기/로그인에는 새로운 지속성 증거 없음.",
+      "evidence": "지속성 공격 증거 없는 정상 활동 보존.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1543/",
+        "https://attack.mitre.org/techniques/T1053/"
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ export function connectXdrDecider(operatorBinding = {}) {
   const { rulesPath = new URL('../xdr/brute-force/deny-rules.json', import.meta.url),
     ...binding } = operatorBinding;
   const decide = createXdrGuard(baseDecide, { ...binding,
-    getRules: binding.getRules ?? (async () => [...await readDenyRules(rulesPath), ...await readDenyRules(new URL('../xdr/web-injection/deny-rules.json', import.meta.url)), ...await readDenyRules(new URL('../xdr/known-cve/deny-rules.json', import.meta.url))]) });
+    getRules: binding.getRules ?? (async () => [...await readDenyRules(rulesPath), ...await readDenyRules(new URL('../xdr/web-injection/deny-rules.json', import.meta.url)), ...await readDenyRules(new URL('../xdr/known-cve/deny-rules.json', import.meta.url)), ...await readDenyRules(new URL('../xdr/persistence/deny-rules.json', import.meta.url))]) });
   return Object.freeze({ decide,
-    RULE_IDS: Object.freeze([...baseRuleIds, 'xdr.brute_force', 'xdr.web_injection', 'xdr.known_cve']) });
+    RULE_IDS: Object.freeze([...baseRuleIds, 'xdr.brute_force', 'xdr.web_injection', 'xdr.known_cve', 'xdr.persistence']) });
 }

@@ -401,3 +401,10 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 `respond.mjs`는 block만 서버전용 deny-rules.json에 근거경보ID와15분 만료로 저장하고 alert만 xdr/alerts.log에 중복 없이 남긴다. `src/xdr-decider.mjs`의 기존 연결 진입점은 이 추가규칙도 읽는다. 신뢰된 서버 출발주소만 조회하고 기존 src/decider.mjs의 deny/step_up을 유지한다. 실행기는 실제 기본판정기+추가guard를 공용18필드 가상요청으로 재생해 verification.json을 남긴다. 현재24건은8/8/8, 정상차단0이다.
 
 검증: `node --experimental-vm-modules --test test/known-cve.test.mjs`. 이 과제는 오프라인Wazuh 경보부품이며 새Jev/API/PC프로그램/실시간수집기를 설치하지 않는다. 가상경보를 운영DB에 올리지 않는다. 운영반엔진·PC방화벽 설치 증거와 혼동하지 않는다. 기존Vercel자료실/실제HTTP두XDR은 보존한다. 영구제약은 docs/XDR_REMAINING_RULES.md.
+
+## XDR-04 몰래 심은 프로그램
+`npm run xdr:run -- persistence`: 원본24건을 import 없는 독립판단기로 처리한다(차단8/알림8/기록8). 패턴 근거는 MITRE T1543/T1053. 새 서비스·예약·시작 항목의 변경과 서명부재·임시실행·평소목록미등록을 함께 확인한다. 서명미확인/임시파일한개/설명변경만으로 차단하지 않는다.
+
+`xdr/persistence/read-alerts.mjs`는5필드 확인, `patterns.json`은근거, `decide.mjs`는판단만, `respond.mjs`는비공개규칙/만료15분/경보ID/알림을 담당한다. 기존 `src/xdr-decider.mjs` 연결에서 그 출발주소의PC 접속을 추가거부한다. fixture에 고유기기ID가 없으므로 **경보PC의 관찰된 출발주소 범위**이며 영구하드웨어ID 격리로 주장하지 않는다. 네트워크주소변경/NAT 공유 환경에는 신뢰된 기기매핑이 필요하다. 브라우저주소를 신뢰하거나18필드에임의필드를추가하지 않는다.
+
+`node --experimental-vm-modules --test test/persistence.test.mjs`로 빈VM·원본/5필드·ID/순서변경·오탐0·실제기본판정기추가guard·기존deny/step_up·주소별마지막규칙만료복귀를 검사한다. 실행중인프로그램을제거하는도구가아니며, 실제PC설치/수집기배포와가상경보재생을구분한다.
