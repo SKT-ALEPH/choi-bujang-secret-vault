@@ -11,6 +11,8 @@ export function createRestoreHandler(getRuntime = productionRuntime, getPolicy =
     try {services=getRuntime();identity=await services.verifyLoginAuthorization(request.headers.authorization);}
     catch {return response.status(503).json({error:'AUTH_NOT_CONFIGURED'});}
     if (!identity) return response.status(401).json({error:'INVALID_LOGIN'});
+    try {if(services.authorizeDevice&&!await services.authorizeDevice(request,identity))return response.status(403).json({error:'DEVICE_NOT_APPROVED'});}
+    catch{return response.status(503).json({error:'DEVICE_SERVICE_UNAVAILABLE'});}
     if (request.method !== 'POST') {
       response.setHeader('Allow','POST');
       return response.status(405).json({error:'METHOD_NOT_ALLOWED'});

@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101a28">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <title>BYTE BACK | 내 자료실</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; --bg:#101a28; --surface:#1a2a3d; --ink:#ecf4ff; --muted:#bfd0e5; --accent:#8ad8df; --line:#51667c; --s1:8px; --s2:16px; --s3:24px; --s4:40px; }
@@ -14,6 +16,8 @@
     h1 { margin:16px 0; font-size:clamp(30px,7vw,48px); line-height:1.2; letter-spacing:-.02em; }
     h2 { font-size:22px; margin:0 0 16px; } p { line-height:1.7; color:var(--muted); }
     #auth-panel { max-width:400px; margin:32px auto; padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+    #device-panel { margin:24px 0; padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+    a {color:var(--accent);}
     label { display:block; margin:16px 0 8px; font-weight:600; }
     input, textarea { width:100%; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:6px; padding:12px; font:inherit; font-size:16px; }
     textarea { min-height:120px; resize:vertical; }
@@ -36,9 +40,11 @@
 <body>
   <a class="skip" href="#main">본문으로 이동</a>
   <main id="main">
-    <div class="brand">BYTE BACK · 5단계</div>
+    <div class="brand">BYTE BACK · 접속 앱</div>
     <h1>내 자료실</h1>
-    <p>로그인하고 내 메모를 이어 쓰세요. 실습용 가상 자료만 입력해 주세요.</p>
+    <p>로그인한 뒤 이 화면의 기기 승인을 요청하면 내 메모를 이어 쓸 수 있습니다. 실습용 가상 자료만 입력해 주세요.</p>
+    <div class="actions"><button id="install-app" type="button" hidden>자료실 앱 설치</button><a href="/offline.html">오프라인 이용 안내</a></div>
+    <p class="quiet">설치는 승인을 대신하지 않습니다. 로그인과 기기 키는 열린 화면의 메모리에만 유지되며, 새로 열면 다시 로그인하고 승인해야 합니다.</p>
     <p id="status" role="status" aria-live="polite">로그인 상태를 확인하는 중입니다.</p>
     <section id="auth-panel" aria-labelledby="auth-title" hidden>
       <h2 id="auth-title">자료실 로그인</h2>
@@ -56,6 +62,12 @@
       <div class="actions"><button id="auth-mode" type="button">계정 만들기</button><button id="reset-password" type="button">비밀번호 재설정</button></div>
       <p id="auth-help" class="quiet">가입한 이메일과 비밀번호로 로그인하세요.</p>
     </section>
+    <section id="device-panel" aria-labelledby="device-title" hidden>
+      <h2 id="device-title">이 기기의 접속 확인</h2>
+      <p id="device-state" role="status" aria-live="polite">승인 전에는 보호 자료를 표시하지 않습니다.</p>
+      <p class="quiet">서버가 로그인과 이 화면의 키 소유 증명을 확인해 최대 1시간의 접속을 승인합니다. 기기를 영구 등록하거나 운영자의 승인으로 표시하지 않습니다.</p>
+      <div class="actions"><button id="approve-device" class="primary" type="button">기기 승인 요청</button><button id="device-logout" type="button">로그아웃</button></div>
+    </section>
     <section id="workspace" aria-label="내 메모" hidden>
       <header><h2>내 메모</h2><button id="logout" type="button">로그아웃</button></header>
       <form id="editor">
@@ -69,6 +81,7 @@
     </section>
   </main>
   <script src="/vendor/supabase.js" defer></script>
+  <script type="module" src="/device-client.mjs"></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

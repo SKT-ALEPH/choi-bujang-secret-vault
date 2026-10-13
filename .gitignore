@@ -15,3 +15,5 @@ public/xdr-live-check.json
 public/stage8-live-read-proof.json
 public/stage8-announcement-proof.json
 public/stage10-recovery-proof.json
+
+public/stage11-device-proof.json

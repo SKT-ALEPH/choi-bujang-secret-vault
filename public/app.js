@@ -1,4 +1,5 @@
 (async () => {
+  if(!window.alephDevice)await new Promise(resolve=>document.addEventListener('aleph-device-ready',resolve,{once:true}));
   const $ = selector => document.querySelector(selector);
   const status = message => { $('#status').textContent = message; };
   const authError = message => { $('#auth-error').textContent = message; if (message) $('#auth-error').focus(); };
@@ -8,15 +9,18 @@
     email_not_confirmed:'가입 확인 이메일의 링크를 먼저 눌러 주세요.',
     over_email_send_rate_limit:'확인 이메일 요청이 많습니다. 잠시 뒤 다시 시도해 주세요.',
     weak_password:'더 긴 비밀번호를 입력해 주세요.', signup_disabled:'현재 새 계정 가입이 비활성화돼 있습니다.' }[error.code] || '인증 요청에 실패했습니다. 입력 내용과 연결 상태를 확인해 주세요.');
-  let client, signedIn = false, signup = false, editingId = null, revision = 0;
+  let client, signedIn = false, approved = false, signup = false, editingId = null, revision = 0;
   function clearEditor() { editingId = null; $('#editor').reset(); $('#editor-title').textContent='메모 추가'; $('#save-note').textContent='메모 추가'; $('#cancel-edit').hidden=true; }
   async function api(path = '', options = {}) {
+    if(!approved||!navigator.onLine)throw new Error('기기 승인과 인터넷 연결을 먼저 확인해 주세요.');
     const { data, error } = await client.auth.getSession();
     if (error || !data.session) throw new Error('로그인이 필요합니다. 다시 로그인해 주세요.');
     const target = path === '' && (options.method ?? 'GET') === 'GET' ? '/api/my/notes' : '/api/notes'+path;
     const response = await fetch(target, { ...options, cache:'no-store',
-      headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+data.session.access_token } });
+      headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+data.session.access_token,
+        ...await window.alephDevice.headers(data.session,target,options) } });
     const body = await response.json();
+    if(body.error==='DEVICE_NOT_APPROVED'){approved=false;window.alephDevice.clear();$('#notes').replaceChildren();$('#workspace').hidden=true;$('#device-panel').hidden=false;$('#device-state').textContent='승인이 만료됐습니다. 다시 승인을 요청해 주세요.';}
     if (!response.ok) throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.'
       : response.status === 403 && ['XDR_BRUTE_FORCE','XDR_WEB_INJECTION'].includes(body.error) ? '반복 공격 신호로 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.'
       : response.status === 404 ? '메모를 찾을 수 없습니다. 목록을 새로고침해 주세요.'
@@ -29,7 +33,7 @@
     $('#notes').setAttribute('aria-busy','true');
     try {
       const notes = await api();
-      if (current !== revision || !signedIn) return;
+      if (current !== revision || !signedIn || !approved) return;
       if (!Array.isArray(notes)) throw new Error('자료 형식이 맞지 않습니다.');
       const items = notes.map(note => {
         const item=document.createElement('li'), title=document.createElement('strong'), body=document.createElement('p'), actions=document.createElement('div');
@@ -52,21 +56,24 @@
     finally { $('#notes').setAttribute('aria-busy','false'); }
   }
   function updateSession(session) {
-    revision++; signedIn=Boolean(session);
+    revision++; signedIn=Boolean(session);approved=false;window.alephDevice.clear();
+    $('#device-panel').hidden=!signedIn;
+    $('#device-state').textContent='서버의 기기 승인이 필요합니다. 승인 전에는 보호 자료를 요청하거나 표시하지 않습니다.';
     if ($('#auth-form').dataset.recovery==='true') {
       $('#auth-panel').hidden=false; $('#workspace').hidden=true;
       $('#auth-title').textContent='새 비밀번호 설정'; $('#auth-submit').textContent='비밀번호 저장';
       $('#email').required=false; $('#password').autocomplete='new-password';
       $('#notes').replaceChildren(); status('새 비밀번호를 입력해 저장해 주세요.'); return;
     }
-    $('#auth-panel').hidden=signedIn; $('#workspace').hidden=!signedIn;
+    $('#auth-panel').hidden=signedIn; $('#workspace').hidden=true;
     $('#password').value=''; $('#notes').replaceChildren(); clearEditor();
-    status(signedIn?'로그인됐습니다. 내 메모를 불러옵니다.':'로그인하면 내 메모를 읽고 쓸 수 있습니다.');
-    if(signedIn) void loadNotes();
+    status(signedIn?'로그인됐습니다. 기기 승인을 요청해 주세요.':'로그인하면 기기 승인을 요청할 수 있습니다.');
   }
   try {
     const config=await(await fetch('/auth-config.json')).json();
-    client=window.supabase.createClient(config.url,'auth-via-server',{global:{fetch:(target,options)=>{
+    // Remove only the legacy SDK session entry; never read or copy its token.
+    try{localStorage.removeItem('sb-'+new URL(config.url).hostname.split('.')[0]+'-auth-token');}catch{}
+    client=window.supabase.createClient(config.url,'auth-via-server',{auth:{persistSession:false},global:{fetch:(target,options)=>{
       const url=new URL(target);
       if(url.origin!==new URL(config.url).origin || !url.pathname.startsWith('/auth/v1/')) throw new Error('AUTH_ROUTE_ONLY');
       const proxy=new URL('/api/auth',location.origin);
@@ -75,7 +82,7 @@
     }}});
     client.auth.onAuthStateChange((event,session)=>{
       if(event==='PASSWORD_RECOVERY') {status('비밀번호 재설정 링크가 확인됐습니다. 새 비밀번호를 입력해 주세요.'); $('#auth-panel').hidden=false; $('#workspace').hidden=true; $('#auth-title').textContent='새 비밀번호 설정'; $('#auth-submit').textContent='비밀번호 저장'; $('#email').required=false; $('#auth-form').dataset.recovery='true'; return;}
-      if(event !== 'TOKEN_REFRESHED') setTimeout(()=>updateSession(session),0);
+      setTimeout(()=>updateSession(session),0);
     });
     const {data,error}=await client.auth.getSession(); if(error)throw error; updateSession(data.session);
   } catch { status('로그인 설정을 불러오지 못했습니다. 페이지를 새로고침해 주세요.'); return; }
@@ -102,7 +109,22 @@
     try {const {error}=await client.auth.resetPasswordForEmail($('#email').value.trim(),{redirectTo:location.origin+'/'});if(error)authError(authMessage(error));else status('이메일을 확인해 비밀번호 재설정을 진행해 주세요.');}
     catch {authError('요청을 보내지 못했습니다. 다시 시도해 주세요.');}finally{$('#reset-password').disabled=false;}
   });
-  $('#logout').addEventListener('click',async()=>{const {error}=await client.auth.signOut();if(error)status('로그아웃에 실패했습니다. 다시 시도해 주세요.');else updateSession(null);});
+  const logout=async()=>{const {data}=await client.auth.getSession();try{if(data.session)await window.alephDevice.revoke(data.session);}catch{}const {error}=await client.auth.signOut();updateSession(null);if(error)status('화면 세션은 비웠지만 서버 로그아웃 확인에 실패했습니다.');};
+  $('#logout').addEventListener('click',logout);$('#device-logout').addEventListener('click',logout);
+  $('#approve-device').addEventListener('click',async()=>{
+    const current=revision;$('#approve-device').disabled=true;$('#device-state').textContent='서버가 로그인과 기기 키 소유 증명을 확인하고 있습니다.';
+    try{const {data}=await client.auth.getSession();if(!data.session)throw Error('다시 로그인해 주세요.');
+      const result=await window.alephDevice.approve(data.session);if(current!==revision)return;
+      if(!result)throw Error('서버에서 기기 승인을 확인하지 못했습니다.');
+      approved=true;$('#device-panel').hidden=true;$('#workspace').hidden=false;status('서버가 이 화면의 기기 접속을 승인했습니다.');await loadNotes();
+    }catch(error){approved=false;window.alephDevice.clear();$('#workspace').hidden=true;$('#notes').replaceChildren();$('#device-state').textContent=error.message;}
+    finally{$('#approve-device').disabled=false;}
+  });
+  window.addEventListener('offline',()=>{revision++;approved=false;window.alephDevice.clear();$('#workspace').hidden=true;$('#notes').replaceChildren();clearEditor();$('#device-panel').hidden=!signedIn;$('#device-state').textContent='오프라인입니다. 연결 후 기기 승인을 다시 요청해 주세요.';status('오프라인에서는 보호 자료를 표시하지 않습니다.');});
+  let installPrompt;
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('#install-app').hidden=false;});
+  $('#install-app').addEventListener('click',async()=>{if(installPrompt){await installPrompt.prompt();installPrompt=null;$('#install-app').hidden=true;}});
+  if('serviceWorker' in navigator)void navigator.serviceWorker.register('/sw.js').catch(()=>status('오프라인 안내를 준비하지 못했습니다. 온라인 접속은 계속 사용할 수 있습니다.'));
   $('#editor').addEventListener('submit',async event=>{
     event.preventDefault(); $('#save-note').disabled=true;
     try {await api(editingId?'/'+editingId:'',{method:editingId?'PUT':'POST',body:JSON.stringify({title:$('#note-title').value,body:$('#note-body').value})});clearEditor();await loadNotes();status('메모를 저장했습니다.');}

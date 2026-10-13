@@ -23,7 +23,7 @@ export function hasEngineRouteDeclarations(routes) {
 }
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -170,6 +170,20 @@ export async function runAttackChecks(config) {
       const body = await restored.json().catch(()=>null);
       attempts.push({attackId:'anonymous_restore_denied',expected:'실제 HTTP · 비로그인 단일 메모 복원 요청 거부',
         observed:restored.status===401&&body?.error==='LOGIN_REQUIRED'?'확인 · HTTP 401':'실패 · HTTP '+restored.status});
+    }
+    if(config.step>=11){
+      const anonymous=attempts.splice(0,4);
+      attempts.unshift({attackId:'anonymous_note_crud',expected:'실제 HTTP · 로그인 없는4메서드 모두거부',
+        observed:anonymous.every(c=>c.observed.startsWith('확인'))?'확인 · GET/POST/PUT/DELETE401':'실패'});
+      const manifest=await request('/manifest.webmanifest'),m=await manifest.json().catch(()=>null);
+      attempts.push({attackId:'installable_app_manifest',expected:'실제 HTTP · 기존 자료실 시작주소/설치설정/이름',
+        observed:manifest.ok&&m?.start_url==='/'&&m.display==='standalone'&&m.name?'확인 · manifest200':'실패'});
+      const offline=await request('/offline.html'),text=await offline.text();
+      attempts.push({attackId:'offline_no_protected_data',expected:'실제 HTTP · 자료/키없는오프라인설명',
+        observed:offline.ok&&text.includes('인터넷 연결이 필요합니다')&&!text.includes(config.sampleMarker)?'확인 · offline200':'실패'});
+      const device=await request('/api/device?operation=status'),result=await device.json().catch(()=>null);
+      attempts.push({attackId:'anonymous_device_status',expected:'실제 HTTP · 로그인/기기확인없는승인불가',
+        observed:device.status===401&&result?.error==='LOGIN_REQUIRED'?'확인 · HTTP401':'실패'});
     }
     return attempts;
   }

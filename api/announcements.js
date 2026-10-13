@@ -8,13 +8,16 @@ export function createAnnouncementsHandler(getRuntime = productionRuntime) {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     if (!request.headers?.authorization) return response.status(401).json({ error: 'LOGIN_REQUIRED' });
-    let database, identity, xdr;
+    let database, identity, xdr, deviceCheck;
     try {
       const services = getRuntime();
       ({ database, xdr } = services);
+      deviceCheck=services.authorizeDevice;
       identity = await services.verifyLoginAuthorization(request.headers.authorization);
     } catch { return response.status(503).json({ error: 'AUTH_NOT_CONFIGURED' }); }
     if (!identity) return response.status(401).json({ error: 'INVALID_LOGIN' });
+    try {if(deviceCheck&&!await deviceCheck(request,identity))return response.status(403).json({error:'DEVICE_NOT_APPROVED'});}
+    catch{return response.status(503).json({error:'DEVICE_SERVICE_UNAVAILABLE'});}
     const method = request.method;
     if (!['GET', 'PUT'].includes(method)) {
       response.setHeader('Allow', 'GET, PUT');
