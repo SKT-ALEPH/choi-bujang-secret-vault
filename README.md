@@ -300,6 +300,6 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 검증 순서:정책사본preview/시험정책복원→비공개DB권한/롤백전용B가상메모검사→서버전용시험환경에서 `node scripts/stage10-live-check.mjs`의새B메모변조·삭제복원→`node --experimental-vm-modules --test test/stage3.test.mjs test/stage5.test.mjs test/stages7-12.test.mjs test/stage8-route-declarations.test.mjs test/stage9.test.mjs test/stage10.test.mjs`→실제배포자기점검/bundle→심판의1~9대표공격재검사입니다. 가상·DB트랜잭션·실제로그인·심판증거를구분하고 미실행결과를꾸미지않습니다.
 
-정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth B의배포HTTP복원및최종심판은아직미실행입니다.
+정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth A/B의배포HTTP17조건이6fd4c57에서모두통과했습니다. B변조/삭제메모복원200,ID/내용지문일치,타인읽기/복원404,위조/기능쿼리400,브라우저RPC403,다른메모·감사보존을확인했습니다. 새시험2계정과활성2메모는정리했고비공개사본/감사는보존했습니다. 일회성빌드검증설정0복원과자동실행코드제거후제출합니다. 최종심판은미실행입니다.
 
 검증 근거:[PostgreSQL SHA-256 함수](https://www.postgresql.org/docs/17/pgcrypto.html),[SECURITY DEFINER와안전한검색경로](https://www.postgresql.org/docs/17/sql-createfunction.html).
