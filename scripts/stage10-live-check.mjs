@@ -19,7 +19,8 @@ export async function runRecoveryCheck(config) {
       body:body===undefined?undefined:JSON.stringify(body)});
     return{status:r.status,data:await r.json().catch(()=>null)};
   };
-  const check=(name,r,status,extra=true)=>proof.checks.push({name,status:r.status,expected:status,passed:r.status===status&&extra});
+  const check=(name,r,status,extra=true)=>proof.checks.push({name,status:r.status,expected:status,passed:r.status===status&&extra,
+    ...(/^[A-Z_]+$/.test(r.data?.error??'')?{errorCode:r.data.error}:{})});
   const commit=async()=>{
     const r=await fetch(new URL('/aleph.json',config.publicAppUrl),{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});
     const j=await r.json();if(!r.ok||j.step!==10||j.repoUrl?.toLowerCase()!==config.repoUrl.toLowerCase()||!/^[a-f0-9]{40}$/.test(j.commit))throw Error('RECOVERY_CHECK_DEPLOYMENT_UNKNOWN');return j.commit;

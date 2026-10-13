@@ -12,6 +12,12 @@ const id='00000000-0000-4000-8000-000000000001';
 const owner='00000000-0000-4000-8000-000000000002';
 const response=()=>({setHeader(){},status(n){this.statusCode=n;return this;},json(v){this.body=v;}});
 
+test('restore rewrite uses the same id parameter as the server query contract',async()=>{
+  const deployment=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
+  assert.deepEqual(deployment.rewrites.find(r=>r.source.startsWith('/api/restore/')),
+    {source:'/api/restore/:id',destination:'/api/restore?id=:id'});
+});
+
 test('verified policy preview binds the exact changes; restore preserves unrelated rules and old audit history',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'aleph-policy-'));
   try {
