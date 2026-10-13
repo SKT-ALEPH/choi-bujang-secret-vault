@@ -3,6 +3,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {createClient} from '@supabase/supabase-js';
+import {runAttackChecks} from '../src/attack-check.mjs';
 
 // Only new disposable B notes are changed. Their private backup/audit history is retained.
 export async function runRecoveryCheck(config) {
@@ -70,8 +71,31 @@ export async function runRecoveryCheck(config) {
       headers:{apikey:settings.publishableKey,Authorization:'Bearer '+b.access_token,'Content-Type':'application/json'},
       body:JSON.stringify({p_actor:users[0],p_note:id,p_policy_hash:'0'.repeat(64)})});
     proof.checks.push({name:'browser_direct_rpc_denied',status:direct.status,passed:direct.status===403});
+    // Run these only after both actual restoration requests, before fixture cleanup.
+    const ownList=await call(a,'/api/my/notes');
+    proof.postRestoreRetests=[{name:'normal_a_own_list',kind:'live_http',status:ownList.status,
+      passed:ownList.status===200&&Array.isArray(ownList.data?.notes)&&!ownList.data.notes.some(n=>n.id===id)},
+      {name:'normal_b_restored_note',kind:'live_http',status:readDeleted.status,
+        passed:readDeleted.status===200&&hash(readDeleted.data.body??'')===hash(original)}];
+    const publicData=await call(null,'/data.json');
+    proof.postRestoreRetests.push({name:'no_public_note_bodies',kind:'live_http',status:publicData.status,
+      passed:publicData.status===200&&publicData.data?.notes?.length===0});
+    for(const method of ['PUT','DELETE']){
+      const denied=await call(a,path,method,method==='PUT'?{title:'Foreign attempt',body:'Synthetic denied change'}:undefined);
+      proof.postRestoreRetests.push({name:'foreign_'+method.toLowerCase()+'_denied',kind:'live_http',status:denied.status,passed:denied.status===404});
+    }
+    const unchanged=await call(b,path);
+    proof.postRestoreRetests.push({name:'foreign_attempts_preserve_restored_note',kind:'live_http',status:unchanged.status,
+      passed:unchanged.status===200&&hash(unchanged.data.body??'')===hash(original)});
+    const attempts=await runAttackChecks(config);
+    const expected={invalid_login_token:'HTTP 401',auth_proxy_rejects_data_route:'HTTP 404'};
+    for(const attempt of attempts)proof.postRestoreRetests.push({name:attempt.attackId,
+      kind:attempt.attackId.startsWith('local_')?'local_synthetic':'live_http',observed:attempt.observed,
+      passed:expected[attempt.attackId]?attempt.observed===expected[attempt.attackId]:attempt.observed.startsWith('확인')});
+    proof.retestedAfterRestore=true;
     proof.deploymentUnchanged=proof.testedCommit===await commit();
-    proof.result=proof.deploymentUnchanged&&proof.checks.length===17&&proof.checks.every(c=>c.passed)?'ALL_CHECKS_PASSED':'CHECK_FAILED';
+    proof.result=proof.deploymentUnchanged&&proof.checks.length===17&&proof.checks.every(c=>c.passed)
+      &&proof.postRestoreRetests.length===26&&proof.postRestoreRetests.every(c=>c.passed)?'ALL_CHECKS_PASSED':'CHECK_FAILED';
   } catch(error) {proof.failure=/^RECOVERY_CHECK_[A-Z_]+$/.test(error.message)?error.message:'RECOVERY_CHECK_REQUEST_FAILED';}
   finally {
     proof.cleanupOk=true;
