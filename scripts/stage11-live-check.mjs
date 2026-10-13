@@ -115,7 +115,7 @@ export async function runDeviceCheck(config){
    for(const path of ['api/notes.js','api/my/notes.js','api/announcements.js','api/auth.js','api/restore.js','api/device.js','api/checks.js','src/decider.mjs','src/detect.mjs','src/verify-login.mjs','src/device-session.mjs','src/operations.mjs','src/recovery-policy.mjs','public/device-client.mjs','public/device-message.mjs','public/operations.mjs','public/app.js','public/index.html','aleph.config.json','vercel.json'])proof.sourceHashes[path]=createHash('sha256').update(await readFile(new URL('../'+path,import.meta.url))).digest('hex');
   }
   proof.result=proof.checks.every(c=>c.passed)&&proof.priorChecksPassed&&proof.deploymentUnchanged&&(config.step!==12||proof.receiptsComplete&&proof.stageCoverage)?'ALL_CHECKS_PASSED':'CHECK_FAILED';
- }catch(error){proof.failureType=['TimeoutError','AbortError','TypeError'].includes(error.name)?error.name:'Error';proof.failure=/^DEVICE_CHECK_[A-Z_]+$/.test(error.message)?error.message:'DEVICE_CHECK_REQUEST_FAILED';}
+ }catch(error){proof.failedCheck=/^[a-z0-9_-]+: HTTP [0-9]{3} did not match expected result$/.test(error.message)?error.message:null;proof.failureType=['TimeoutError','AbortError','TypeError'].includes(error.name)?error.name:'Error';proof.failure=/^DEVICE_CHECK_[A-Z_]+$/.test(error.message)?error.message:'DEVICE_CHECK_REQUEST_FAILED';}
  finally{
   proof.cleanupOk=true;
   try{if(users[0]&&notes.length){const d=await admin.from('notes').delete().in('id',notes).eq('owner_id',users[0]);const after=await admin.from('notes').select('id').in('id',notes).eq('owner_id',users[0]);if(d.error||after.error||after.data?.length)proof.cleanupOk=false;}

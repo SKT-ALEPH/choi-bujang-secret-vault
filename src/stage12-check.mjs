@@ -19,7 +19,7 @@ export async function runStage12Checks(config){
  await probe('s04-header-identity','/api/my/notes','임의 신원 헤더로 로그인 대체 불가',denied,{headers:{'x-user-id':uuid,'x-role':'instructor'}});
  const settings=JSON.parse(await readFile(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
  const direct=new URL(config.originalApiUrl);direct.searchParams.set('select','id');
- await probe('s05-direct-table',direct.href,'anon 직접 DB 조회거부',denied,{headers:{apikey:settings.publishableKey}});
+ await probe('s05-direct-table',direct.href,'anon 직접 DB 조회거부',(r,j)=>[401,403].includes(r.status)&&typeof j?.code==='string'&&!Array.isArray(j)&&! /"(?:notes|content|body)"\s*:/u.test(JSON.stringify(j)),{headers:{apikey:settings.publishableKey}});
  await probe('s08-other-zone','/api/announcements/'+uuid,'비로그인 공지 조회거부',denied);
  await probe('s10-restore-unauth',config.restoreRoute.replace(':noteId',uuid),'비로그인 복원거부',denied,{method:'POST'});
  await probe('s11-device','/api/device?operation=status','비로그인 기기 승인불가',denied);

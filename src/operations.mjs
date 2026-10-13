@@ -15,7 +15,7 @@ export const CHECK_CASES=Object.freeze({
  's09-normal':[9,'normal','observe'], 's09-burst-read':[9,'forbidden','propose_revocation'],
 });
 export async function runFixedCheck(name){
- const definition=CHECK_CASES[name];if(!definition)return null;
+ if(!Object.hasOwn(CHECK_CASES,name))return null;const definition=CHECK_CASES[name];
  const [stage,type,expected]=definition,{normal,suspicious}=fixtureRequests();
  let actual,reasonCode,ruleIds=[],eventCount=null;
  if(stage===9){
