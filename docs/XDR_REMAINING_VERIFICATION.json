@@ -1,0 +1,90 @@
+{
+  "schema": "aleph.xdr.verification.v1",
+  "dateKst": "2026-10-14",
+  "status": "all_requested_modules_passed",
+  "modules": [
+    {
+      "module": "known-cve",
+      "judgedCommit": "367eee3a95a986c0d0bf519f8b39e96170999490",
+      "completeness": 100,
+      "awardedPoints": 120,
+      "conditions": 4,
+      "bonuses": 3,
+      "counts": {
+        "block": 8,
+        "alert": 8,
+        "record": 8
+      },
+      "normalEventsBlocked": 0,
+      "deploymentChecksPassed": true
+    },
+    {
+      "module": "persistence",
+      "judgedCommit": "be320c1be6f59ad1af017207438b939d87044987",
+      "completeness": 100,
+      "awardedPoints": 100,
+      "conditions": 4,
+      "bonuses": 3,
+      "counts": {
+        "block": 8,
+        "alert": 8,
+        "record": 8
+      },
+      "normalEventsBlocked": 0,
+      "deploymentChecksPassed": true
+    },
+    {
+      "module": "privilege",
+      "judgedCommit": "e3c3ab316d7e68de3f5183c8daaf739cd6ca6008",
+      "completeness": 100,
+      "awardedPoints": 100,
+      "conditions": 4,
+      "bonuses": 3,
+      "counts": {
+        "block": 9,
+        "alert": 8,
+        "record": 9
+      },
+      "normalEventsBlocked": 0,
+      "deploymentChecksPassed": true
+    },
+    {
+      "module": "exfiltration",
+      "judgedCommit": "7b2eb26b5bfbe8dd7cf4b2e7e2d51c379e30035a",
+      "completeness": 100,
+      "awardedPoints": 100,
+      "conditions": 4,
+      "bonuses": 3,
+      "counts": {
+        "block": 10,
+        "alert": 10,
+        "record": 10
+      },
+      "normalEventsBlocked": 0,
+      "deploymentChecksPassed": true
+    }
+  ],
+  "approvedXdrModules": 6,
+  "combinedRuleCount": 53,
+  "testResults": {
+    "total": 79,
+    "pass": 78,
+    "knownUnchangedFailure": "test/package-starter.test.mjs API inventory mismatch"
+  },
+  "scope": {
+    "offlineFixturePipeline": true,
+    "realBaseDeciderComposition": true,
+    "deployedExistingHttpProtectionVerified": true,
+    "newLiveWazuhCollectorInstalled": false,
+    "productionClassEngineInstalled": false,
+    "pcFirewallInstalled": false,
+    "newModulesNeedJev": false
+  },
+  "limitations": [
+    "persistence PC isolation uses observed source address; not a unique hardware identity",
+    "privilege session scope is normalized account plus observed source address",
+    "destination/account lookups must be server trusted; missing binding fails explicitly",
+    "five-field reader omits detailed payload/bytes/destination; evaluator does not reconstruct missing evidence",
+    "existing package API inventory test remains separate from this request"
+  ]
+}
