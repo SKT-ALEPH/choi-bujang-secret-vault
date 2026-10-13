@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -49,7 +49,7 @@ export async function runAttackChecks(config) {
       attempts.push({attackId:'anonymous_direct_database',expected:'anon 키로 직접 DB 자료 조회 거부',
         observed:(denied?'확인':'실패')+' · HTTP '+direct.status});
     }
-    if (config.step === 5) {
+    if (config.step >= 5) {
       let clean = true;
       const leaked = /sb_publishable_[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+/u;
       for (const path of ['/', '/app.js', '/auth-config.json', '/vendor/supabase.js', '/data.json']) {
@@ -62,6 +62,21 @@ export async function runAttackChecks(config) {
         (identity.allowedRoutes?.length > 0 && identity.originalApiUrl===config.originalApiUrl && !new URL(config.originalApiUrl).search?'확인':'실패')});
       const auth = await request('/api/auth?path=rest/v1/notes');
       attempts.push({attackId:'auth_proxy_rejects_data_route',expected:'Auth 함수로 자료 주소 우회 불가',observed:'HTTP '+auth.status});
+    }
+    if (config.step >= 6) {
+      const { decide } = await import('./decider.mjs');
+      const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
+      const { normal } = fixtureRequests();
+      for (const [name, value, expected] of [
+        ['registered', true, 'allow'], ['unregistered', false, 'deny'], ['missing', undefined, 'deny'],
+      ]) {
+        const response = await decide({ ...normal, deviceRegistered: value });
+        const passed = response.decision === expected
+          && (expected === 'allow' || response.reasonCode === 'device_not_registered');
+        attempts.push({ attackId: 'local_device_' + name,
+          expected: '로컬 가상 판정 · ' + expected + (expected === 'deny' ? ' device_not_registered' : ''),
+          observed: (passed ? '확인' : '실패') + ' · ' + response.decision + ' · ' + response.reasonCode });
+      }
     }
     return attempts;
   }

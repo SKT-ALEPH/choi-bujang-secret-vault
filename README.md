@@ -1,6 +1,22 @@
-# BYTE BACK 자료실 · 5단계
+# BYTE BACK 자료실 · 6단계
 
 ## 현재 구현
+
+6단계 판정기는 운영 엔진이 확인한 `deviceRegistered === true`인
+`notes` 서비스의 `GET /notes`와 `GET /notes/:id` 읽기만 허용합니다.
+미등록·누락·문자열 값은 `deny`와 `device_not_registered`로 거부합니다.
+다른 서비스와 쓰기는 기본 거부를 유지합니다. `subjectId`는 엔진이 만든
+가명 사용자 ID이며 Supabase 사용자 UUID와 비교하지 않습니다.
+
+확인 순서: `npm run decider:test` → 등록 기기의 정상 요청 통과와 미등록
+가상 요청 거부 확인 → `node --test test/stage6.test.mjs`로 누락·범위와
+XDR 추가 거부 보존 확인. 모두 로컬 가상 시험이며 실제 인증서/mTLS와
+다른 사용자 토큰 조합 공격은 운영 심판이 검증합니다. 이번 단계에 새
+인증서·CA·서명 키나 접속 프로그램 설치는 없습니다. 기존 화면·주소·DB
+권한·Auth·XDR 연결은 유지합니다. 제약은 [6단계 RULE](docs/STAGE6_RULES.md).
+6단계 구현 저장점 이후 실제 배포 커밋을 확인하고 `npm run bundle`로
+기존 HTTP 점검11개와 로컬 기기 가상 점검3개를 묶습니다. 심판 판정은
+포털의6단계 결과를 별도로 확인해야 합니다.
 
 Supabase Auth 공식 SDK로 이메일·비밀번호 로그인과 로그아웃을 제공합니다.
 브라우저에는 Supabase 키가 없습니다. 공식 SDK의 Auth 요청은 고정 경로의
