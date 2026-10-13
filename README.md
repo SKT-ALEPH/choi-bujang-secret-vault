@@ -2,18 +2,31 @@
 
 ## 현재 구현
 
-8단계는 엔진 확인 notes 서비스의 UUID 메모(공식 연습의 demo 포함) 개별 GET/PUT 경로만
-판정기에서 허용합니다. 경로·메서드·route가 다르거나 export/공지/관리 구역이면
-거부합니다. 판정기의 일반 목록 /notes는 구역 전체를 열 수 있어 거부하고,
-기존 /api/notes의 본인 목록은 서버 소유자 필터로 유지합니다. 최종 API는 검증된 사용자와 owner_id를 계속 원자 대조하며
-목록에도 소유자 필터를 적용합니다. 서버의 X-Resource-ID는 notes 또는
-notes/자료ID입니다. 공지 구역 announcements는 별도 자원이며 현재 저장된
-강사 권한·공지 데이터·역할 계약이 없어 수정 경로를 열지 않습니다.
-강사 공지 편집 기능을 구현한 것으로 보고하지 않습니다. query는 id만 받고
-본문 role/resourceId/zone/owner 지정은 거부합니다. 메뉴와 기존 주소는 유지합니다.
-`node --test test/stages7-12.test.mjs test/stage3.test.mjs`로 경로·권한 우회와
-자기 자료/타인 자료 분리를 점검합니다. 실제 A/B 직접 요청은 심판에서 검증합니다.
+8단계 수정 구현은 실제 공지 자원과 저장된 편집 권한을 분리합니다.
+`sql/stage8-resources.sql`의 announcements와 announcement_editors는 직접 DB
+권한이 없으며 RLS가 켜져 있습니다. `api/announcements.js`는 기존 검증기로
+사용자를 확인하고, 공지별 저장 권한을 UPDATE와 같은 문장에서 대조하는
+edit_announcement 함수를 호출합니다. 본문 role이나 임의 권한 지정은 400,
+권한 없는 수정은 403입니다. 실제 학습 DB의 트랜잭션 검사6개가 통과했고
+시험 행과 권한은 모두 롤백했습니다. 기존 메뉴·주소·메모는 보존합니다.
 
+판정기는 엔진의 등록 기기·가명 주체·서비스·메서드·route를 확인합니다.
+공식 계약에서 확인 가능한 /notes/demo 개별 GET/PUT만 허용하며, UUID 문법을
+가졌다는 이유만으로 다른 엔진 자원을 등록하지 않습니다. 다른 경로·목록·
+export·비어 있지 않은 쿼리는 거부합니다. 이 로컬 연습 경로의 허용이 실제
+메모 소유권 증거는 아닙니다. 실제 /api/notes 목록과 개별 CRUD는 원래대로
+검증된 사용자 ID와 저장 owner_id를 원자 대조합니다. 가명 subjectId를 DB UUID로
+비교하거나 가상 주체 이름을 운영 허용 명단에 넣지 않습니다. 현재 판정 계약에는
+강사 역할이 없으므로 엔진의 공지 수정은 거부하고, 실제 공지 API의 편집은
+오직 DB 소유자가 저장한 공지별 권한으로 결정합니다. 앱에는 권한 부여 API가 없습니다.
+
+자원 ID는 notes[/UUID]와 announcements[/UUID]로 구별하며 서버의
+X-Resource-ID 헤더에 표시합니다. query는 자료 id만 받고, 메모 본문의
+role/resourceId/zone/owner 지정은 거부합니다.
+`node --experimental-vm-modules --test test/stages7-12.test.mjs test/stage3.test.mjs`
+로 정상/거부 및 원래 암호학적 인증·소유자 검사를 확인합니다.
+마지막 심판909e196은36/100점이며, 이번 수정의 실제 심판 결과는 아직 없습니다.
+100점 확인 전 9단계 구현은 대기합니다. 로컬 시험과 실제 심판을 구분합니다.
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
 risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.
@@ -77,7 +90,9 @@ ChoiTimo/aleph-defense-starter R5입니다.
 5. Supabase Auth의 Site URL을 실제 배포 주소로 설정합니다. 이메일 확인을
    비활성화하지 않습니다. 테스트 계정과 비밀번호는 사용자가 공식 화면에서
    직접 설정하고, 가입 확인 메일의 링크를 누릅니다.
-6. GitHub main을 배포합니다. 빌드는 `public/`에 공식 SDK UMD 파일을 복사하고
+6. 8단계 공지 자원은 `sql/stage8-resources.sql`을 적용합니다. 편집 권한은 DB 소유자가
+   검증된 실제 사용자 UUID와 공지 UUID에 한해 관리합니다. 기본 권한 행은 없습니다.
+7. GitHub main을 배포합니다. 빌드는 `public/`에 공식 SDK UMD 파일을 복사하고
    빈 data.json과 실제 배포 신원 aleph.json을 생성합니다. Vercel은 서버 API도 배포합니다.
 
 ## 실제 API 계약
@@ -88,6 +103,8 @@ ChoiTimo/aleph-defense-starter R5입니다.
 - GET `/api/notes/:id`: 200 `{id,title,body}` 또는 404 JSON 오류.
 - PUT `/api/notes/:id`: `{title,body}`로 본인 메모만 수정합니다. owner_id는 바꿀 수 없습니다.
 - DELETE `/api/notes/:id`: 본인 메모만 삭제합니다. 삭제 후 같은 주소의 GET은 404입니다.
+- GET `/api/announcements` 및 `/api/announcements/:id`: 인증된 사용자에게 공지를 반환합니다.
+- PUT `/api/announcements/:id`: `{title,body}`. 저장된 해당 공지 편집 권한이 있어야 200, 없으면403.
 - 모든 자료 요청은 인증이 필요합니다. 무로그인 401, 잘못된 입력 400,
   중복 id 409, DB 오류 502를 반환하며 DB 오류 상세나 키를 출력하지 않습니다.
 

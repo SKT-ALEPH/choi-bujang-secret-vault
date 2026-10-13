@@ -29,6 +29,18 @@
     {
       "method": "DELETE",
       "path": "/api/notes/:id"
+    },
+    {
+      "method": "GET",
+      "path": "/api/announcements"
+    },
+    {
+      "method": "GET",
+      "path": "/api/announcements/:id"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/announcements/:id"
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",

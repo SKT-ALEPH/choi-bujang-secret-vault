@@ -8,7 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const fields = 'id,title,content';
 const publicNote = ({ id, title, content }) => ({ id, title, body: content });
 let runtime;
-function productionRuntime() {
+export function productionRuntime() {
   if (runtime) return runtime;
   const projectUrl = process.env.SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY?.trim();

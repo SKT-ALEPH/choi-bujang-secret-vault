@@ -89,6 +89,26 @@ export async function runAttackChecks(config) {
           observed: (response.decision === expected ? '확인' : '실패') + ' · ' + response.decision });
       }
     }
+    if (config.step >= 8) {
+      const { decide } = await import('./decider.mjs');
+      const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
+      const { normal } = fixtureRequests();
+      const denied = [];
+      for (const fields of [{ path: '/notes/00000000-0000-4000-8000-000000000001' },
+        { path: '/notes/export' }, { path: '/notes' }, { subjectId: '' }, { queryLength: 1 },
+        { service: 'announcements', path: '/announcements/demo', method: 'PUT', route: 'PUT /announcements/:id' }]) {
+        denied.push((await decide({ ...normal, ...fields })).decision === 'deny');
+      }
+      attempts.push({ attackId: 'local_resource_scope', expected: '로컬 가상 · 미등록 자원/주체 누락/쿼리/공지 수정 거부',
+        observed: denied.every(Boolean) ? '확인 · 6개' : '실패' });
+      for (const method of ['GET', 'PUT']) {
+        const response = await request('/api/announcements/00000000-0000-4000-8000-000000000001', { method });
+        let safe = false;
+        try { const body = await response.json(); safe = response.status === 401 && typeof body.error === 'string'; } catch {}
+        attempts.push({ attackId: 'anonymous_announcement_' + method.toLowerCase(), expected: '실제 HTTP · 비로그인 공지 접근 거부',
+          observed: (safe ? '확인' : '실패') + ' · HTTP ' + response.status });
+      }
+    }
     return attempts;
   }
   if (config.step === 2) {
