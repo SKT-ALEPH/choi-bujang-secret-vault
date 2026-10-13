@@ -31,7 +31,15 @@ export async function authorizeDevice(database,request,identity){
   const rawBody=bodyless?'':typeof request.body==='string'?request.body:request.body==null?'':JSON.stringify(request.body);
   const message=requestMessage({id,at,nonce,method:request.method,path:url.pathname+url.search,
     bodyHash:fingerprint(rawBody),tokenHash});
-  if(!verifyDeviceSignature(device.public_jwk,message,h['x-aleph-signature']))return false;
+  if(!verifyDeviceSignature(device.public_jwk,message,h['x-aleph-signature'])){
+    if(process.env.STAGE11_VERIFY_DEVICE==='1'){
+      const route=/^\/api\/(notes|my\/notes|announcements|restore|device)(\/[^/]+)?$/u.exec(url.pathname);
+      console.info(JSON.stringify({event:'device_signature_shape',method:request.method,
+        routeShape:route?'/api/'+route[1]+(route[2]?'/:id':''):'other',idQueryCount:url.searchParams.getAll('id').length,
+        queryCount:[...url.searchParams].length,bodyKind:bodyless?'none':typeof request.body}));
+    }
+    return false;
+  }
   const used=await database.from('aleph_device_nonces').insert({device_id:id,nonce}).abortSignal(AbortSignal.timeout(10000));
   return !used.error;
 }

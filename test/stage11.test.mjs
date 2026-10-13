@@ -64,4 +64,7 @@ test('signed target matches every existing Vercel rewrite and keeps different re
  assert.notEqual(canonicalTarget('/notes/a'),canonicalTarget('/notes/b'));
  assert.notEqual(canonicalTarget('/notes/a'),canonicalTarget('/announcements/a'));
  assert.notEqual(canonicalTarget('/notes/a?action=all'),canonicalTarget('/notes/a'));
+ assert.equal(canonicalTarget('/api/notes/a?id=a'),canonicalTarget('/api/notes?id=a'));
+ assert.equal(canonicalTarget('/api/restore/a?id=a&id=a'),canonicalTarget('/api/restore?id=a'));
+ assert.notEqual(canonicalTarget('/api/notes/a?id=b'),canonicalTarget('/api/notes/a'));
 });
