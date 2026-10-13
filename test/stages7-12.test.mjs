@@ -18,3 +18,22 @@ test('step-up uses a trusted compound signal, keeps device denial, and checks fr
   assert.equal((await decide({ ...normal, signals: { source: 'none', region: 'unknown', network: 'unknown', hour: 12 } })).decision, 'allow');
   assert.equal((await decide({ ...suspicious, recentEvents: [{ kind: 'risk_signal', count: 20, ageSeconds: 601 }] })).decision, 'allow');
 });
+
+ test('resource scope checks exact method/path/route and the API rejects authority selectors before DB access', async () => {
+  const { normal } = fixtureRequests();
+  assert.equal((await decide({ ...normal, method: 'PUT', route: 'PUT /notes/:id' })).decision, 'allow');
+  for (const fields of [{path:'/notes/export'}, {path:'/notes/demo/export'}, {service:'announcements'},
+    {method:'PUT',path:'/announcements/demo',route:'PUT /announcements/:id'}, {path:'/other/demo'}]) {
+    assert.equal((await decide({ ...normal, ...fields })).decision, 'deny');
+  }
+  const { createNotesHandler } = await import('../api/notes.js');
+  const handler=createNotesHandler(()=>({verifyLoginAuthorization:async()=>({userId:'fixture-user'}),database:{from(){throw Error('must not reach database');}}}));
+  for(const [method,query,body,error] of [
+    ['GET',{action:'export'},undefined,'RESOURCE_QUERY_NOT_ALLOWED'],
+    ['PUT',{id:'00000000-0000-4000-8000-000000000001'},{title:'fixture',body:'fixture',role:'teacher'},'RESOURCE_AUTHORITY_IMMUTABLE'],
+  ]) {
+    let status,result;const response={setHeader(){},status(n){status=n;return this;},json(v){result=v;}};
+    await handler({method,headers:{authorization:'fixture-header'},query,body},response);
+    assert.equal(status,400);assert.equal(result.error,error);
+  }
+ });

@@ -1,6 +1,18 @@
-# BYTE BACK 자료실 · 7단계
+# BYTE BACK 자료실 · 8단계
 
 ## 현재 구현
+
+8단계는 엔진 확인 notes 서비스의 정확한 목록 GET와 개별 GET/PUT 경로만
+판정기에서 허용합니다. 경로·메서드·route가 다르거나 export/공지/관리 구역이면
+거부합니다. 최종 API는 검증된 사용자와 owner_id를 계속 원자 대조하며
+목록에도 소유자 필터를 적용합니다. 서버의 X-Resource-ID는 notes 또는
+notes/자료ID입니다. 공지 구역 announcements는 별도 자원이며 현재 저장된
+강사 권한·공지 데이터·역할 계약이 없어 수정 경로를 열지 않습니다.
+강사 공지 편집 기능을 구현한 것으로 보고하지 않습니다. query는 id만 받고
+본문 role/resourceId/zone/owner 지정은 거부합니다. 메뉴와 기존 주소는 유지합니다.
+`node --test test/stages7-12.test.mjs test/stage3.test.mjs`로 경로·권한 우회와
+자기 자료/타인 자료 분리를 점검합니다. 실제 A/B 직접 요청은 심판에서 검증합니다.
+
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
 risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.

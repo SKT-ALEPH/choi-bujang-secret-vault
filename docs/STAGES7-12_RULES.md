@@ -14,3 +14,9 @@
 - R-S07-COMBINATION: 낯선 네트워크·이른/늦은 시각·최근 대량행동 복합일 때 step_up_required, 지역 하나만 영구차단 금지. 현재 fixture는 hour3/networkunusual/risk_signal20건 age60이며 정상은 hour14/usual/사건없음이다. 수치 정책은 시험의 구현 선택으로 설명.
 - R-S07-STEPUP: 엔진이 검증한 stepUp.verified===true와 유효 age0~900일 때 재판정. 미확인 상태는 추가확인, 조건 해소 또는 검증 후 허용. 직접 토큰을읽거나 가짜확인값을웹요청에추가하지않음.
 - R-S07-VERIFY: npm run fixture:7과 decider:test 정상/복합/재확인·기기거부 확인. 제공 엔진의 실제 재로그인 계약이 준비된 환경에서만 실측하며 그렇지 않은 일반브라우저의 재로그인 차단·허용은 미실행 기록. 새 설치 명령 금지.
+
+## 8단계 자원 구역
+- R-S08-RESOURCE: notes와 announcements를 서버의 별도 자원 ID로 구별. 메뉴/주소/자료 보존. 정확한 메서드·경로만허용, 미지경로·동급export기능 금지, query는자료ID만.
+- R-S08-OWNER: 판정기 subjectId는 DB owner UUID와직접비교금지. 최종 API에서 검증된ID와저장owner를원자대조. 목록도owner필터. 본문 role/owner/resource 지정으로권한승격 금지.
+- R-S08-ANNOUNCEMENTS: 현재 계약에강사역할/저장된권한/공지데이터없음. 임의role상수나브라우저role을신뢰해공지수정권한을만들지않고공지구역닫힘유지. 공지수정기능을구현했다고보고하지않음. 정상자기메모읽기/수정보존,타인/학생공지수정거부확인.
+- R-S08-VERIFY: 직접API와판정기의경로우회·쿼리기능·소유자위조·타인CRUD 검사. 실제 심판의A/B검증과단위대역구분.

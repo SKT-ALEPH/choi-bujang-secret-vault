@@ -57,6 +57,9 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       }
     } catch { return response.status(502).json({error:'DATABASE_REQUEST_FAILED'}); }
     const id = request.query?.id;
+    if (Object.keys(request.query ?? {}).some(key => key !== 'id')) {
+      return response.status(400).json({ error: 'RESOURCE_QUERY_NOT_ALLOWED' });
+    }
     if (id !== undefined && (typeof id !== 'string' || !UUID.test(id))) {
       return response.status(400).json({ error: 'INVALID_NOTE_ID' });
     }
@@ -64,11 +67,15 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       return response.status(400).json({ error: 'NOTE_ID_REQUIRED' });
     }
     if (method === 'POST' && id) return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+    response.setHeader('X-Resource-ID', id ? 'notes/' + id : 'notes');
     let input;
     if (method === 'POST' || method === 'PUT') {
       try { input = typeof request.body === 'string' ? JSON.parse(request.body) : request.body; } catch { /* Invalid JSON is rejected below. */ }
       if (input && (Object.hasOwn(input, 'owner_id') || Object.hasOwn(input, 'ownerId'))) {
         return response.status(400).json({ error: 'OWNER_IMMUTABLE' });
+      }
+      if (input && ['role', 'resourceId', 'zone'].some(key => Object.hasOwn(input, key))) {
+        return response.status(400).json({ error: 'RESOURCE_AUTHORITY_IMMUTABLE' });
       }
       if (!input || typeof input.title !== 'string' || !input.title.trim() || input.title.length > 200
           || typeof input.body !== 'string' || input.body.length > 10000
