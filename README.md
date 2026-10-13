@@ -2,6 +2,13 @@
 
 ## 현재 구현
 
+**8단계 미완료: 799aef013e554fee3af2f6b14da4c82c083b1fee도 36/100점,
+S08_OTHER_ZONE_ALLOWED입니다.** 실제 메모 API 소유자 검사와 공지별 저장 권한은
+구현했지만, 판정기의 가명 주체와 자원 소유권을 연결하는 조건은 해결되지 않았습니다.
+주체 존재와 경로 제한만으로 이 조건이 충족된다고 판단한 해석을 철회합니다.
+동일 자원에서 주체만 바꾼 별도 가상 요청도 둘 다 allow입니다. 실제 심판 입력과의
+동일 재현은 아닙니다. 이 누락을 해결·검증하기 전 추가 제출 및 9~12단계 구현을 금지합니다.
+
 8단계 수정 구현은 실제 공지 자원과 저장된 편집 권한을 분리합니다.
 `sql/stage8-resources.sql`의 announcements와 announcement_editors는 직접 DB
 권한이 없으며 RLS가 켜져 있습니다. `api/announcements.js`는 기존 검증기로
@@ -25,7 +32,7 @@ X-Resource-ID 헤더에 표시합니다. query는 자료 id만 받고, 메모 �
 role/resourceId/zone/owner 지정은 거부합니다.
 `node --experimental-vm-modules --test test/stages7-12.test.mjs test/stage3.test.mjs`
 로 정상/거부 및 원래 암호학적 인증·소유자 검사를 확인합니다.
-마지막 심판909e196은36/100점이며, 이번 수정의 실제 심판 결과는 아직 없습니다.
+이번 수정799aef0의 실제 심판도36/100점입니다.
 100점 확인 전 9단계 구현은 대기합니다. 로컬 시험과 실제 심판을 구분합니다.
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
