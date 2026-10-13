@@ -39,3 +39,9 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
+// One user-authorized live check; remove after collecting the result.
+if (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'production') {
+  const {runAnnouncementCheck}=await import('./stage8-announcement-check.mjs');
+  const settings=JSON.parse(await readFile(resolve(root,'config/supabase-public.json'),'utf8'));
+  await runAnnouncementCheck(config,settings.publishableKey);
+}
