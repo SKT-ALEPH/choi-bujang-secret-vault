@@ -14,7 +14,7 @@ test('12단계 제출은 제한된 모듈·Git 읽기·GET/HEAD만으로 실제 
  let output,stderr='';const safeProcess={env:{},exitCode:0,stdout:{write(){}},stderr:{write(t){stderr+=t;}}};
  const within=file=>{const name=url.fileURLToPath(file instanceof URL?file:url.pathToFileURL(file));if(!name.startsWith(root+path.sep))throw Error('READ_OUTSIDE_REPOSITORY');return name;};
  const builtins={
-  'node:fs':{readFileSync:(file,encoding)=>readFileSync(within(file),encoding),mkdirSync(){},writeFileSync(file,text){assert.equal(within(file),path.join(root,'artifacts/submission.json'));output=JSON.parse(text);}},
+  'node:fs':{readFileSync:(file,encoding)=>{if(typeof file!=='string')throw Error('path_format');return readFileSync(within(file),encoding);},mkdirSync(){},writeFileSync(file,text){assert.equal(within(file),path.join(root,'artifacts/submission.json'));output=JSON.parse(text);}},
   'node:path':{join:path.join,resolve:path.resolve},'node:url':{pathToFileURL:url.pathToFileURL},
   'node:crypto':{randomUUID,createHash(algorithm){assert.equal(algorithm,'sha256');return createHash(algorithm);}},
   'node:child_process':{execFileSync(command,args,options){
