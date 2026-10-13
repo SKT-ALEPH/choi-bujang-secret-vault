@@ -44,7 +44,7 @@ export async function operationsReport(){
  return{schema:proof.schema,requestId:randomUUID(),checkedAt:new Date().toISOString(),
   rules:[...RULE_IDS],policy:{version:policy.version,sourceCommit:policy.sourceCommit,hash:policy.policyHash,verified:true},
   verification:proof,engine:{name:'ALEPH SDP 엔진',scope:'제공 엔진의 가명 사건 전달·판정 집행·회수는 운영 심판 검증 범위'},
-  detection:{kind:'synthetic_input_over_http',productionEvents:'not_measured',records:proof.records.filter(r=>r.stage===9)},
+  detection:{kind:'synthetic_input_over_http',productionEvents:'not_measured',records:proof.records.filter(r=>r.stage===9&&r.kind==='synthetic_input_over_http')},
   revocation:{kind:'live_api_protocol',records:proof.records.filter(r=>r.caseId==='revoked_device_denied')},
   recovery:{kind:'live_api_protocol',records:proof.records.filter(r=>r.stage===10)},
   summary:{executed:proof.records.filter(r=>r.result!=='not_run').length,

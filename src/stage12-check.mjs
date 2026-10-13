@@ -13,7 +13,7 @@ export async function runStage12Checks(config){
  }
  await probe('s01-static-notes','/data.json','공개 가상 메모0건',(r,j)=>r.ok&&Array.isArray(j?.notes)&&j.notes.length===0);
  await probe('s02-static-copy','/notes.json','이전 정적 사본 없음',r=>r.status===404);
- const denied=(r,j)=>[401,403,404].includes(r.status)&&typeof j?.error==='string'&&!Object.hasOwn(j,'notes');
+ const denied=(r,j)=>[401,403,404].includes(r.status)&&typeof j?.error==='string'&&! /"(?:notes|content|body)"\s*:/u.test(JSON.stringify(j));
  await probe('s03-unauth-list','/api/my/notes','비로그인 목록401', (r,j)=>r.status===401&&denied(r,j));
  await probe('s03-fake-token','/api/my/notes','무효 토큰401',(r,j)=>r.status===401&&denied(r,j),{headers:{Authorization:'Bearer invalid.invalid.invalid'}});
  await probe('s04-header-identity','/api/my/notes','임의 신원 헤더로 로그인 대체 불가',denied,{headers:{'x-user-id':uuid,'x-role':'instructor'}});

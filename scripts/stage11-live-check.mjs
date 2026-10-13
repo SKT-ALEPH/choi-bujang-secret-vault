@@ -21,6 +21,7 @@ export async function runDeviceCheck(config){
   proof.records.push({stage:stages[name]??11,type:status>=400?'forbidden':'normal',kind:'live_api_protocol',caseId:name,method:r.method,path:r.path,expected:'HTTP '+status,actual:'HTTP '+r.status,result:passed?'passed':'failed',requestId:r.requestId,checkedAt:r.checkedAt});
  };
  const send=async(session,path,method='GET',body,client=null,override=null)=>{
+  proof.activeRequest={method,path:path.replace(/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}/gi,':id')};
   const o={method,...(body===undefined?{}:{body:JSON.stringify(body)})};
   const headers=override??(client?await client.headers(session,path,o):{});
   const r=await fetch(new URL(path,config.publicAppUrl),{...o,redirect:'error',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',...(session?{Authorization:'Bearer '+session.access_token}:{}),...headers}});
@@ -114,7 +115,7 @@ export async function runDeviceCheck(config){
    for(const path of ['api/notes.js','api/my/notes.js','api/announcements.js','api/auth.js','api/restore.js','api/device.js','api/checks.js','src/decider.mjs','src/detect.mjs','src/verify-login.mjs','src/device-session.mjs','src/operations.mjs','src/recovery-policy.mjs','public/device-client.mjs','public/device-message.mjs','public/operations.mjs','public/app.js','public/index.html','aleph.config.json','vercel.json'])proof.sourceHashes[path]=createHash('sha256').update(await readFile(new URL('../'+path,import.meta.url))).digest('hex');
   }
   proof.result=proof.checks.every(c=>c.passed)&&proof.priorChecksPassed&&proof.deploymentUnchanged&&(config.step!==12||proof.receiptsComplete&&proof.stageCoverage)?'ALL_CHECKS_PASSED':'CHECK_FAILED';
- }catch(error){proof.failure=/^DEVICE_CHECK_[A-Z_]+$/.test(error.message)?error.message:'DEVICE_CHECK_REQUEST_FAILED';}
+ }catch(error){proof.failureType=['TimeoutError','AbortError','TypeError'].includes(error.name)?error.name:'Error';proof.failure=/^DEVICE_CHECK_[A-Z_]+$/.test(error.message)?error.message:'DEVICE_CHECK_REQUEST_FAILED';}
  finally{
   proof.cleanupOk=true;
   try{if(users[0]&&notes.length){const d=await admin.from('notes').delete().in('id',notes).eq('owner_id',users[0]);const after=await admin.from('notes').select('id').in('id',notes).eq('owner_id',users[0]);if(d.error||after.error||after.data?.length)proof.cleanupOk=false;}
@@ -122,8 +123,9 @@ export async function runDeviceCheck(config){
   }catch{proof.cleanupOk=false;}
   proof.createdAccounts=users.length;proof.privateRecoveryBackupAndAuditRetained=true;
   await writeFile(new URL(config.step===12?'../public/stage12-live-proof.json':'../public/stage11-device-proof.json',import.meta.url),JSON.stringify(proof,null,2)+'\n');
-  console.log('Stage11 summary: '+JSON.stringify({...proof,checks:undefined,retests:undefined}));
+  console.log('Stage11 summary: '+JSON.stringify({...proof,checks:undefined,retests:undefined,records:undefined,sourceHashes:undefined}));
   for(const item of proof.checks)console.log('Stage11 check: '+JSON.stringify(item));
+  if(config.step===12)for(const item of proof.records)console.log('Stage12 receipt: '+JSON.stringify(item));
  }
  if(proof.result!=='ALL_CHECKS_PASSED'||!proof.cleanupOk)throw Error('DEVICE_CHECK_NOT_PASSED');return proof;
 }
