@@ -23,7 +23,7 @@ export function hasEngineRouteDeclarations(routes) {
 }
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -149,6 +149,14 @@ export async function runAttackChecks(config) {
         attempts.push({ attackId: 'anonymous_announcement_' + method.toLowerCase(), expected: '실제 HTTP · 비로그인 공지 접근 거부',
           observed: (safe ? '확인' : '실패') + ' · HTTP ' + response.status });
       }
+    }
+    if (config.step >= 9) {
+      const {detect} = await import('./detect.mjs');
+      const {checkDetection} = await import('../scripts/detect-test.mjs');
+      const checks = await checkDetection(detect);
+      attempts.push({attackId:'local_revocation_proposal',
+        expected:'로컬 가상 사건 · 동일 주체 GET 120/121 경계와 사용자/시간창 분리; 실제 회수는 심판 확인',
+        observed:checks.every(c=>c.passed)?`확인 · ${checks.length}조건; 실제 기기 회수로 주장하지 않음`:'실패'});
     }
     return attempts;
   }
