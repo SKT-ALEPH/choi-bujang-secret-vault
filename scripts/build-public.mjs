@@ -39,8 +39,3 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
-// One production build for the user-authorized reproduction; remove after evidence is captured.
-if (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'production') {
-  const {runLiveReadCheck} = await import('./stage8-live-read-check.mjs');
-  await runLiveReadCheck(config);
-}

@@ -1,5 +1,7 @@
 import {randomUUID, randomBytes, createHash} from 'node:crypto';
-import {writeFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createClient} from '@supabase/supabase-js';
 
 export async function runLiveReadCheck(config) {
@@ -85,4 +87,9 @@ export async function runLiveReadCheck(config) {
   }
   if(proof.result!=='A_ALLOWED_B_DENIED' || !cleanupOk)throw new Error('READ_CHECK_NOT_PASSED');
   return proof;
+}
+
+if(process.argv?.[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+  const config=JSON.parse(await readFile(new URL('../aleph.config.json',import.meta.url),'utf8'));
+  await runLiveReadCheck(config);
 }

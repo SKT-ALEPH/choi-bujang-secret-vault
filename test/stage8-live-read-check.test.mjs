@@ -43,8 +43,8 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
         return{status,headers:{get:()=> 'safe-request-trace'},json:async()=>data};
       },
     });
-    vm.runInContext(source.replace('import.meta.url',JSON.stringify(import.meta.url)),context);
-    const promise=context.runLiveReadCheck({identityProvider:{issuer:'https://project.supabase.co/auth/v1'},publicAppUrl:'https://app.example',repoUrl:'https://github.com/Owner/Repo'});
+    const runLiveReadCheck=await vm.runInContext('(async()=>{'+source.replaceAll('import.meta.url',JSON.stringify(import.meta.url))+';return runLiveReadCheck;})()',context);
+    const promise=runLiveReadCheck({identityProvider:{issuer:'https://project.supabase.co/auth/v1'},publicAppUrl:'https://app.example',repoUrl:'https://github.com/Owner/Repo'});
     if(bStatus===404)await promise;else await assert.rejects(promise,/READ_CHECK_NOT_PASSED/);
     const proof=JSON.parse(written);
     assert.equal(proof.result,bStatus===404?'A_ALLOWED_B_DENIED':bStatus===200?'OTHER_USER_NOTE_EXPOSED':'INCONCLUSIVE');
