@@ -39,3 +39,12 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
+// Explicit, temporary verification in the already configured server environment.
+if (process.env.STAGE8_VERIFY_AUTHORIZATION === '1') {
+  const { runLiveReadCheck } = await import('./stage8-live-read-check.mjs');
+  const { runAnnouncementCheck } = await import('./stage8-announcement-check.mjs');
+  const settings = JSON.parse(await readFile(resolve(root, 'config/supabase-public.json'), 'utf8'));
+  await runLiveReadCheck(config);
+  await runLiveReadCheck(config);
+  await runAnnouncementCheck(config, settings.publishableKey);
+}

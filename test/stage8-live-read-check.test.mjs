@@ -29,16 +29,18 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
       console:{log(){}},writeFile:async(_path,content)=>{written=content;},
       createClient(){clients++;return clients===1?admin:{auth:{signInWithPassword:async()=>({data:{session:{access_token:clients===2?tokenA:tokenB}},error:null})}};},
       fetch:async(target,options={})=>{
-        const path=new URL(target).pathname,method=options.method??'GET';
+        const url=new URL(target),path=url.pathname,method=options.method??'GET';
         if(path==='/aleph.json')return{ok:true,json:async()=>({commit,repoUrl:'https://github.com/owner/repo'})};
         const owner=options.headers.Authorization==='Bearer '+tokenA;
         requests.push({path,method,owner,id:options.body?JSON.parse(options.body).id:null});
         let status=200,data;
         if(method==='POST'){memo={...JSON.parse(options.body)};status=201;data={id:memo.id};}
-        else if(method==='DELETE'){memo=null;data={deleted:true};}
-        else if(path==='/api/notes')data=[];
+        else if(url.searchParams.has('action')){status=400;data={error:'RESOURCE_QUERY_NOT_ALLOWED'};}
+        else if(method==='PUT' && Object.hasOwn(JSON.parse(options.body),'owner_id')){status=400;data={error:'OWNER_IMMUTABLE'};}
+        else if(method==='DELETE' && owner){memo=null;data={deleted:true};}
+        else if(path==='/api/notes' && !url.searchParams.has('id'))data=[];
         else if(!memo){status=404;data={error:'NOTE_NOT_FOUND'};}
-        else if(owner)data=memo;
+        else if(owner){if(method==='PUT')Object.assign(memo,JSON.parse(options.body));data={...memo};}
         else {status=bStatus;data=status===200?memo:{error:status===404?'NOTE_NOT_FOUND':'INVALID_LOGIN'};}
         return{status,headers:{get:()=> 'safe-request-trace'},json:async()=>data};
       },
@@ -50,6 +52,7 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
     assert.equal(proof.result,bStatus===404?'A_ALLOWED_B_DENIED':bStatus===200?'OTHER_USER_NOTE_EXPOSED':'INCONCLUSIVE');
     assert.equal(proof.testedCommit,commit);assert.notEqual(proof.buildCommit,proof.testedCommit);
     assert.equal(proof.cleanupOk,true);assert.equal(deletedMemo,true);
+    if(bStatus===404)assert.ok(proof.checks.length===10 && proof.checks.every(c=>c.passed));
     assert.deepEqual(deletedUsers,['user-1','user-2']);
     const reads=requests.filter(r=>r.method==='GET'&&r.path!=='/api/notes');
     assert.equal(reads[0].path,reads[1].path);assert.equal(reads[0].owner,true);assert.equal(reads[1].owner,false);

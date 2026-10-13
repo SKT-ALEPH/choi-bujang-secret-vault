@@ -51,12 +51,34 @@ export async function runLiveReadCheck(config) {
     const b=await call(sessions[1],path);
     const bList=await call(sessions[1],'/api/notes');
     const returned=result=>result.data?.id===noteId && typeof result.data.body==='string';
+    proof.checks=[];
+    const check=(name,response,status,condition=true)=>proof.checks.push({name,status:response.status,
+      expectedStatus:status,passed:response.status===status && condition,requestTrace:response.trace});
+    // Only mutate the new synthetic note after its initial owner/read checks.
+    if(a.status===200 && returned(a) && b.status===404) {
+      const change={title:'Temporary edited verification',body:'Synthetic edited verification content'};
+      check('other_update_denied',await call(sessions[1],path,'PUT',change),404);
+      check('other_delete_denied',await call(sessions[1],path,'DELETE'),404);
+      const preserved=await call(ownSession,path);
+      check('unauthorized_attempts_preserved_note',preserved,200,
+        preserved.data?.title===a.data.title && preserved.data?.body===a.data.body);
+      check('other_query_id_read_denied',await call(sessions[1],'/api/notes?id='+noteId),404);
+      check('function_query_denied',await call(ownSession,path+'?action=export'),400);
+      check('forged_owner_denied',await call(ownSession,path,'PUT',{...change,owner_id:users[1]}),400);
+      const edited=await call(ownSession,path,'PUT',change);
+      check('owner_update_allowed',edited,200,edited.data?.body===change.body);
+      const persisted=await call(ownSession,path);
+      check('owner_update_persisted',persisted,200,persisted.data?.body===change.body);
+      check('owner_delete_allowed',await call(ownSession,path,'DELETE'),200);
+      check('deleted_note_absent',await call(ownSession,path),404);
+    }
     Object.assign(proof,{distinctAccounts:true,resourceFingerprint:createHash('sha256').update(noteId).digest('hex'),
       a:{status:a.status,noteReturned:returned(a),requestTrace:a.trace},
       b:{status:b.status,noteReturned:returned(b),errorCode:b.data?.error==='NOTE_NOT_FOUND'?'NOTE_NOT_FOUND':null,requestTrace:b.trace},
       bList:{status:bList.status,containsANote:Array.isArray(bList.data)?bList.data.some(row=>row.id===noteId):null},
       result:a.status===200 && returned(a) && b.status===404 && b.data?.error==='NOTE_NOT_FOUND' && !returned(b)
         && bList.status===200 && Array.isArray(bList.data) && !bList.data.some(row=>row.id===noteId)
+        && proof.checks.length===10 && proof.checks.every(c=>c.passed)
         ?'A_ALLOWED_B_DENIED':b.status===200 && returned(b)?'OTHER_USER_NOTE_EXPOSED':'INCONCLUSIVE'});
     proof.deploymentUnchanged=proof.testedCommit===await deployedCommit();
     if(!proof.deploymentUnchanged)proof.result='INCONCLUSIVE';
