@@ -1,7 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -76,6 +76,17 @@ export async function runAttackChecks(config) {
         attempts.push({ attackId: 'local_device_' + name,
           expected: '로컬 가상 판정 · ' + expected + (expected === 'deny' ? ' device_not_registered' : ''),
           observed: (passed ? '확인' : '실패') + ' · ' + response.decision + ' · ' + response.reasonCode });
+      }
+    }
+    if (config.step >= 7) {
+      const { decide } = await import('./decider.mjs');
+      const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
+      const { suspicious } = fixtureRequests();
+      for (const [name, stepUp, expected] of [['unverified', suspicious.stepUp, 'step_up'],
+        ['confirmed', { verified: true, authAgeSeconds: 60 }, 'allow']]) {
+        const response = await decide({ ...suspicious, stepUp });
+        attempts.push({ attackId: 'local_step_up_' + name, expected: '로컬 가상 판정 · ' + expected,
+          observed: (response.decision === expected ? '확인' : '실패') + ' · ' + response.decision });
       }
     }
     return attempts;

@@ -1,6 +1,18 @@
-# BYTE BACK 자료실 · 6단계
+# BYTE BACK 자료실 · 7단계
 
 ## 현재 구현
+
+7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
+risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.
+지역 단독으로 차단하지 않습니다. 신호 누락/출처 불명도 추가 확인하며
+source none/unknown은 계약상 미제공 상태로 남기고 위치 정상으로 꾸미지 않습니다.
+엔진 확인 stepUp.verified와 age0~900초일 때만 재판정에서 허용합니다.
+`npm run fixture:7`과 `npm run decider:test`로 정상/복합/재확인 및
+기기 거부를 확인합니다. 현재 일반 자료실 브라우저에는 제공 엔진의 재로그인
+확인 통로가 없으므로 실제 재로그인 전후 자료 차단 실측은 미실행입니다.
+가상 사건·제공 엔진 심판과 구분하며 임의 토큰/헤더로 확인 상태를 만들지 않습니다.
+제약은 [7~12단계 RULE](docs/STAGES7-12_RULES.md)입니다.
+
 
 6단계 판정기는 운영 엔진이 확인한 `deviceRegistered === true`인
 `notes` 서비스의 `GET /notes`와 `GET /notes/:id` 읽기만 허용합니다.
