@@ -1,0 +1,9 @@
+{
+  "task": "XDR-02 web-injection",
+  "score": 100,
+  "maxScore": 100,
+  "conditions": 4,
+  "bonuses": 3,
+  "commit": "3db1bcab4eeca03f80a4a747c5ea59129d10bf5f",
+  "source": "ALEPH visible judge result"
+}

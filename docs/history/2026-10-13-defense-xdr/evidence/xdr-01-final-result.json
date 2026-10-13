@@ -1,0 +1,10 @@
+{
+  "commit": "03b8d3d5849eca5e5e543df62a3ecb9f263efa0f",
+  "source": "ALEPH XDR-01 task modal, directly observed",
+  "score": 100,
+  "maxScore": 100,
+  "conditionsPassed": 4,
+  "completenessBonuses": 3,
+  "status": "방어에 성공했습니다",
+  "evidence": "xdr-01-passed.png"
+}

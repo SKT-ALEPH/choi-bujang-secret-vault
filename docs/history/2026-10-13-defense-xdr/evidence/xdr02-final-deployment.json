@@ -1,0 +1,27 @@
+{
+  "commit": "3db1bcab4eeca03f80a4a747c5ea59129d10bf5f",
+  "step": 5,
+  "repoUrl": "https://github.com/skt-aleph/choi-bujang-secret-vault",
+  "bundleGenerated": true,
+  "fixture": {
+    "block": 8,
+    "alert": 9,
+    "record": 9
+  },
+  "checkedAt": "2026-10-07T10:35:45.070Z",
+  "selfCheckCount": 11,
+  "testCount": 30,
+  "normalFixtureBlocks": 0,
+  "liveHttpProof": "xdr02-live-http-proof.json",
+  "dbProof": "xdr02-live-db-proof.png",
+  "realJevAnswers": 7,
+  "finalEndToEnd": {
+    "commitMatches": true,
+    "repositoryClean": true,
+    "unauthenticatedNotesStatus": 401,
+    "publicNotes": 0,
+    "restoredAuthStatus": 400,
+    "judgeScore": 100,
+    "checkedAt": "2026-10-07T10:39:04.399Z"
+  }
+}

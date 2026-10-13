@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-07T10:00:48.405Z",
+  "commit": "03b8d3d5849eca5e5e543df62a3ecb9f263efa0f",
+  "step": 5,
+  "unauthenticatedNotes": 401,
+  "privateRulesPublicPath": 404,
+  "offlineReplay": {
+    "block": 10,
+    "alert": 9,
+    "record": 9
+  },
+  "meaningfulTests": 25,
+  "judgeScore": 100,
+  "judgeResult": "xdr-01-final-result.json"
+}
