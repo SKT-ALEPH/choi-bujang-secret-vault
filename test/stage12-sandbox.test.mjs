@@ -18,9 +18,9 @@ test('12단계 제출은 제한된 모듈·Git 읽기·GET/HEAD만으로 실제 
   'node:path':{join:path.join,resolve:path.resolve},'node:url':{pathToFileURL:url.pathToFileURL},
   'node:crypto':{randomUUID,createHash(algorithm){assert.equal(algorithm,'sha256');return createHash(algorithm);}},
   'node:child_process':{execFileSync(command,args,options){
-   assert.equal(command,'git');assert.equal(args[0],'-C');assert.equal(args[1],root);const sub=args.slice(2);
+   assert.equal(command,'git');const sub=args;
    assert.ok(['status','rev-parse','diff-tree','show'].includes(sub[0])||sub[0]==='config'&&sub.includes('--get')||sub[0]==='remote'&&sub[1]==='get-url','read-only Git command required');
-   commands.push(sub[0]);return execFileSync(command,args,{...options,env:{PATH:process.env.PATH,GIT_TERMINAL_PROMPT:'0',GIT_OPTIONAL_LOCKS:'0'}});
+   assert.equal(options.cwd,root);commands.push(sub[0]);return execFileSync(command,args,{...options,env:{PATH:process.env.PATH,GIT_TERMINAL_PROMPT:'0',GIT_OPTIONAL_LOCKS:'0'}});
   }},
  };
  const context=createContext({URL,process:safeProcess,fetch:async(target,options={})=>{
