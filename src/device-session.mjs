@@ -25,7 +25,10 @@ export async function authorizeDevice(database,request,identity){
     .eq('id',id).eq('user_id',identity.userId).maybeSingle().abortSignal(AbortSignal.timeout(10000));
   if(error||!device||!device.approved||device.token_hash!==tokenHash||Date.parse(device.expires_at)<=Date.now())return false;
   const url=new URL(request.url,'https://device.invalid');
-  const rawBody=typeof request.body==='string'?request.body:request.body==null?'':JSON.stringify(request.body);
+  // Vercel may parse a bodyless GET/DELETE as {}; these methods carry no app body.
+  const bodyless=['GET','HEAD'].includes(request.method)||(request.method==='DELETE'
+    &&request.body&&typeof request.body==='object'&&Object.keys(request.body).length===0);
+  const rawBody=bodyless?'':typeof request.body==='string'?request.body:request.body==null?'':JSON.stringify(request.body);
   const message=requestMessage({id,at,nonce,method:request.method,path:url.pathname+url.search,
     bodyHash:fingerprint(rawBody),tokenHash});
   if(!verifyDeviceSignature(device.public_jwk,message,h['x-aleph-signature']))return false;

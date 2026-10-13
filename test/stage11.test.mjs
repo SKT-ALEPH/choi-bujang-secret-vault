@@ -33,6 +33,10 @@ test('non-extractable browser key signs method/path/body/token; missing, changed
  record.approved=false;assert.equal(await authorizeDevice(database,req,identity),false);record.approved=true;
  assert.equal(await authorizeDevice(database,req,identity),true);
  assert.equal(await authorizeDevice(database,req,identity),false);
+ const getNonce='00000000-0000-4000-8000-000000000003';
+ const getMessage=requestMessage({id,at,nonce:getNonce,method:'GET',path:'/api/my/notes',bodyHash:fingerprint(''),tokenHash:fingerprint(authorization)});
+ const getSignature=Buffer.from(await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},keys.privateKey,Buffer.from(getMessage))).toString('base64url');
+ assert.equal(await authorizeDevice(database,{url:'/api/my/notes',method:'GET',body:{},headers:{...req.headers,'x-aleph-nonce':getNonce,'x-aleph-signature':getSignature}},identity),true);
 });
 
 test('shared data handler refuses an authenticated but unapproved device before reading any note',async()=>{

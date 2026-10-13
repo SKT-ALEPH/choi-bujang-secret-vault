@@ -81,7 +81,9 @@ export async function runDeviceCheck(config){
    for(const id of users){const d=await admin.from('aleph_device_sessions').delete().eq('user_id',id);const u=await admin.auth.admin.deleteUser(id);const after=await admin.auth.admin.getUserById(id);if(d.error||u.error||after.data?.user||after.error?.status!==404)proof.cleanupOk=false;}
   }catch{proof.cleanupOk=false;}
   proof.createdAccounts=users.length;proof.privateRecoveryBackupAndAuditRetained=true;
-  await writeFile(new URL('../public/stage11-device-proof.json',import.meta.url),JSON.stringify(proof,null,2)+'\n');console.log('Stage11 device proof: '+JSON.stringify(proof));
+  await writeFile(new URL('../public/stage11-device-proof.json',import.meta.url),JSON.stringify(proof,null,2)+'\n');
+  console.log('Stage11 summary: '+JSON.stringify({...proof,checks:undefined,retests:undefined}));
+  for(const item of proof.checks)console.log('Stage11 check: '+JSON.stringify(item));
  }
  if(proof.result!=='ALL_CHECKS_PASSED'||!proof.cleanupOk)throw Error('DEVICE_CHECK_NOT_PASSED');return proof;
 }
