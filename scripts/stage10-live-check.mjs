@@ -74,7 +74,7 @@ export async function runRecoveryCheck(config) {
     // Run these only after both actual restoration requests, before fixture cleanup.
     const ownList=await call(a,'/api/my/notes');
     proof.postRestoreRetests=[{name:'normal_a_own_list',kind:'live_http',status:ownList.status,
-      passed:ownList.status===200&&Array.isArray(ownList.data?.notes)&&!ownList.data.notes.some(n=>n.id===id)},
+      passed:ownList.status===200&&Array.isArray(ownList.data)&&!ownList.data.some(n=>n.id===id)},
       {name:'normal_b_restored_note',kind:'live_http',status:readDeleted.status,
         passed:readDeleted.status===200&&hash(readDeleted.data.body??'')===hash(original)}];
     const publicData=await call(null,'/data.json');
