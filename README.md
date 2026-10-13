@@ -343,3 +343,6 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 서명 경로는 `public/device-message.mjs`의 `canonicalTarget`을 클라이언트와 서버가 함께 사용합니다. 기존 논리/API 별칭은 같은 최종 자원으로 연결하되, 다른 자원 ID·서비스·기능 쿼리는 같은 대상으로 축약하지 않습니다. Vercel의 기존8개 rewrite와 동등한지 회귀 시험합니다. 본문 없는 GET/DELETE의 Vercel 빈 객체는 빈 본문으로 처리합니다.
 
 11단계 재심사 진단: 동일 커밋의 심판 실행 세 번이 `UNV_RUN_ENVIRONMENT`로 끝났습니다. 이는 통과나 요구사항 불합격 판정이 아니며 상세 원인은 공개되지 않았습니다. 새 사본 설치·묶음 생성과 실제 배포 점검은 별도로 통과했습니다. 공식 공개 [실행 예제](https://github.com/ChoiTimo/byteback-sample-pass/blob/main/src/attack-check.mjs)에 맞춰 `src/attack-check.mjs`의 모든 HTTP 요청을 `alephEvidence.caseId/requestKey`로 해당 점검과 연결했습니다. 이 메타데이터는 심판 실행기의 독립 관측용이며 헤더·URL로 전송하지 않습니다. 로컬 가상 판정에는 실제 HTTP 근거를 꾸며 붙이지 않습니다. 이 연결 누락이 환경 오류의 확정 원인이라는 뜻은 아니며, 수정 후 실제 재심사 결과로 구분합니다.
+
+
+11단계 후속 제출 점검은 읽기 전용입니다. 공식 공개 [현재 실행 규칙 적용 기록](https://github.com/ChoiTimo/byteback-sample-pass/pull/1)은 격리 실행에서 읽기 요청을 독립 관측합니다. 이에 맞춰 `npm run bundle`의 11단계 HTTP 점검은 GET15건과 로컬 가상 판정/정책 사본 확인으로18항목을 기록합니다. POST·PUT·DELETE·복원 실행 결과를 GET 결과로 바꿔 적지 않습니다. 이 쓰기 점검들은 기존 실제 서버 검증 기록과 `scripts/stage11-live-check.mjs`의 승인된 시험 환경에 남깁니다. 서버의 인증·소유권·기기서명·복원 통제는 변경하지 않습니다. 읽기 전용 전송을 강제한 시험에서 기존 점검은 POST에서 중단되고 수정본은 끝나는 것을 확인합니다. 운영 심판이 같은 제한을 적용하는지는 공개되지 않았으므로, 이것을 UNV 원인의 확정 증거로 주장하지 않습니다.

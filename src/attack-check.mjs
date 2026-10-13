@@ -42,9 +42,11 @@ export async function runAttackChecks(config) {
       alephEvidence: { caseId, requestKey },
     });
     const attempts = [];
-    for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
+    // Submission checks are read-only; authenticated CRUD/restore is verified separately.
+    const methods = config.step >= 11 ? ['GET'] : ['GET', 'POST', 'PUT', 'DELETE'];
+    for (const method of methods) {
       const path = ['PUT','DELETE'].includes(method) ? '/api/notes/00000000-0000-4000-8000-000000000001' : '/api/notes';
-      const response = await request(path, {method}, config.step >= 11 ? 'anonymous_note_crud' : 'anonymous_' + method.toLowerCase(), method.toLowerCase());
+      const response = await request(path, {method}, 'anonymous_' + method.toLowerCase(), method.toLowerCase());
       let safe = false;
       try { const body = await response.json(); safe = [401,403].includes(response.status)
         && typeof body.error === 'string' && !Object.hasOwn(body, 'notes'); } catch {}
@@ -146,7 +148,7 @@ export async function runAttackChecks(config) {
       attempts.push({ attackId: 'local_resource_scope', expected: '로컬 가상 · 선언 경로 입장과 미지/기능/경로불일치/위조 거부; 최종 소유권 API별도',
         observed: denied.every(Boolean) && admitted.every(Boolean)
           ? '확인 · 거부 ' + denied.length + '개 / 독립 자원 입장 ' + admitted.length + '개' : '실패' });
-      for (const method of ['GET', 'PUT']) {
+      for (const method of config.step >= 11 ? ['GET'] : ['GET', 'PUT']) {
         const response = await request('/api/announcements/00000000-0000-4000-8000-000000000001', { method }, 'anonymous_announcement_' + method.toLowerCase());
         let safe = false;
         try { const body = await response.json(); safe = response.status === 401 && typeof body.error === 'string'; } catch {}
@@ -169,15 +171,14 @@ export async function runAttackChecks(config) {
         observed:`확인 · ${safe.version} / ${safe.files.length}파일; 운영 정책 변경 없음`});
       if (typeof config.restoreRoute!=='string'||!config.restoreRoute.startsWith('/api/restore/')
           ||identity.restoreRoute!==config.restoreRoute)throw Error('10단계 복원 경로 선언과 실제 배포 정보를 확인해 주세요.');
-      const restored = await request(config.restoreRoute.replace(':noteId','00000000-0000-4000-8000-000000000001'),{method:'POST'},'anonymous_restore_denied');
-      const body = await restored.json().catch(()=>null);
-      attempts.push({attackId:'anonymous_restore_denied',expected:'실제 HTTP · 비로그인 단일 메모 복원 요청 거부',
-        observed:restored.status===401&&body?.error==='LOGIN_REQUIRED'?'확인 · HTTP 401':'실패 · HTTP '+restored.status});
+      if (config.step < 11) {
+        const restored = await request(config.restoreRoute.replace(':noteId','00000000-0000-4000-8000-000000000001'),{method:'POST'},'anonymous_restore_denied');
+        const body = await restored.json().catch(()=>null);
+        attempts.push({attackId:'anonymous_restore_denied',expected:'실제 HTTP · 비로그인 단일 메모 복원 요청 거부',
+          observed:restored.status===401&&body?.error==='LOGIN_REQUIRED'?'확인 · HTTP 401':'실패 · HTTP '+restored.status});
+      }
     }
     if(config.step>=11){
-      const anonymous=attempts.splice(0,4);
-      attempts.unshift({attackId:'anonymous_note_crud',expected:'실제 HTTP · 로그인 없는4메서드 모두거부',
-        observed:anonymous.every(c=>c.observed.startsWith('확인'))?'확인 · GET/POST/PUT/DELETE401':'실패'});
       const manifest=await request('/manifest.webmanifest',{},'installable_app_manifest'),m=await manifest.json().catch(()=>null);
       attempts.push({attackId:'installable_app_manifest',expected:'실제 HTTP · 기존 자료실 시작주소/설치설정/이름',
         observed:manifest.ok&&m?.start_url==='/'&&m.display==='standalone'&&m.name?'확인 · manifest200':'실패'});
