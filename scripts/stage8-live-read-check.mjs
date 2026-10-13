@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createClient} from '@supabase/supabase-js';
 
-export async function runLiveReadCheck(config) {
+export async function runLiveReadCheck(config, {logicalPaths = false} = {}) {
   const url = process.env.SUPABASE_URL;
   const secret = process.env.SUPABASE_SECRET_KEY?.trim();
   if (!url || !secret || url !== new URL(config.identityProvider.issuer).origin) throw new Error('READ_CHECK_CONFIG_MISSING');
@@ -14,7 +14,7 @@ export async function runLiveReadCheck(config) {
   const users = [];
   let ownSession, noteId, cleanupOk = true;
   const proof = {kind:'live_supabase_auth_and_deployed_api',at:new Date().toISOString(),
-    buildCommit:process.env.VERCEL_GIT_COMMIT_SHA,result:'INCONCLUSIVE'};
+    buildCommit:process.env.VERCEL_GIT_COMMIT_SHA,pathMode:logicalPaths?'logical':'api',result:'INCONCLUSIVE'};
   const deployedCommit = async()=>{
     const response=await fetch(new URL('/aleph.json',config.publicAppUrl),{redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});
     const identity=await response.json();
@@ -22,6 +22,7 @@ export async function runLiveReadCheck(config) {
     return identity.commit;
   };
   const call = async (session, path, method='GET', body) => {
+    if (logicalPaths) path = path.replace(/^\/api\/notes/u, '/notes');
     const response = await fetch(new URL(path, config.publicAppUrl), {method,redirect:'error',signal:AbortSignal.timeout(20000),
       headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
     let data;try { data=await response.json(); } catch { data=null; }
@@ -113,5 +114,5 @@ export async function runLiveReadCheck(config) {
 
 if(process.argv?.[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const config=JSON.parse(await readFile(new URL('../aleph.config.json',import.meta.url),'utf8'));
-  await runLiveReadCheck(config);
+  await runLiveReadCheck(config, {logicalPaths:process.argv.includes('--logical')});
 }

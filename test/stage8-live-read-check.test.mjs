@@ -7,7 +7,7 @@ import vm from 'node:vm';
 test('live check requires distinct logged-in A/B, rejects inconclusive/exposed reads and cleans only its fixtures',async()=>{
   const source=(await readFile(new URL('../scripts/stage8-live-read-check.mjs',import.meta.url),'utf8'))
     .replace(/^import .*;\n/gm,'').replace('export async function','async function');
-  for(const bStatus of [404,401,200]){
+  for(const logicalPaths of [false,true]) for(const bStatus of [404,401,200]){
     let memo,clients=0,written,deletedMemo=false;
     const deletedUsers=[],requests=[];
     const tokenA='ephemeral-a',tokenB='ephemeral-b',commit='a'.repeat(40);
@@ -38,7 +38,7 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
         else if(url.searchParams.has('action')){status=400;data={error:'RESOURCE_QUERY_NOT_ALLOWED'};}
         else if(method==='PUT' && Object.hasOwn(JSON.parse(options.body),'owner_id')){status=400;data={error:'OWNER_IMMUTABLE'};}
         else if(method==='DELETE' && owner){memo=null;data={deleted:true};}
-        else if(path==='/api/notes' && !url.searchParams.has('id'))data=[];
+        else if(['/api/notes','/notes'].includes(path) && !url.searchParams.has('id'))data=[];
         else if(!memo){status=404;data={error:'NOTE_NOT_FOUND'};}
         else if(owner){if(method==='PUT')Object.assign(memo,JSON.parse(options.body));data={...memo};}
         else {status=bStatus;data=status===200?memo:{error:status===404?'NOTE_NOT_FOUND':'INVALID_LOGIN'};}
@@ -46,7 +46,7 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
       },
     });
     const runLiveReadCheck=await vm.runInContext('(async()=>{'+source.replaceAll('import.meta.url',JSON.stringify(import.meta.url))+';return runLiveReadCheck;})()',context);
-    const promise=runLiveReadCheck({identityProvider:{issuer:'https://project.supabase.co/auth/v1'},publicAppUrl:'https://app.example',repoUrl:'https://github.com/Owner/Repo'});
+    const promise=runLiveReadCheck({identityProvider:{issuer:'https://project.supabase.co/auth/v1'},publicAppUrl:'https://app.example',repoUrl:'https://github.com/Owner/Repo'},{logicalPaths});
     if(bStatus===404)await promise;else await assert.rejects(promise,/READ_CHECK_NOT_PASSED/);
     const proof=JSON.parse(written);
     assert.equal(proof.result,bStatus===404?'A_ALLOWED_B_DENIED':bStatus===200?'OTHER_USER_NOTE_EXPOSED':'INCONCLUSIVE');
@@ -54,7 +54,10 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
     assert.equal(proof.cleanupOk,true);assert.equal(deletedMemo,true);
     if(bStatus===404)assert.ok(proof.checks.length===10 && proof.checks.every(c=>c.passed));
     assert.deepEqual(deletedUsers,['user-1','user-2']);
-    const reads=requests.filter(r=>r.method==='GET'&&r.path!=='/api/notes');
+    assert.equal(proof.pathMode,logicalPaths?'logical':'api');
+    const collection=logicalPaths?'/notes':'/api/notes';
+    assert.ok(requests.every(r=>r.path===collection||r.path.startsWith(collection+'/')));
+    const reads=requests.filter(r=>r.method==='GET'&&r.path!==collection);
     assert.equal(reads[0].path,reads[1].path);assert.equal(reads[0].owner,true);assert.equal(reads[1].owner,false);
     for(const privateValue of [tokenA,tokenB,'test-server-value','Synthetic verification content','Temporary access verification'])assert.ok(!written.includes(privateValue));
   }

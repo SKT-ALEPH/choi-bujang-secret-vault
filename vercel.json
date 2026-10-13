@@ -22,6 +22,22 @@
     {
       "source": "/api/announcements/:id",
       "destination": "/api/announcements?id=:id"
+    },
+    {
+      "source": "/notes/:id",
+      "destination": "/api/notes?id=:id"
+    },
+    {
+      "source": "/notes",
+      "destination": "/api/notes"
+    },
+    {
+      "source": "/announcements/:id",
+      "destination": "/api/announcements?id=:id"
+    },
+    {
+      "source": "/announcements",
+      "destination": "/api/announcements"
     }
   ]
 }

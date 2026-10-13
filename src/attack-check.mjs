@@ -10,7 +10,8 @@ const RESOURCE_ROUTES = [
   ['announcements', 'GET', '/api/announcements', 'class-notices'],
   ['announcements', 'GET', '/api/announcements/:id', 'class-notices'],
   ['announcements', 'PUT', '/api/announcements/:id', 'instructor-materials'],
-];
+].flatMap(([service, method, path, zone]) => [[service, method, path, zone],
+  [service, method, path.replace(/^\/api/u, ''), zone]]);
 
 export function hasEngineRouteDeclarations(routes) {
   if (!Array.isArray(routes) || routes.length !== RESOURCE_ROUTES.length) return false;

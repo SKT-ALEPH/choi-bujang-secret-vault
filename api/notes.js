@@ -102,6 +102,11 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       const { data, error } = await query.abortSignal(AbortSignal.timeout(10000));
       if (error) return response.status(error.code === '23505' ? 409 : 502)
         .json({ error: error.code === '23505' ? 'NOTE_ID_EXISTS' : 'DATABASE_REQUEST_FAILED' });
+      if (identity.kind === 'judge') console.info(JSON.stringify({
+        event: 'resource_authorization', resource: 'notes', method,
+        scope: id ? 'item' : 'own-list', decision: id && !data ? 'deny' : 'allow',
+        reason: id && !data ? 'owner_or_missing' : 'verified_owner',
+      }));
       if (id && !data) return response.status(404).json({ error: 'NOTE_NOT_FOUND' });
       if (method === 'POST') return response.status(201).json({ id: data.id });
       if (method === 'DELETE') return response.status(200).json({ id: data.id, deleted: true });

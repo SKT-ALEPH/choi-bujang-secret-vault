@@ -22,7 +22,7 @@ test('every implemented route declares its service, exact pattern and zone; inco
   assert.equal(hasEngineRouteDeclarations(config.allowedRoutes.slice(1)), false);
 });
 
-test('all eight declarations have matching admission for independent identities and both engine path forms', async () => {
+test('all declared routes have matching admission for independent identities and both engine path forms', async () => {
   const {normal}=fixtureRequests();
   for(const route of config.allowedRoutes) {
     for(const prefix of ['/api','']) {
@@ -35,6 +35,19 @@ test('all eight declarations have matching admission for independent identities 
       assert.equal((await decide(request)).decision,route.service==='announcements' && route.method==='PUT'?'deny':'allow');
       assert.equal((await decide({...request,path:request.path+'/export'})).decision,'deny');
       assert.equal((await decide({...request,deviceRegistered:false})).decision,'deny');
+    }
+  }
+});
+
+test('each engine logical route reaches the same owner-protected server handler', async () => {
+  const {readFile}=await import('node:fs/promises');
+  const {rewrites}=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
+  for(const service of ['notes','announcements']) {
+    for(const suffix of ['', '/:id']) {
+      const logical=`/${service}${suffix}`;
+      assert.ok(config.allowedRoutes.some(r=>r.pathPattern===logical));
+      assert.equal(rewrites.find(r=>r.source===logical)?.destination,
+        `/api/${service}${suffix?'?id=:id':''}`);
     }
   }
 });
