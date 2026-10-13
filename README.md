@@ -392,3 +392,12 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 실제742c5fe 심판에서 나머지3조건을 확인하고 묶음 실행의 `path_format` 한 조건이 남았습니다(45점). 문자열 파일 경로만 받는 환경에서 동일 오류를 재현해 제출 checker의 fs 읽기를 URL객체에서 `join(root, ...)` 문자열로 바꿨습니다. 기존화면/API/45영수증과 접근통제는 유지합니다. 고정 가상입력HTTP를 포함한47조건을 모두 운영사용자 요청으로 표현하지 않습니다.
 
 3eefd1f의 실제 묶음 실행은 다음 URL 변경 `.set` 오류로 진행했습니다. 검색 조건 변경 API가 없는 읽기 URL 환경에서 같은 첫 오류를 재현하고, 12단계 checker는 검증한 쿼리 없는 HTTPS 주소에 고정 `?select=id`를 붙이도록 바꿨습니다. 제공되지 않은 URL 기능을 재현 시험에 주입하지 않습니다.
+
+## XDR-03 알려진 취약점
+`npm run xdr:run -- known-cve`는 원본24건을 독립 `xdr/known-cve/decide.mjs`로 판단해 result.json을 생성한다. 완전한 원격 JNDI 조회는 block, 불완전한 점검 흔적은 alert, 정상은 record. CVE 이름·심각도만으로 차단하지 않는다. 패턴 근거는 NVD CVE-2021-44228과 MITRE T1190이며 patterns.json에 출처를 보존했다.
+
+`read-alerts.mjs`는 비밀값을 제거한5필드 확인용이다. 요청 원문은 추출하지 않으므로, 원본에만 완전한 조회 구문이 있고 설명은 CVE 이름뿐인 경우 원본block/추출alert가 된다. 잃은 근거를 가짜로 복원하지 않는다. 실제 심판 입력은 원본Wazuh이며 판단기는 파일/네트워크/import 없이 실행한다.
+
+`respond.mjs`는 block만 서버전용 deny-rules.json에 근거경보ID와15분 만료로 저장하고 alert만 xdr/alerts.log에 중복 없이 남긴다. `src/xdr-decider.mjs`의 기존 연결 진입점은 이 추가규칙도 읽는다. 신뢰된 서버 출발주소만 조회하고 기존 src/decider.mjs의 deny/step_up을 유지한다. 실행기는 실제 기본판정기+추가guard를 공용18필드 가상요청으로 재생해 verification.json을 남긴다. 현재24건은8/8/8, 정상차단0이다.
+
+검증: `node --experimental-vm-modules --test test/known-cve.test.mjs`. 이 과제는 오프라인Wazuh 경보부품이며 새Jev/API/PC프로그램/실시간수집기를 설치하지 않는다. 가상경보를 운영DB에 올리지 않는다. 운영반엔진·PC방화벽 설치 증거와 혼동하지 않는다. 기존Vercel자료실/실제HTTP두XDR은 보존한다. 영구제약은 docs/XDR_REMAINING_RULES.md.
