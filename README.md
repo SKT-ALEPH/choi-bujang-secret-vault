@@ -300,7 +300,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 검증 순서:정책사본preview/시험정책복원→비공개DB권한/롤백전용B가상메모검사→서버전용시험환경에서 `node scripts/stage10-live-check.mjs`의새B메모변조·삭제복원→`node --experimental-vm-modules --test test/stage3.test.mjs test/stage5.test.mjs test/stages7-12.test.mjs test/stage8-route-declarations.test.mjs test/stage9.test.mjs test/stage10.test.mjs`→실제배포자기점검/bundle→심판의1~9대표공격재검사입니다. 가상·DB트랜잭션·실제로그인·심판증거를구분하고 미실행결과를꾸미지않습니다.
 
-정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth A/B의배포HTTP17조건이6fd4c57에서모두통과했습니다. B변조/삭제메모복원200,ID/내용지문일치,타인읽기/복원404,위조/기능쿼리400,브라우저RPC403,다른메모·감사보존을확인했습니다. 새시험2계정과활성2메모는정리했고비공개사본/감사는보존했습니다. 일회성빌드검증설정0복원과자동실행코드제거후제출합니다. 최종심판은미실행입니다.
+정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth A/B의배포HTTP17조건이6fd4c57에서모두통과했습니다. B변조/삭제메모복원200,ID/내용지문일치,타인읽기/복원404,위조/기능쿼리400,브라우저RPC403,다른메모·감사보존을확인했습니다. 새시험2계정과활성2메모는정리했고비공개사본/감사는보존했습니다. 일회성빌드검증설정0복원과자동실행코드제거후제출합니다. 최종심판은동일최종커밋에서세번모두UNV_RUN_ENVIRONMENT로확인을끝내지못했습니다. 통과나요구사항실패로보고하지않습니다.
 
 검증 근거:[PostgreSQL SHA-256 함수](https://www.postgresql.org/docs/17/pgcrypto.html),[SECURITY DEFINER와안전한검색경로](https://www.postgresql.org/docs/17/sql-createfunction.html).
 
@@ -336,8 +336,10 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 제공 엔진의18필드 판정과 원본 심판 로그인 검증기는 변경하지 않습니다. 운영자가 서명하고 원본 검증기가 엄격히 확인하는 시험 신원은 기존 제공 엔진의 기기·요청서명 검증 통로를 유지합니다. 일반 Supabase 사용자에 적용하는 위 세션 키 흐름을 엔진의 하드웨어 인증이나 운영자 승인으로 과장하지 않습니다.
 
-적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 접속 클라이언트 코드와 WebCrypto를 통해 배포된 서버의24조건이5532582에서전부통과했습니다. 정상A/B승인·목록·메모추가/읽기/수정/복원·공지읽기,서명누락/경로·본문·메서드변경/재전송/타인키/만료/직접DB거부와회수를확인했습니다. 기존20점검도통과했고새시험계정2/메모1/기기세션정리cleanupOk true입니다. [실측 기록](docs/STAGE11_VERIFICATION.json)에시각/커밋/방식을구분했습니다. 이는 실제클라이언트프로토콜실행이며 수동브라우저로그인이라고기록하지않습니다. 실제화면에서는승인전자료미표시/오프라인안내를확인했습니다. 심판은미실행입니다.
+적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 접속 클라이언트 코드와 WebCrypto를 통해 배포된 서버의24조건이5532582에서전부통과했습니다. 정상A/B승인·목록·메모추가/읽기/수정/복원·공지읽기,서명누락/경로·본문·메서드변경/재전송/타인키/만료/직접DB거부와회수를확인했습니다. 기존20점검도통과했고새시험계정2/메모1/기기세션정리cleanupOk true입니다. [실측 기록](docs/STAGE11_VERIFICATION.json)에시각/커밋/방식을구분했습니다. 이는 실제클라이언트프로토콜실행이며 수동브라우저로그인이라고기록하지않습니다. 실제화면에서는승인전자료미표시/오프라인안내를확인했습니다. 심판은동일최종커밋에서세번모두UNV_RUN_ENVIRONMENT로확인을끝내지못했습니다. 통과나요구사항실패로보고하지않습니다.
 
 참조: [WebCrypto 키 생성](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey), [Node.js 서명 검증](https://nodejs.org/api/crypto.html#cryptoverifyalgorithm-data-key-signature-callback), [PWA 캐시 경계](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching).
 
 서명 경로는 `public/device-message.mjs`의 `canonicalTarget`을 클라이언트와 서버가 함께 사용합니다. 기존 논리/API 별칭은 같은 최종 자원으로 연결하되, 다른 자원 ID·서비스·기능 쿼리는 같은 대상으로 축약하지 않습니다. Vercel의 기존8개 rewrite와 동등한지 회귀 시험합니다. 본문 없는 GET/DELETE의 Vercel 빈 객체는 빈 본문으로 처리합니다.
+
+11단계 재심사 진단: 동일 커밋의 심판 실행 세 번이 `UNV_RUN_ENVIRONMENT`로 끝났습니다. 이는 통과나 요구사항 불합격 판정이 아니며 상세 원인은 공개되지 않았습니다. 새 사본 설치·묶음 생성과 실제 배포 점검은 별도로 통과했습니다. 공식 공개 [실행 예제](https://github.com/ChoiTimo/byteback-sample-pass/blob/main/src/attack-check.mjs)에 맞춰 `src/attack-check.mjs`의 모든 HTTP 요청을 `alephEvidence.caseId/requestKey`로 해당 점검과 연결했습니다. 이 메타데이터는 심판 실행기의 독립 관측용이며 헤더·URL로 전송하지 않습니다. 로컬 가상 판정에는 실제 HTTP 근거를 꾸며 붙이지 않습니다. 이 연결 누락이 환경 오류의 확정 원인이라는 뜻은 아니며, 수정 후 실제 재심사 결과로 구분합니다.

@@ -36,26 +36,28 @@ export async function runAttackChecks(config) {
   }
   if (typeof config.sampleMarker !== 'string' || !config.sampleMarker) throw new Error('가상 메모의 확인 표시를 넣어 주세요.');
   if (config.step >= 3) {
-    const request = (path, options = {}) => fetch(new URL(path, app), {
+    // The runner observes this metadata; it is never sent as a header or URL value.
+    const request = (path, options, caseId, requestKey = 'read') => fetch(new URL(path, app), {
       ...options, redirect: 'error', signal: AbortSignal.timeout(10000),
+      alephEvidence: { caseId, requestKey },
     });
     const attempts = [];
     for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
       const path = ['PUT','DELETE'].includes(method) ? '/api/notes/00000000-0000-4000-8000-000000000001' : '/api/notes';
-      const response = await request(path, {method});
+      const response = await request(path, {method}, config.step >= 11 ? 'anonymous_note_crud' : 'anonymous_' + method.toLowerCase(), method.toLowerCase());
       let safe = false;
       try { const body = await response.json(); safe = [401,403].includes(response.status)
         && typeof body.error === 'string' && !Object.hasOwn(body, 'notes'); } catch {}
       attempts.push({attackId:'anonymous_' + method.toLowerCase(),expected:'로그인 없는 자료 요청을 JSON 오류로 거부',
         observed:(safe?'확인':'실패') + ' · HTTP ' + response.status});
     }
-    const forged = await request('/api/notes', {headers:{Authorization:'Bearer invalid.invalid.invalid'}});
+    const forged = await request('/api/notes', {headers:{Authorization:'Bearer invalid.invalid.invalid'}}, 'invalid_login_token');
     attempts.push({attackId:'invalid_login_token',expected:'유효하지 않은 로그인 토큰 거부',observed:'HTTP ' + forged.status});
-    const metadata = await request('/aleph.json');
+    const metadata = await request('/aleph.json', {}, 'deployment_identity');
     const identity = metadata.ok ? await metadata.json() : {};
     attempts.push({attackId:'deployment_identity',expected:config.step+'단계와 실제 저장소의 배포 정보',observed:
       (identity.step===config.step && identity.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase()?'확인':'실패')+' · HTTP '+metadata.status});
-    const page = await request('/');
+    const page = await request('/', {}, 'security_header');
     attempts.push({attackId:'security_header',expected:'첫 화면 nosniff 헤더',observed:
       (page.headers.get('x-content-type-options')==='nosniff'?'확인':'실패')+' · HTTP '+page.status});
     if (config.step >= 4) {
@@ -65,6 +67,7 @@ export async function runAttackChecks(config) {
       directUrl.searchParams.set('select','id');
       const direct = await fetch(directUrl, {
         headers: { apikey: publicConfig.publishableKey }, redirect: 'error', signal: AbortSignal.timeout(10000),
+        alephEvidence: { caseId: 'anonymous_direct_database', requestKey: 'read' },
       });
       let denied = false;
       try { const body = await direct.json(); denied = [401,403].includes(direct.status) && !Array.isArray(body); } catch {}
@@ -77,8 +80,8 @@ export async function runAttackChecks(config) {
       }
       let clean = true;
       const leaked = /sb_publishable_[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+/u;
-      for (const path of ['/', '/app.js', '/auth-config.json', '/vendor/supabase.js', '/data.json']) {
-        const response = await request(path);
+      for (const [index, path] of ['/', '/app.js', '/auth-config.json', '/vendor/supabase.js', '/data.json'].entries()) {
+        const response = await request(path, {}, 'public_assets_no_keys_or_seed', 'asset-' + index);
         const body = await response.text();
         clean &&= response.ok && !leaked.test(body) && !body.includes(config.sampleMarker);
       }
@@ -88,7 +91,7 @@ export async function runAttackChecks(config) {
           && JSON.stringify(identity.allowedRoutes) === JSON.stringify(config.allowedRoutes)
           : identity.allowedRoutes?.length > 0)
           && identity.originalApiUrl===config.originalApiUrl && !new URL(config.originalApiUrl).search?'확인':'실패')});
-      const auth = await request('/api/auth?path=rest/v1/notes');
+      const auth = await request('/api/auth?path=rest/v1/notes', {}, 'auth_proxy_rejects_data_route');
       attempts.push({attackId:'auth_proxy_rejects_data_route',expected:'Auth 함수로 자료 주소 우회 불가',observed:'HTTP '+auth.status});
     }
     if (config.step >= 6) {
@@ -144,7 +147,7 @@ export async function runAttackChecks(config) {
         observed: denied.every(Boolean) && admitted.every(Boolean)
           ? '확인 · 거부 ' + denied.length + '개 / 독립 자원 입장 ' + admitted.length + '개' : '실패' });
       for (const method of ['GET', 'PUT']) {
-        const response = await request('/api/announcements/00000000-0000-4000-8000-000000000001', { method });
+        const response = await request('/api/announcements/00000000-0000-4000-8000-000000000001', { method }, 'anonymous_announcement_' + method.toLowerCase());
         let safe = false;
         try { const body = await response.json(); safe = response.status === 401 && typeof body.error === 'string'; } catch {}
         attempts.push({ attackId: 'anonymous_announcement_' + method.toLowerCase(), expected: '실제 HTTP · 비로그인 공지 접근 거부',
@@ -166,7 +169,7 @@ export async function runAttackChecks(config) {
         observed:`확인 · ${safe.version} / ${safe.files.length}파일; 운영 정책 변경 없음`});
       if (typeof config.restoreRoute!=='string'||!config.restoreRoute.startsWith('/api/restore/')
           ||identity.restoreRoute!==config.restoreRoute)throw Error('10단계 복원 경로 선언과 실제 배포 정보를 확인해 주세요.');
-      const restored = await request(config.restoreRoute.replace(':noteId','00000000-0000-4000-8000-000000000001'),{method:'POST'});
+      const restored = await request(config.restoreRoute.replace(':noteId','00000000-0000-4000-8000-000000000001'),{method:'POST'},'anonymous_restore_denied');
       const body = await restored.json().catch(()=>null);
       attempts.push({attackId:'anonymous_restore_denied',expected:'실제 HTTP · 비로그인 단일 메모 복원 요청 거부',
         observed:restored.status===401&&body?.error==='LOGIN_REQUIRED'?'확인 · HTTP 401':'실패 · HTTP '+restored.status});
@@ -175,13 +178,13 @@ export async function runAttackChecks(config) {
       const anonymous=attempts.splice(0,4);
       attempts.unshift({attackId:'anonymous_note_crud',expected:'실제 HTTP · 로그인 없는4메서드 모두거부',
         observed:anonymous.every(c=>c.observed.startsWith('확인'))?'확인 · GET/POST/PUT/DELETE401':'실패'});
-      const manifest=await request('/manifest.webmanifest'),m=await manifest.json().catch(()=>null);
+      const manifest=await request('/manifest.webmanifest',{},'installable_app_manifest'),m=await manifest.json().catch(()=>null);
       attempts.push({attackId:'installable_app_manifest',expected:'실제 HTTP · 기존 자료실 시작주소/설치설정/이름',
         observed:manifest.ok&&m?.start_url==='/'&&m.display==='standalone'&&m.name?'확인 · manifest200':'실패'});
-      const offline=await request('/offline.html'),text=await offline.text();
+      const offline=await request('/offline.html',{},'offline_no_protected_data'),text=await offline.text();
       attempts.push({attackId:'offline_no_protected_data',expected:'실제 HTTP · 자료/키없는오프라인설명',
         observed:offline.ok&&text.includes('인터넷 연결이 필요합니다')&&!text.includes(config.sampleMarker)?'확인 · offline200':'실패'});
-      const device=await request('/api/device?operation=status'),result=await device.json().catch(()=>null);
+      const device=await request('/api/device?operation=status',{},'anonymous_device_status'),result=await device.json().catch(()=>null);
       attempts.push({attackId:'anonymous_device_status',expected:'실제 HTTP · 로그인/기기확인없는승인불가',
         observed:device.status===401&&result?.error==='LOGIN_REQUIRED'?'확인 · HTTP401':'실패'});
     }
