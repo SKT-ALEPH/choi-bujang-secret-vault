@@ -1,5 +1,5 @@
 {
-  "step": 9,
+  "step": 10,
   "repoUrl": "https://github.com/SKT-ALEPH/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-ecru.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -138,5 +138,5 @@
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",
-  "restoreRoute": null
+  "restoreRoute": "/api/restore/:noteId"
 }

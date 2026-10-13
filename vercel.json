@@ -16,6 +16,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/restore/:noteId",
+      "destination": "/api/restore?id=:noteId"
+    },
+    {
       "source": "/my/notes",
       "destination": "/api/my/notes"
     },
@@ -43,5 +47,10 @@
       "source": "/announcements",
       "destination": "/api/announcements"
     }
-  ]
+  ],
+  "functions": {
+    "api/restore.js": {
+      "includeFiles": "backups/stage9-safe-policy/**"
+    }
+  }
 }

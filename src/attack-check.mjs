@@ -23,7 +23,7 @@ export function hasEngineRouteDeclarations(routes) {
 }
 
 export async function runAttackChecks(config) {
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {
     app = new URL(config.publicAppUrl);
@@ -95,16 +95,17 @@ export async function runAttackChecks(config) {
       const { decide } = await import('./decider.mjs');
       const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
       const { normal } = fixtureRequests();
+      const results = [];
       for (const [name, value, expected] of [
         ['registered', true, 'allow'], ['unregistered', false, 'deny'], ['missing', undefined, 'deny'],
       ]) {
         const response = await decide({ ...normal, deviceRegistered: value });
-        const passed = response.decision === expected
-          && (expected === 'allow' || response.reasonCode === 'device_not_registered');
-        attempts.push({ attackId: 'local_device_' + name,
-          expected: '로컬 가상 판정 · ' + expected + (expected === 'deny' ? ' device_not_registered' : ''),
-          observed: (passed ? '확인' : '실패') + ' · ' + response.decision + ' · ' + response.reasonCode });
+        results.push({name,passed:response.decision===expected
+          && (expected==='allow'||response.reasonCode==='device_not_registered')});
       }
+      attempts.push({attackId:'local_device_registration',
+        expected:'로컬 가상 판정 · 등록allow, 미등록/누락deny device_not_registered',
+        observed:results.every(r=>r.passed)?'확인 · 등록/미등록/누락3조건':'실패'});
     }
     if (config.step >= 7) {
       const { decide } = await import('./decider.mjs');
@@ -157,6 +158,18 @@ export async function runAttackChecks(config) {
       attempts.push({attackId:'local_revocation_proposal',
         expected:'로컬 가상 사건 · 동일 주체 GET 120/121 경계와 사용자/시간창 분리; 실제 회수는 심판 확인',
         observed:checks.every(c=>c.passed)?`확인 · ${checks.length}조건; 실제 기기 회수로 주장하지 않음`:'실패'});
+    }
+    if (config.step >= 10) {
+      const {loadSafePolicy} = await import('./recovery-policy.mjs');
+      const safe = await loadSafePolicy();
+      attempts.push({attackId:'local_safe_policy_backup',expected:'사전 안전 정책 사본을 다시 읽어 고정 버전과 파일 SHA-256 검증',
+        observed:`확인 · ${safe.version} / ${safe.files.length}파일; 운영 정책 변경 없음`});
+      if (typeof config.restoreRoute!=='string'||!config.restoreRoute.startsWith('/api/restore/')
+          ||identity.restoreRoute!==config.restoreRoute)throw Error('10단계 복원 경로 선언과 실제 배포 정보를 확인해 주세요.');
+      const restored = await request(config.restoreRoute.replace(':noteId','00000000-0000-4000-8000-000000000001'),{method:'POST'});
+      const body = await restored.json().catch(()=>null);
+      attempts.push({attackId:'anonymous_restore_denied',expected:'실제 HTTP · 비로그인 단일 메모 복원 요청 거부',
+        observed:restored.status===401&&body?.error==='LOGIN_REQUIRED'?'확인 · HTTP 401':'실패 · HTTP '+restored.status});
     }
     return attempts;
   }

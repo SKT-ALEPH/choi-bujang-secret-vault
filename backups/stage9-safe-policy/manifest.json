@@ -1,0 +1,15 @@
+{
+  "schema": "aleph.policy-backup.v1",
+  "version": "stage9-5f4b4b248138",
+  "sourceCommit": "5f4b4b248138c0e8c233358d90fd61479d7ad459",
+  "files": [
+    {
+      "name": "decider.mjs",
+      "sha256": "c11ce5973af966321a4546c717e7f36fa0be3048e682ac01df41dd5bc4e1e382"
+    },
+    {
+      "name": "detect.mjs",
+      "sha256": "1891e9b293aaffef43d34735d5d93fe98daf4f43baf730829a014896fe10ebe7"
+    }
+  ]
+}

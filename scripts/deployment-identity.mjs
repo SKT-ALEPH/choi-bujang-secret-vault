@@ -12,6 +12,7 @@ export function deploymentIdentity(env, config) {
       || !REPO.test(repo || '') || repo === '.' || repo === '..'
       || repo.toLowerCase().endsWith('.git') || !SHA.test(commit || '')
       || !HOST.test(host || '') || !Number.isInteger(config?.step) || config.step < 1 || config.step > 12
+      || (config.step >= 10 && config.restoreRoute !== '/api/restore/:noteId')
       || typeof config.judgeIssuer !== 'string'
       || !/^https:\/\/[a-z0-9-]+\.up\.railway\.app\/defense\/judge$/iu.test(config.judgeIssuer)
       || typeof config.sampleMarker !== 'string'
@@ -27,5 +28,6 @@ export function deploymentIdentity(env, config) {
     judgeIssuer: config.judgeIssuer,
     sampleMarker: config.sampleMarker,
     ...(config.step >= 5 ? { allowedRoutes: config.allowedRoutes, originalApiUrl: config.originalApiUrl } : {}),
+    ...(config.step >= 10 ? { restoreRoute: config.restoreRoute } : {}),
   };
 }
