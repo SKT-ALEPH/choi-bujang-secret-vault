@@ -2,38 +2,42 @@
 
 ## 현재 구현
 
-**8단계 미완료: 799aef013e554fee3af2f6b14da4c82c083b1fee도 36/100점,
-S08_OTHER_ZONE_ALLOWED입니다.** 실제 메모 API 소유자 검사와 공지별 저장 권한은
-구현했지만, 판정기의 가명 주체와 자원 소유권을 연결하는 조건은 해결되지 않았습니다.
-주체 존재와 경로 제한만으로 이 조건이 충족된다고 판단한 해석을 철회합니다.
-동일 자원에서 주체만 바꾼 별도 가상 요청도 둘 다 allow입니다. 실제 심판 입력과의
-동일 재현은 아닙니다. 이 누락을 해결·검증하기 전 추가 제출 및 9~12단계 구현을 금지합니다.
+8단계 판정기의 주체별 권한 누락을 수정했습니다. 마지막 심판799aef0의
+36/100점과 이번 수정본의 결과를 구분하며, 재판정100점 전 다음 단계는 대기합니다.
 
-8단계 수정 구현은 실제 공지 자원과 저장된 편집 권한을 분리합니다.
-`sql/stage8-resources.sql`의 announcements와 announcement_editors는 직접 DB
-권한이 없으며 RLS가 켜져 있습니다. `api/announcements.js`는 기존 검증기로
-사용자를 확인하고, 공지별 저장 권한을 UPDATE와 같은 문장에서 대조하는
-edit_announcement 함수를 호출합니다. 본문 role이나 임의 권한 지정은 400,
-권한 없는 수정은 403입니다. 실제 학습 DB의 트랜잭션 검사6개가 통과했고
-시험 행과 권한은 모두 롤백했습니다. 기존 메뉴·주소·메모는 보존합니다.
+`src/decider.mjs`의 `createDecider(resourceGrants)`는 서버에서 설치한 자원별
+허용표를 복사해 보관합니다. 출처·반·프로젝트·가명 주체·기기·정책 버전·서비스·
+정확한 경로·메서드가 모두 일치해야 허용합니다. 같은 메모 경로에서도 B의 주체,
+다른 기기/반/프로젝트/버전은 거부합니다. 빈 허용표는 모두 거부하고, 요청 본문에
+권한표/role 같은 계약 밖 필드를 추가하면 거부합니다. 18필드 입력과5필드 응답,
+원본 verify-login.mjs와 judgeIssuer를 보존합니다. query는 빈 원문의 SHA-256도
+확인하며, 미등록 UUID·목록·export·알 수 없는 경로는 거부합니다.
 
-판정기는 엔진의 등록 기기·가명 주체·서비스·메서드·route를 확인합니다.
-공식 계약에서 확인 가능한 /notes/demo 개별 GET/PUT만 허용하며, UUID 문법을
-가졌다는 이유만으로 다른 엔진 자원을 등록하지 않습니다. 다른 경로·목록·
-export·비어 있지 않은 쿼리는 거부합니다. 이 로컬 연습 경로의 허용이 실제
-메모 소유권 증거는 아닙니다. 실제 /api/notes 목록과 개별 CRUD는 원래대로
-검증된 사용자 ID와 저장 owner_id를 원자 대조합니다. 가명 subjectId를 DB UUID로
-비교하거나 가상 주체 이름을 운영 허용 명단에 넣지 않습니다. 현재 판정 계약에는
-강사 역할이 없으므로 엔진의 공지 수정은 거부하고, 실제 공지 API의 편집은
-오직 DB 소유자가 저장한 공지별 권한으로 결정합니다. 앱에는 권한 부여 API가 없습니다.
+기본 `decide(request)`의 허용표는 공식 starter의 공개 가상 연습1건입니다.
+`class_fixture / project_fixture / learner_fixture / aaaaaaaaaaaaaaaa / notes/demo`
+GET·PUT을 **judge_fixture 출처·정책1에만** 한정합니다. 이 공개 가상 권한은
+source none인 실제 요청을 허용하지 않습니다. 운영 권한은 기존
+`connectXdrDecider({ resourceGrants, ...operatorBinding })`에 신뢰된 서버 설정으로
+별도 설치하며, 실제 엔진의 가명 주체를 그대로 사용합니다. DB UUID와 가명 주체를
+같다고 추측하거나 브라우저 역할을 읽지 않습니다. 현재 실제 반 엔진의 배포·권한
+설치를 수행한 증거는 없으며 가상 연습/어댑터 시험과 혼동하지 않습니다.
+운영 권한이 없는 요청은 기본 거부합니다.
 
-자원 ID는 notes[/UUID]와 announcements[/UUID]로 구별하며 서버의
-X-Resource-ID 헤더에 표시합니다. query는 자료 id만 받고, 메모 본문의
-role/resourceId/zone/owner 지정은 거부합니다.
-`node --experimental-vm-modules --test test/stages7-12.test.mjs test/stage3.test.mjs`
-로 정상/거부 및 원래 암호학적 인증·소유자 검사를 확인합니다.
-이번 수정799aef0의 실제 심판도36/100점입니다.
-100점 확인 전 9단계 구현은 대기합니다. 로컬 시험과 실제 심판을 구분합니다.
+실제 자료실의 `/api/notes`는 기존대로 검증된 사용자 ID와 저장 owner_id를
+목록·개별 CRUD에서 원자 대조합니다. `api/announcements.js`는 별도 공지 자원이고,
+`sql/stage8-resources.sql`의 announcements/announcement_editors 및
+edit_announcement 함수가 검증 사용자와 해당 공지별 저장 편집권한을 UPDATE에서
+원자 대조합니다. 두 테이블은 RLS가 켜져 있고 브라우저 직접 권한이 없습니다.
+일반 학생의 공지 수정은403, role 등 본문 권한 지정은400입니다. DB 검사6개는
+실제 서비스 역할로 실행 후 시험 행/권한을 롤백했습니다.
+메뉴·기존 주소·자료를 유지하고 X-Resource-ID로 notes[/UUID]와
+announcements[/UUID]를 구별합니다.
+
+확인: `node --experimental-vm-modules --test test/stages7-12.test.mjs test/stage3.test.mjs`
+→ 같은 메모에서 허용 주체 A는allow, 권한 없는 주체 B는deny → 기존 기기·
+추가확인·XDR·최종 API 소유자 및 저장 공지권한 확인. 격리 모듈에서도 외부 기능 없이
+판정하고, 공식 로컬 연습과 실제 HTTP/DB·운영 심판 결과를 별도로 기록합니다.
+
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
 risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.
