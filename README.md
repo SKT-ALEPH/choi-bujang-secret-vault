@@ -2,8 +2,10 @@
 
 ## 현재 구현
 
-8단계 판정기의 주체별 권한 누락을 수정했습니다. 마지막 심판799aef0의
-36/100점과 이번 수정본의 결과를 구분하며, 재판정100점 전 다음 단계는 대기합니다.
+**8단계 미완료:** 주체별 자원 허용표를 구현했지만 수정본7c61646도
+36/100점, S08_OTHER_ZONE_ALLOWED입니다. 로컬 반례 수정/회귀 통과와
+실제 심판 통과를 구분합니다. 실패한 구체적 요청·엔진 호출 결과가 화면에 없어
+동일 실패의 원인은 아직 확정하지 못했습니다. 100점 전 다음 단계는 대기합니다.
 
 `src/decider.mjs`의 `createDecider(resourceGrants)`는 서버에서 설치한 자원별
 허용표를 복사해 보관합니다. 출처·반·프로젝트·가명 주체·기기·정책 버전·서비스·
@@ -41,7 +43,7 @@ announcements[/UUID]를 구별합니다.
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
 risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.
-지역 단독으로 차단하지 않습니다. 신호 누락/출처 불명도 추가 확인하며
+지역 단독으로 차단하지 않습니다. 허용표로 자원 권한을 확인한 요청의 신호 누락은 추가 확인하며
 source none/unknown은 계약상 미제공 상태로 남기고 위치 정상으로 꾸미지 않습니다.
 엔진 확인 stepUp.verified와 age0~900초일 때만 재판정에서 허용합니다.
 `npm run fixture:7`과 `npm run decider:test`로 정상/복합/재확인 및
@@ -51,7 +53,7 @@ source none/unknown은 계약상 미제공 상태로 남기고 위치 정상으�
 제약은 [7~12단계 RULE](docs/STAGES7-12_RULES.md)입니다.
 
 
-6단계 판정기는 운영 엔진이 확인한 `deviceRegistered === true`인
+6단계 당시 판정기는 운영 엔진이 확인한 `deviceRegistered === true`인
 `notes` 서비스의 `GET /notes`와 `GET /notes/:id` 읽기만 허용합니다.
 미등록·누락·문자열 값은 `deny`와 `device_not_registered`로 거부합니다.
 다른 서비스와 쓰기는 기본 거부를 유지합니다. `subjectId`는 엔진이 만든
