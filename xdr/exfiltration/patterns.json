@@ -1,0 +1,37 @@
+{
+  "moduleKey": "exfiltration",
+  "blockTtlSeconds": 900,
+  "thresholds": {
+    "block": 0.85,
+    "alert": 0.5
+  },
+  "patterns": [
+    {
+      "name": "anomalous_bulk_transfer",
+      "condition": "전송된자료가50MB이상/50파일이상 또는명시적대량·전체반출이고,낯선목적지·시간밖·비정상포트·5회이상반복이결합.실패/미전송제외.",
+      "evidence": "MITRE T1041/T1048: C2 또는 별도프로토콜의 이상 반출.50MB/50파일/5회는수업용탐지기준이며MITRE가정한수치로주장하지않음.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1041/",
+        "https://attack.mitre.org/techniques/T1048/"
+      ]
+    },
+    {
+      "name": "possible_exfiltration",
+      "condition": "소량·단발·전송실패·압축파일생성만·익숙한목적지의한번증가 등 불충분근거는알림.",
+      "evidence": "T1041/T1048 문맥에서 큰전송/낯선주소단독은악용확정이아님.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1041/",
+        "https://attack.mitre.org/techniques/T1048/"
+      ]
+    },
+    {
+      "name": "normal_activity",
+      "condition": "정상메모/공지조회·저장·작은동기화·세션확인 등 반출근거없음.",
+      "evidence": "정상자료흐름은유출로차단하지않음.",
+      "sources": [
+        "https://attack.mitre.org/techniques/T1041/",
+        "https://attack.mitre.org/techniques/T1048/"
+      ]
+    }
+  ]
+}

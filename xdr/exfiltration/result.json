@@ -1,0 +1,191 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "exfiltration",
+  "decisions": [
+    {
+      "alertId": "ex-01",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-02",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-03",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-04",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-05",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-06",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-07",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-08",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-09",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-10",
+      "action": "block",
+      "confidence": 0.96,
+      "reason": "anomalous_bulk_transfer: 대용량·대량 반출과 낯선 목적지/반복/시간밖/이상포트의 결합"
+    },
+    {
+      "alertId": "ex-11",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-12",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-13",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-14",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-15",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-16",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-17",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-18",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-19",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-20",
+      "action": "alert",
+      "confidence": 0.6,
+      "reason": "possible_exfiltration: 단발·소량·실패·압축 생성만의 불확실한 반출 징후"
+    },
+    {
+      "alertId": "ex-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-23",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-25",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-26",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-27",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-28",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-29",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    },
+    {
+      "alertId": "ex-30",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "normal_activity: 유출 근거 없는 정상 조회·저장·동기화"
+    }
+  ],
+  "counts": {
+    "block": 10,
+    "alert": 10,
+    "record": 10
+  }
+}

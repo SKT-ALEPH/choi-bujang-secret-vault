@@ -8,11 +8,13 @@ const fields = 'action,confidence,createdAt,evidenceAlertIds,expiresAt,ruleId,so
 
 function validRule(rule) {
   const start = Date.parse(rule?.createdAt), end = Date.parse(rule?.expiresAt);
-  return rule && Object.keys(rule).sort().join(',') === (rule.account === undefined ? fields : 'account,' + fields)
-    && ['xdr.brute_force', 'xdr.web_injection', 'xdr.known_cve', 'xdr.persistence', 'xdr.privilege'].includes(rule.ruleId) && rule.action === 'deny'
+  const destination = rule?.ruleId === 'xdr.exfiltration';
+  const expected = destination ? 'action,confidence,createdAt,destinationAddress,evidenceAlertIds,expiresAt,ruleId' : (rule?.account === undefined ? fields : 'account,' + fields);
+  return rule && Object.keys(rule).sort().join(',') === expected
+    && ['xdr.brute_force', 'xdr.web_injection', 'xdr.known_cve', 'xdr.persistence', 'xdr.privilege', 'xdr.exfiltration'].includes(rule.ruleId) && rule.action === 'deny'
     && (rule.account === undefined || (rule.ruleId === 'xdr.privilege' && typeof rule.account === 'string' && /^(?:user\d{1,8}|opaque:[a-f0-9]{16})$/u.test(rule.account)))
     && (rule.ruleId !== 'xdr.privilege' || rule.account !== undefined)
-    && isIP(rule.sourceAddress ?? '') && Number.isFinite(rule.confidence)
+    && isIP((destination ? rule.destinationAddress : rule.sourceAddress) ?? '') && Number.isFinite(rule.confidence)
     && rule.confidence >= policy.thresholds.block && rule.confidence <= 1
     && Number.isFinite(start) && Number.isFinite(end) && end > start
     && end - start <= policy.blockTtlSeconds * 1000
@@ -36,7 +38,7 @@ export async function readDenyRules(path) {
 export async function addDenyRules(path, candidates) {
   if (!Array.isArray(candidates) || !candidates.every(validRule)) throw new Error('XDR_RULE_STORE_INVALID');
   const rules = await readDenyRules(path);
-  const identity = rule => JSON.stringify([rule.sourceAddress, rule.account, rule.createdAt, rule.expiresAt, rule.evidenceAlertIds]);
+  const identity = rule => JSON.stringify([rule.sourceAddress, rule.destinationAddress, rule.account, rule.createdAt, rule.expiresAt, rule.evidenceAlertIds]);
   const known = new Set(rules.map(identity));
   for (const rule of candidates) {
     if (!known.has(identity(rule))) { rules.push(rule); known.add(identity(rule)); }

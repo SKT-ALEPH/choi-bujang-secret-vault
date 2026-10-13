@@ -415,3 +415,13 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 `read-alerts.mjs`는5필드비밀제거, `respond.mjs`는 해당계정+출발주소 세션의 추가deny를15분간저장하고경보ID/알림을남긴다. `rule-store.mjs`는 privilege에만 가명화계정필드를허용하며, `guard.mjs`는 신뢰된계정과출발주소 모두일치할때만 거부한다. 같은주소의다른계정/다른주소의세션은이규칙으로차단하지않는다. 이는Supabase계정삭제·권한부여가아닌추가접속거부다.
 
 `connectXdrDecider`에 서버측 `getTrustedAccount(requestId)`와 기존 `getTrustedSource(requestId)`를 제공한다. 계정규칙이있는데신뢰된계정조회가없으면명시적오류로실패한다. 경보가명과엔진subjectId의자동동일성을가정하지않고, 브라우저계정값은받지않는다. fixture응답기는현재경보의서버측가명화계정으로실제기본판정기에연결하여재생한다. 운영반엔진에새계정매핑을설치했다는주장은하지않는다. `node --experimental-vm-modules --test test/privilege.test.mjs`로빈VM/원본·5필드/대상계정분리/누락조회실패/TTL/기존거부를검사한다.
+
+## XDR-06 자료 빼돌리기
+`npm run xdr:run -- exfiltration`: 원본30건 차단10/알림10/기록10, 정상차단0. `xdr/exfiltration/decide.mjs`는대량자료(수업기준50MB/50파일 또는명시적대량반출)와낯선목적지·5회이상반복·시간밖·이상포트를함께본다. 단일소량/실패/압축생성만은알림이고전송량·심각도만으로차단하지않는다. T1041/T1048은패턴근거이며수치임계값은MITRE표준이라고주장하지않는다.
+
+`respond.mjs`는원본경보의목적지IP를검증해 **destinationAddress** 거부규칙으로15분저장한다. `rule-store.mjs`는목적지규칙에출발주소/계정필드가섞이는것을거부한다. `guard.mjs`는서버측 `getTrustedDestination(requestId)`로확인한목적지만대조하므로출발사용자전체나같은계정의다른목적지를막지않는다. 목적지조회누락은명시적오류이며18필드입력에임의목적지를추가하거나브라우저값을신뢰하지않는다. 실제외부전송/실제유출은시험하지않고문서용주소경보로재생한다.
+
+읽기5필드에는목적지·바이트·파일수가없다. 따라서추출입력에서해당근거가사라지면판단강도를낮춘다. 심판은원본경보를단독decide에주며,read-alerts를import하지않는다. `node --experimental-vm-modules --test test/exfiltration.test.mjs`로빈VM/원본/추출정보손실/바이트경계/목적지분리/누락조회/만료/기존거부를검사한다.
+
+### 여섯 XDR 합성 검증
+`node --test test/xdr-six-integration.test.mjs`: 여섯공식경보→각decide→각respond→비공개규칙파일→공유규칙저장→실제기본판정기추가guard의전체로컬경로를검사한다. 차단규칙53개가함께있어도기존deny/step_up은그대로이며새규칙의출발주소/계정세션/목적지대상을구분하고만료후정상복귀한다. 이는가상경보통합검증이며반엔진/PC방화벽배포증거와구분한다. 이전두XDR의실제HTTP보호는기존구현을유지한다.
