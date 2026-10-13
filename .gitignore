@@ -12,3 +12,4 @@ xdr/*/deny-rules.json
 xdr/*/deny-rules.json.*.tmp
 xdr/*/verification.json
 public/xdr-live-check.json
+public/stage8-live-read-proof.json
