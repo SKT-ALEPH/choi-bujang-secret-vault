@@ -372,7 +372,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 3. Vercel에서 이 저장소를 배포하면 `npm run build`가 기존 접속 앱과 작전실을 준비합니다. `/aleph.json`의 커밋/단계12/저장소를 실제 저장점과 대조합니다. 일반 빌드는 시험 계정 생성·복구를 실행하지 않습니다. 작전실의 새로고침은 가린 기록 읽기만 수행합니다.
 4. 새 실제 영수증을 생성할 때에만 서버 전용 시험 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs`를 실행합니다. 배포가 같은 커밋인지 먼저 확인하고 새 A/B 시험 계정으로 승인·허용·타인 거부·복구·서명 변조·회수 후 거부를 재생합니다. `public/stage12-live-proof.json`은 Git 제외 결과이며 실측이 모두 통과하고 `receiptsComplete`, `stageCoverage`, `cleanupOk`가 true인지 확인합니다. 개인 토큰/계정/본문을 파일로 추출하지 않습니다. 시험 계정·메모·기기 세션만 정리하며 비공개 복구 사본/감사 이력은 보존합니다.
 5. 성공 결과의 `records`, `testedCommit`, `at`, `sourceHashes`만 가린 기록 파일에 옮깁니다. 소스 해시로 기록 후 문서/영수증 커밋과 시험한 앱 코드의 일치를 대조합니다. Vercel이 JSON을 압축해 읽는 vercel.json은 JSON.stringify(parsedConfig)+개행의 해시 및 검사 커밋의 Git 원문 일치를 함께 확인합니다. 1~11단계마다 정상/금지 행, 기대/실제, 요청ID와시각이 모두 있어야 합니다. `/api/checks`의 표와 실제 화면 표를 대조하고 검사 자체 실패·미실행은 그대로 표시합니다.
-6. `bundle-notes.json`에 비밀값 없는 변경 설명을 적고, 저장점 커밋 뒤 `npm run bundle`을 실행합니다. 20개 독립 HTTP 관측은 실제 응답 상태와 `ready`를 기록하고 네트워크 미실행/예상 밖 결과에 중단합니다. `alephEvidence`는 runner 관측 메타데이터이고 HTTP 헤더나 URL로 보내지 않습니다. 최종 배포 커밋 일치 후 포털에 제출하고 실제 점수를 확인합니다.
+6. `bundle-notes.json`에 비밀값 없는 변경 설명을 적고, 저장점 커밋 뒤 `npm run bundle`을 실행합니다. 최종 제출의19개 독립 GET 관측은 실제 응답 상태와 `ready`를 기록하고 네트워크 미실행/예상 밖 결과에 중단합니다. POST 복원 점검1건은 격리환경 계약에 따라 `observed: not_run`으로 남깁니다. 쓰기 정상/금지 실측은 별도 서버47조건의45행에 보존합니다. `alephEvidence`는 runner 관측 메타데이터이고 HTTP 헤더나 URL로 보내지 않습니다. 최종 배포 커밋 일치 후 포털에 제출하고 실제 점수를 확인합니다.
 
 중지·복구:
 
@@ -382,3 +382,5 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 - 정책 복원은 `node scripts/test-policy.mjs init` → `preview` → `apply <confirmation>`의 기존 격리 시험 정책 미리보기·확인값 적용 절차를 사용합니다. 지정 메모 복원은 로그인·승인된 서명 `POST /api/restore/:noteId`로만 요청합니다. 다른 메모와 감사 이력은 보존합니다. 자세한 안전 사본 검증은 위 10단계 절을 따릅니다.
 
 12단계 실제 기록: `27e6474bed35c53b70e02bc52bec816659b36f7d`에서47조건과20HTTP자기점검이 모두 통과했습니다. 표의45행은1~11단계 정상·금지 양쪽을 포함하며 서버 요청ID/시각이 모두 있습니다. [실측 기록](docs/STAGE12_VERIFICATION.json)의 `receiptsComplete`, `stageCoverage`, `cleanupOk`, `deploymentUnchanged`는 모두true입니다. 공개 기록에는 메모·계정·자원ID를 제외했고,20개 앱/서버/판정/탐지/설정 파일의 SHA-256으로 후속 기록 커밋과 시험 소스가 일치하는지 확인합니다. 서버 시험 자동 실행 훅은 제거하고 검증 플래그를0으로 되돌립니다. Vercel JSON 압축 표현은 정규화해 일치시키고 Git 원문도 같은 것으로 확인했습니다. 실제 접속 클라이언트/WebCrypto/배포 HTTP 프로토콜 검증이며 수동 로그인 화면 전체 시험과 구분합니다. 작전실의 실제 브라우저 표시와 서버45행 대조는 별도 수행합니다.
+
+12단계 격리 실행 제약(실제 S12_BUNDLE_UNSUPPORTED 안내): 제출 경로는 node:fs/path/url, child_process의 Git 읽기, crypto의 randomUUID/SHA-256만 사용합니다. node:fs/promises는 이 경로에서 제거했습니다. 요청은 공개HTTPS GET/HEAD만 보내고 POST복원 항목은 not_run입니다. `node --experimental-vm-modules --test test/stage12-sandbox.test.mjs`가 깨끗한 Git 상태에서 제한된 모듈/명령과 실제 GET을 검사하고 새 묶음을 메모리에 확인합니다. 이는 공개된 능력 제한의 재현이며 비공개 심판 구현을 복제했다고 주장하지 않습니다.

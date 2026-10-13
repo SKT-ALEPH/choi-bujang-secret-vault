@@ -21,7 +21,7 @@ test('화면은 서버 영수증의 실패/미실행과 시간·ID를 그대로 
  const doc={createElement(tag){return{tag,textContent:'',children:[],append(c){this.children.push(c);}};}};
  renderReport({querySelector:id=>nodes[id]},report,doc);const rows=reportRows(report);assert.equal(rows[0][7],'실패');assert.equal(rows[1][7],'미실행');assert.equal(rows[1][8],'없음');assert.equal(nodes['#operations-rows'].children[0].children[3].textContent,'<img onerror=alert(1)>');assert.ok(reportSummary(report).some(t=>t.includes('0/41')));
 });
-test('12단계 제출은 독립 HTTP 20관측을 연결하고 실패 응답/네트워크 미실행에 중단한다',async()=>{
+test('12단계 제출은 독립 GET 19관측과 쓰기 미실행을 연결하고 실패 응답/네트워크 미실행에 중단한다',async()=>{
  const recorded=JSON.parse(await readFile(new URL('../config/operations-verification.json',import.meta.url),'utf8'));
  const original=globalThis.fetch,calls=[];
  const config={publicAppUrl:'https://app.example.org/',originalApiUrl:'https://database.example.org/rest/v1/notes',step:12,repoUrl:'https://github.com/fixture/vault',restoreRoute:'/api/restore/:noteId'};
@@ -32,7 +32,7 @@ test('12단계 제출은 독립 HTTP 20관측을 연결하고 실패 응답/네�
   else if(path==='/api/checks')body=id?{caseId:id,kind:'synthetic_input_over_http',ready:true}:{schema:'aleph.operations.v1',policy:{verified:true},rules:[],verification:recorded};
   else if(path==='/rest/v1/notes'){status=401;body={code:'42501',message:'permission denied'};}else status=401;
   return new Response(JSON.stringify(body),{status,headers});};
- try{globalThis.fetch=async(u,o)=>{calls.push(o.alephEvidence);return reply(u);};const out=await runStage12Checks(config);assert.equal(out.length,20);assert.equal(calls.length,20);assert.equal(new Set(calls.map(c=>c.caseId)).size,20);assert.ok(out.every(a=>/^HTTP /u.test(a.observed)));
+ try{globalThis.fetch=async(u,o)=>{calls.push(o.alephEvidence);return reply(u);};const out=await runStage12Checks(config);assert.equal(out.length,20);assert.equal(calls.length,19);assert.equal(new Set(calls.map(c=>c.caseId)).size,19);assert.ok(out.every(a=>/^HTTP |^not_run/u.test(a.observed)));assert.equal(out.filter(a=>a.observed.startsWith('not_run')).length,1);
   globalThis.fetch=async()=>new Response(JSON.stringify({notes:[{body:'leak'}]}),{status:200});await assert.rejects(()=>runStage12Checks(config));
   globalThis.fetch=async()=>{throw Error('network');};await assert.rejects(()=>runStage12Checks(config),/network/);
  }finally{globalThis.fetch=original;}

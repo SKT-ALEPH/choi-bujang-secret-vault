@@ -1,12 +1,12 @@
-// Read-only HTTP observations and one unauthenticated restore rejection.
+// Sandbox: real GET/HEAD observations; write-only checks explicitly stay not_run.
 // Normal protected-data requests use the separate server-only A/B protocol driver.
-import {readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 export async function runStage12Checks(config){
  const app=new URL(config.publicAppUrl);if(app.protocol!=='https:'||app.username||app.password||app.pathname!=='/'||app.search||app.hash)throw Error('INVALID_APP_URL');
- const recorded=JSON.parse(await readFile(new URL('../config/operations-verification.json',import.meta.url),'utf8'));
+ const recorded=JSON.parse(readFileSync(new URL('../config/operations-verification.json',import.meta.url),'utf8'));
  const out=[],uuid='00000000-0000-4000-8000-000000000001';
  async function probe(caseId,path,expected,accept,options={}){
-  const r=await fetch(new URL(path,app),{...options,redirect:'error',signal:AbortSignal.timeout(10000),alephEvidence:{caseId,requestKey:'read'}});
+  const r=await fetch(new URL(path,app),{...options,redirect:'error',signal:globalThis.AbortSignal?.timeout?.(10000),alephEvidence:{caseId,requestKey:'read'}});
   const text=await r.text();let json;try{json=JSON.parse(text);}catch{}
   const passed=accept(r,json,text);
   if(!passed)throw Error(`${caseId}: HTTP ${r.status} did not match expected result`);
@@ -18,11 +18,11 @@ export async function runStage12Checks(config){
  await probe('s03-unauth-list','/api/my/notes','비로그인 목록401', (r,j)=>r.status===401&&denied(r,j));
  await probe('s03-fake-token','/api/my/notes','무효 토큰401',(r,j)=>r.status===401&&denied(r,j),{headers:{Authorization:'Bearer invalid.invalid.invalid'}});
  await probe('s04-header-identity','/api/my/notes','임의 신원 헤더로 로그인 대체 불가',denied,{headers:{'x-user-id':uuid,'x-role':'instructor'}});
- const settings=JSON.parse(await readFile(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
+ const settings=JSON.parse(readFileSync(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
  const direct=new URL(config.originalApiUrl);direct.searchParams.set('select','id');
  await probe('s05-direct-table',direct.href,'anon 직접 DB 조회거부',(r,j)=>[401,403].includes(r.status)&&typeof j?.code==='string'&&!Array.isArray(j)&&! /"(?:notes|content|body)"\s*:/u.test(JSON.stringify(j)),{headers:{apikey:settings.publishableKey}});
  await probe('s08-other-zone','/api/announcements/'+uuid,'비로그인 공지 조회거부',denied);
- await probe('s10-restore-unauth',config.restoreRoute.replace(':noteId',uuid),'비로그인 복원거부',denied,{method:'POST'});
+ out.push({attackId:'s10-restore-unauth',expected:'POST 비로그인 복원거부',observed:'not_run · 격리 제출은 GET/HEAD만 허용; 실제 POST 복원/거부는 별도 서버 실측 기록'});
  await probe('s11-device','/api/device?operation=status','비로그인 기기 승인불가',denied);
  await probe('deployment_identity','/aleph.json','12단계와 저장소 배포 신원',(r,j)=>r.ok&&j?.step===12&&j.repoUrl?.toLowerCase()===config.repoUrl.toLowerCase());
  await probe('security_header','/','첫 화면 nosniff',(r)=>r.ok&&r.headers.get('x-content-type-options')==='nosniff');
