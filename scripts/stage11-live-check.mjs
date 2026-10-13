@@ -21,7 +21,7 @@ export async function runDeviceCheck(config){
  };
  const metadata=async()=>{const j=await(await fetch(new URL('/aleph.json',config.publicAppUrl),{cache:'no-store',redirect:'error'})).json();if(j.step!==11||j.repoUrl.toLowerCase()!==config.repoUrl.toLowerCase())throw Error('DEVICE_CHECK_DEPLOYMENT_UNKNOWN');return j.commit;};
  const browserClient=async()=>{
-  const context=createContext({window:{},document:{dispatchEvent(){}},crypto:webcrypto,TextEncoder,Uint8Array,Event,btoa,
+  const context=createContext({window:{},document:{dispatchEvent(){}},crypto:webcrypto,TextEncoder,Uint8Array,Event,btoa,URL,
     fetch:(path,o)=>fetch(new URL(path,config.publicAppUrl),{...o,redirect:'error',signal:AbortSignal.timeout(20000)})});
   const helper=new SourceTextModule(await readFile(new URL('../public/device-message.mjs',import.meta.url),'utf8'),{context});
   await helper.link(()=>{throw Error('unexpected helper import');});

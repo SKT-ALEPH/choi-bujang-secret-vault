@@ -332,10 +332,12 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 `public/device-client.mjs`는 WebCrypto의 내보낼 수 없는 P-256 개인키를 열린 화면 메모리에만 둡니다. SDK의 `persistSession:false`로 토큰 영속화를 끄고 이전 SDK 세션 항목은 읽지 않고 제거합니다. localStorage/sessionStorage/IndexedDB/CacheStorage에는 개인키·토큰·메모를 저장하지 않습니다. `sw.js`가 캐시하는 것은 공개 `offline.html` 한 장뿐이며 보호 API 응답은 저장하지 않습니다.
 
-`src/device-session.mjs`는 서버에 저장한 사용자·로그인 지문·등록 공개키·만료 상태를 대조하고 메서드·정확한 URL 경로/쿼리·JSON 본문 지문·일회성 nonce·시각(30초)을 검증합니다. `notes`·본인목록·공지·복원 API의 실제 공통 경로에 연결하여 서명 없는 일반 사용자 요청, 경로/본문/메서드 변경 및 재전송을 자료 조회 전에403으로 거부합니다. 로그아웃은 서버 승인을 회수하고 화면의 키와 자료를 비웁니다. 개인키나 토큰 원문은 서버 DB/로그에 남기지 않습니다.
+`src/device-session.mjs`는 서버에 저장한 사용자·로그인 지문·등록 공개키·만료 상태를 대조하고 메서드·기존 Vercel 재작성 규칙과 동일하게 정규화한 자원 경로/쿼리·JSON 본문 지문·일회성 nonce·시각(30초)을 검증합니다. `notes`·본인목록·공지·복원 API의 실제 공통 경로에 연결하여 서명 없는 일반 사용자 요청, 경로/본문/메서드 변경 및 재전송을 자료 조회 전에403으로 거부합니다. 로그아웃은 서버 승인을 회수하고 화면의 키와 자료를 비웁니다. 개인키나 토큰 원문은 서버 DB/로그에 남기지 않습니다.
 
 제공 엔진의18필드 판정과 원본 심판 로그인 검증기는 변경하지 않습니다. 운영자가 서명하고 원본 검증기가 엄격히 확인하는 시험 신원은 기존 제공 엔진의 기기·요청서명 검증 통로를 유지합니다. 일반 Supabase 사용자에 적용하는 위 세션 키 흐름을 엔진의 하드웨어 인증이나 운영자 승인으로 과장하지 않습니다.
 
 적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 로그인/서명 변조 검사와 심판은 아직 미실행입니다.
 
 참조: [WebCrypto 키 생성](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey), [Node.js 서명 검증](https://nodejs.org/api/crypto.html#cryptoverifyalgorithm-data-key-signature-callback), [PWA 캐시 경계](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching).
+
+서명 경로는 `public/device-message.mjs`의 `canonicalTarget`을 클라이언트와 서버가 함께 사용합니다. 기존 논리/API 별칭은 같은 최종 자원으로 연결하되, 다른 자원 ID·서비스·기능 쿼리는 같은 대상으로 축약하지 않습니다. Vercel의 기존8개 rewrite와 동등한지 회귀 시험합니다. 본문 없는 GET/DELETE의 Vercel 빈 객체는 빈 본문으로 처리합니다.
