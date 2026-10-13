@@ -1,5 +1,25 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
+// Describe the implemented APIs, not a fixture user's individual permissions.
+const RESOURCE_ROUTES = [
+  ['notes', 'GET', '/api/notes', 'my-notes'],
+  ['notes', 'POST', '/api/notes', 'my-notes'],
+  ['notes', 'GET', '/api/notes/:id', 'my-notes'],
+  ['notes', 'PUT', '/api/notes/:id', 'my-notes'],
+  ['notes', 'DELETE', '/api/notes/:id', 'my-notes'],
+  ['announcements', 'GET', '/api/announcements', 'class-notices'],
+  ['announcements', 'GET', '/api/announcements/:id', 'class-notices'],
+  ['announcements', 'PUT', '/api/announcements/:id', 'instructor-materials'],
+];
+
+export function hasEngineRouteDeclarations(routes) {
+  if (!Array.isArray(routes) || routes.length !== RESOURCE_ROUTES.length) return false;
+  const keys = new Set(routes.map(r => `${r?.method} ${r?.path}`));
+  return keys.size === routes.length && RESOURCE_ROUTES.every(([service, method, path, zone]) =>
+    routes.some(r => r?.service === service && r.method === method && r.path === path
+      && r.pathPattern === path && r.zone === zone));
+}
+
 export async function runAttackChecks(config) {
   if (![1, 2, 3, 4, 5, 6, 7, 8].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
@@ -50,6 +70,9 @@ export async function runAttackChecks(config) {
         observed:(denied?'확인':'실패')+' · HTTP '+direct.status});
     }
     if (config.step >= 5) {
+      if (config.step >= 8 && !hasEngineRouteDeclarations(config.allowedRoutes)) {
+        throw new Error('8단계 자료 API 경로의 service·method·pathPattern·zone 선언을 모두 확인해 주세요.');
+      }
       let clean = true;
       const leaked = /sb_publishable_[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{12,}\.eyJ[A-Za-z0-9_-]{12,}\.[A-Za-z0-9_-]+/u;
       for (const path of ['/', '/app.js', '/auth-config.json', '/vendor/supabase.js', '/data.json']) {
@@ -59,7 +82,10 @@ export async function runAttackChecks(config) {
       }
       attempts.push({attackId:'public_assets_no_keys_or_seed',expected:'공개 화면·SDK·설정·자료 파일에 키와 시드 자료 없음',observed:clean?'확인 · 공개 파일 5개':'실패'});
       attempts.push({attackId:'allowed_routes_metadata',expected:'배포 정보에 허용 자료 경로와 쿼리 없는 원본 HTTPS 주소',observed:
-        (identity.allowedRoutes?.length > 0 && identity.originalApiUrl===config.originalApiUrl && !new URL(config.originalApiUrl).search?'확인':'실패')});
+        ((config.step >= 8 ? hasEngineRouteDeclarations(identity.allowedRoutes)
+          && JSON.stringify(identity.allowedRoutes) === JSON.stringify(config.allowedRoutes)
+          : identity.allowedRoutes?.length > 0)
+          && identity.originalApiUrl===config.originalApiUrl && !new URL(config.originalApiUrl).search?'확인':'실패')});
       const auth = await request('/api/auth?path=rest/v1/notes');
       attempts.push({attackId:'auth_proxy_rejects_data_route',expected:'Auth 함수로 자료 주소 우회 불가',observed:'HTTP '+auth.status});
     }

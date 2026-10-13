@@ -12,35 +12,59 @@
   "allowedRoutes": [
     {
       "method": "GET",
-      "path": "/api/notes"
+      "path": "/api/notes",
+      "service": "notes",
+      "pathPattern": "/api/notes",
+      "zone": "my-notes"
     },
     {
       "method": "POST",
-      "path": "/api/notes"
+      "path": "/api/notes",
+      "service": "notes",
+      "pathPattern": "/api/notes",
+      "zone": "my-notes"
     },
     {
       "method": "GET",
-      "path": "/api/notes/:id"
+      "path": "/api/notes/:id",
+      "service": "notes",
+      "pathPattern": "/api/notes/:id",
+      "zone": "my-notes"
     },
     {
       "method": "PUT",
-      "path": "/api/notes/:id"
+      "path": "/api/notes/:id",
+      "service": "notes",
+      "pathPattern": "/api/notes/:id",
+      "zone": "my-notes"
     },
     {
       "method": "DELETE",
-      "path": "/api/notes/:id"
+      "path": "/api/notes/:id",
+      "service": "notes",
+      "pathPattern": "/api/notes/:id",
+      "zone": "my-notes"
     },
     {
       "method": "GET",
-      "path": "/api/announcements"
+      "path": "/api/announcements",
+      "service": "announcements",
+      "pathPattern": "/api/announcements",
+      "zone": "class-notices"
     },
     {
       "method": "GET",
-      "path": "/api/announcements/:id"
+      "path": "/api/announcements/:id",
+      "service": "announcements",
+      "pathPattern": "/api/announcements/:id",
+      "zone": "class-notices"
     },
     {
       "method": "PUT",
-      "path": "/api/announcements/:id"
+      "path": "/api/announcements/:id",
+      "service": "announcements",
+      "pathPattern": "/api/announcements/:id",
+      "zone": "instructor-materials"
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",
