@@ -22,7 +22,8 @@ export async function runLiveReadCheck(config, {logicalPaths = false} = {}) {
     return identity.commit;
   };
   const call = async (session, path, method='GET', body) => {
-    if (logicalPaths) path = path.replace(/^\/api\/notes/u, '/notes');
+    if (method === 'GET' && path === '/api/notes') path = '/api/my/notes';
+    if (logicalPaths) path = path.replace(/^\/api\/(notes|my\/notes)/u, '/$1');
     const response = await fetch(new URL(path, config.publicAppUrl), {method,redirect:'error',signal:AbortSignal.timeout(20000),
       headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
     let data;try { data=await response.json(); } catch { data=null; }

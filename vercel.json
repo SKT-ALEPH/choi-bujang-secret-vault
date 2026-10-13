@@ -16,6 +16,10 @@
   ],
   "rewrites": [
     {
+      "source": "/my/notes",
+      "destination": "/api/my/notes"
+    },
+    {
       "source": "/api/notes/:id",
       "destination": "/api/notes?id=:id"
     },

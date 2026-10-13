@@ -10,11 +10,15 @@ const REQUEST_KEYS = 'at,classId,deviceId,deviceRegistered,method,path,policyRev
 // Both engine-logical paths and the actual /api paths have exact route shapes.
 function declaredResourceRoute(request) {
   if (typeof request.path !== 'string') return false;
+  if (['/api/my/notes', '/my/notes'].includes(request.path)) {
+    return request.service === 'notes' && request.method === 'GET'
+      && request.route === `GET ${request.path}`;
+  }
   const match = /^(\/api)?\/(notes|announcements)(?:\/(demo|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}))?$/iu.exec(request.path);
   if (!match || request.service !== match[2]) return false;
   const [, prefix = '', service, id] = match;
-  const methods = id ? (service === 'notes' ? ['GET', 'PUT', 'DELETE'] : ['GET', 'PUT'])
-    : (service === 'notes' ? ['GET', 'POST'] : ['GET']);
+  const methods = id ? (service === 'notes' ? ['GET', 'PUT', 'DELETE'] : ['GET'])
+    : (service === 'notes' ? ['POST'] : ['GET']);
   return methods.includes(request.method)
     && request.route === `${request.method} ${prefix}/${service}${id ? '/:id' : ''}`;
 }
@@ -31,9 +35,7 @@ export async function decide(request) {
   const scoped = subjectKnown && request.queryLength === 0
     && request.querySha256 === 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
     && /^[a-f0-9]{16}$/u.test(request.deviceId)
-    && declaredResourceRoute(request)
-    // Without a verified editor binding, fail closed at the engine gate.
-    && !(request.service === 'announcements' && request.method === 'PUT');
+    && declaredResourceRoute(request);
   if (!scoped) return reply('deny', 'starter_not_ready', ['resource_scope']);
   const s = request.signals;
   const fixture = s?.source === 'judge_fixture';

@@ -38,7 +38,7 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
         else if(url.searchParams.has('action')){status=400;data={error:'RESOURCE_QUERY_NOT_ALLOWED'};}
         else if(method==='PUT' && Object.hasOwn(JSON.parse(options.body),'owner_id')){status=400;data={error:'OWNER_IMMUTABLE'};}
         else if(method==='DELETE' && owner){memo=null;data={deleted:true};}
-        else if(['/api/notes','/notes'].includes(path) && !url.searchParams.has('id'))data=[];
+        else if(['/api/notes','/notes','/api/my/notes','/my/notes'].includes(path) && !url.searchParams.has('id'))data=[];
         else if(!memo){status=404;data={error:'NOTE_NOT_FOUND'};}
         else if(owner){if(method==='PUT')Object.assign(memo,JSON.parse(options.body));data={...memo};}
         else {status=bStatus;data=status===200?memo:{error:status===404?'NOTE_NOT_FOUND':'INVALID_LOGIN'};}
@@ -56,8 +56,10 @@ test('live check requires distinct logged-in A/B, rejects inconclusive/exposed r
     assert.deepEqual(deletedUsers,['user-1','user-2']);
     assert.equal(proof.pathMode,logicalPaths?'logical':'api');
     const collection=logicalPaths?'/notes':'/api/notes';
-    assert.ok(requests.every(r=>r.path===collection||r.path.startsWith(collection+'/')));
-    const reads=requests.filter(r=>r.method==='GET'&&r.path!==collection);
+    const ownList=logicalPaths?'/my/notes':'/api/my/notes';
+    assert.ok(requests.some(r=>r.path===ownList));
+    assert.ok(requests.every(r=>r.path===collection||r.path===ownList||r.path.startsWith(collection+'/')));
+    const reads=requests.filter(r=>r.method==='GET'&&r.path!==collection&&r.path!==ownList);
     assert.equal(reads[0].path,reads[1].path);assert.equal(reads[0].owner,true);assert.equal(reads[1].owner,false);
     for(const privateValue of [tokenA,tokenB,'test-server-value','Synthetic verification content','Temporary access verification'])assert.ok(!written.includes(privateValue));
   }

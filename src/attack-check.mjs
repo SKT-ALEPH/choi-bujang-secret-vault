@@ -2,6 +2,7 @@
 // Never return tokens, private keys, real names, or note bodies.
 // Describe the implemented APIs, not a fixture user's individual permissions.
 const RESOURCE_ROUTES = [
+  ['notes', 'GET', '/api/my/notes', 'my-notes'],
   ['notes', 'GET', '/api/notes', 'my-notes'],
   ['notes', 'POST', '/api/notes', 'my-notes'],
   ['notes', 'GET', '/api/notes/:id', 'my-notes'],
@@ -121,7 +122,7 @@ export async function runAttackChecks(config) {
       const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
       const { normal } = fixtureRequests();
       const denied = [];
-      for (const fields of [{ path: '/notes/export' }, { path: '/notes/demo/export' },
+      for (const fields of [{path:'/notes',route:'GET /notes'}, {path:'/api/notes',route:'GET /api/notes'}, { path: '/notes/export' }, { path: '/notes/demo/export' },
         { path: '/notes/other' }, { path: '/other/demo' }, { subjectId: '' }, { queryLength: 1 },
         { role: 'teacher' }, { path: '/notes/demo', route: 'GET /api/notes/:id' },
         { service: 'announcements', method: 'PUT', path: '/announcements/demo', route: 'PUT /announcements/:id' },

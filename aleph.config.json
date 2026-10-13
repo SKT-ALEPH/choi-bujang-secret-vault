@@ -121,6 +121,20 @@
       "service": "announcements",
       "pathPattern": "/announcements/:id",
       "zone": "instructor-materials"
+    },
+    {
+      "method": "GET",
+      "path": "/api/my/notes",
+      "service": "notes",
+      "pathPattern": "/api/my/notes",
+      "zone": "my-notes"
+    },
+    {
+      "method": "GET",
+      "path": "/my/notes",
+      "service": "notes",
+      "pathPattern": "/my/notes",
+      "zone": "my-notes"
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",

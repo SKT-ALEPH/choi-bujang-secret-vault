@@ -13,7 +13,8 @@
   async function api(path = '', options = {}) {
     const { data, error } = await client.auth.getSession();
     if (error || !data.session) throw new Error('로그인이 필요합니다. 다시 로그인해 주세요.');
-    const response = await fetch('/api/notes'+path, { ...options, cache:'no-store',
+    const target = path === '' && (options.method ?? 'GET') === 'GET' ? '/api/my/notes' : '/api/notes'+path;
+    const response = await fetch(target, { ...options, cache:'no-store',
       headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+data.session.access_token } });
     const body = await response.json();
     if (!response.ok) throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.'
