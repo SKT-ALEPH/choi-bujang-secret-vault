@@ -1,0 +1,13 @@
+{
+  "schema": "aleph.operations.v1",
+  "testedCommit": null,
+  "at": null,
+  "result": "NOT_RUN",
+  "records": [],
+  "fullAssault": {
+    "total": 41,
+    "executed": 0,
+    "passed": null,
+    "status": "not_run"
+  }
+}

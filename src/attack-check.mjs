@@ -23,6 +23,7 @@ export function hasEngineRouteDeclarations(routes) {
 }
 
 export async function runAttackChecks(config) {
+  if(config.step===12)return (await import('./stage12-check.mjs')).runStage12Checks(config);
   if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(config.step)) throw new Error('이 단계의 공격 점검을 src/attack-check.mjs에 구현해 주세요.');
   let app;
   try {

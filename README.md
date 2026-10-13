@@ -1,8 +1,8 @@
-# BYTE BACK 자료실 · 11단계
+# BYTE BACK 자료실 · 12단계
 
 ## 현재 상태
 
-8단계는 커밋 `1c110a2c37073b690694724002f898e4161709f9`에서 실제 심판100/100점을 받았습니다. 조건5개와가점3개,타인조회/수정/목록/학생공지쓰기공격모두격파를확인했습니다.9단계도커밋 `5f4b4b248138c0e8c233358d90fd61479d7ad459`에서실제100/100(4조건/3가점/4공격격파)을확인했습니다.10단계는 e10436a9b417에서 실제100/100(5조건/3가점/3공격격파)을확인했습니다.11단계구현·검증을진행하며11단계100전12단계를구현하지않습니다.작업기록은저장소상위 `STAGE8-WORK.md`입니다.
+8단계는 커밋 `1c110a2c37073b690694724002f898e4161709f9`에서 실제 심판100/100점을 받았습니다. 조건5개와가점3개,타인조회/수정/목록/학생공지쓰기공격모두격파를확인했습니다.9단계도커밋 `5f4b4b248138c0e8c233358d90fd61479d7ad459`에서실제100/100(4조건/3가점/4공격격파)을확인했습니다.10단계는 e10436a9b417에서 실제100/100(5조건/3가점/3공격격파)을확인했습니다.11단계는 cadd46d2a02eaf52e8592f1a1bd82eba9fd640a2 동일코드 재심사에서 실제100/100(6조건/3가점/3공격)을 확인했습니다. 12단계 작전실을 구현·검증 중이며 미실행을 통과로 표시하지 않습니다.작업기록은저장소상위 `STAGE8-WORK.md`입니다.
 
 9단계의 `src/detect.mjs`는 계약의가명사용자별GET사건만세어10분미만의창에120건을넘으면별도회수제안을반환합니다.정확히120건,다른사용자,창밖사건,비GET은합산하지않습니다.시간순정렬후첫기준초과주체하나만제안하며입력/본문/토큰을로그에남기지않습니다.엔진확인네트워크/기기값이없는연습입력에가짜값을넣지않습니다.기존7단계복합이상판정및8단계구역규칙과5필드판정응답은보존합니다.
 
@@ -300,7 +300,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 검증 순서:정책사본preview/시험정책복원→비공개DB권한/롤백전용B가상메모검사→서버전용시험환경에서 `node scripts/stage10-live-check.mjs`의새B메모변조·삭제복원→`node --experimental-vm-modules --test test/stage3.test.mjs test/stage5.test.mjs test/stages7-12.test.mjs test/stage8-route-declarations.test.mjs test/stage9.test.mjs test/stage10.test.mjs`→실제배포자기점검/bundle→심판의1~9대표공격재검사입니다. 가상·DB트랜잭션·실제로그인·심판증거를구분하고 미실행결과를꾸미지않습니다.
 
-정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth A/B의배포HTTP17조건이6fd4c57에서모두통과했습니다. B변조/삭제메모복원200,ID/내용지문일치,타인읽기/복원404,위조/기능쿼리400,브라우저RPC403,다른메모·감사보존을확인했습니다. 새시험2계정과활성2메모는정리했고비공개사본/감사는보존했습니다. 일회성빌드검증설정0복원과자동실행코드제거후제출합니다. 최종심판은동일최종커밋에서세번모두UNV_RUN_ENVIRONMENT로확인을끝내지못했습니다. 통과나요구사항실패로보고하지않습니다.
+정책시험에서변경파일1개만복원/운영정책해시불변/기존감사앞부분보존을확인했습니다. 실제DB트랜잭션에서는B가상메모변조/삭제복원,타인거부,NULL정책지문거부,ID재사용거부,변조사본거부,다른메모/감사보존을확인하고모두롤백했습니다. 전체권한검사와시험감사롤백도true였습니다. 실제Auth A/B의배포HTTP17조건이6fd4c57에서모두통과했습니다. B변조/삭제메모복원200,ID/내용지문일치,타인읽기/복원404,위조/기능쿼리400,브라우저RPC403,다른메모·감사보존을확인했습니다. 새시험2계정과활성2메모는정리했고비공개사본/감사는보존했습니다. 일회성빌드검증설정0복원과자동실행코드제거후제출합니다. 최종초기 심판은 UNV_RUN_ENVIRONMENT로 판정을 끝내지 못했으나, 최종 cadd46d 동일 코드 재심사에서 실제100점을 확인했습니다. 이전 내부 오류 원인은 공개되지 않았습니다.
 
 검증 근거:[PostgreSQL SHA-256 함수](https://www.postgresql.org/docs/17/pgcrypto.html),[SECURITY DEFINER와안전한검색경로](https://www.postgresql.org/docs/17/sql-createfunction.html).
 
@@ -336,7 +336,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 제공 엔진의18필드 판정과 원본 심판 로그인 검증기는 변경하지 않습니다. 운영자가 서명하고 원본 검증기가 엄격히 확인하는 시험 신원은 기존 제공 엔진의 기기·요청서명 검증 통로를 유지합니다. 일반 Supabase 사용자에 적용하는 위 세션 키 흐름을 엔진의 하드웨어 인증이나 운영자 승인으로 과장하지 않습니다.
 
-적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 접속 클라이언트 코드와 WebCrypto를 통해 배포된 서버의24조건이5532582에서전부통과했습니다. 정상A/B승인·목록·메모추가/읽기/수정/복원·공지읽기,서명누락/경로·본문·메서드변경/재전송/타인키/만료/직접DB거부와회수를확인했습니다. 기존20점검도통과했고새시험계정2/메모1/기기세션정리cleanupOk true입니다. [실측 기록](docs/STAGE11_VERIFICATION.json)에시각/커밋/방식을구분했습니다. 이는 실제클라이언트프로토콜실행이며 수동브라우저로그인이라고기록하지않습니다. 실제화면에서는승인전자료미표시/오프라인안내를확인했습니다. 심판은동일최종커밋에서세번모두UNV_RUN_ENVIRONMENT로확인을끝내지못했습니다. 통과나요구사항실패로보고하지않습니다.
+적용: `sql/stage11-device.sql` → 정상 배포 → 서버 전용 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs` → 관련 시험 → 배포 일치/bundle/심판. 실제 DB에서 anon 조회·authenticated 승인변경 거부와 서버 확인 권한을 확인했습니다. 로컬 보안25시험이 통과했습니다. 실제 접속 클라이언트 코드와 WebCrypto를 통해 배포된 서버의24조건이5532582에서전부통과했습니다. 정상A/B승인·목록·메모추가/읽기/수정/복원·공지읽기,서명누락/경로·본문·메서드변경/재전송/타인키/만료/직접DB거부와회수를확인했습니다. 기존20점검도통과했고새시험계정2/메모1/기기세션정리cleanupOk true입니다. [실측 기록](docs/STAGE11_VERIFICATION.json)에시각/커밋/방식을구분했습니다. 이는 실제클라이언트프로토콜실행이며 수동브라우저로그인이라고기록하지않습니다. 실제화면에서는승인전자료미표시/오프라인안내를확인했습니다. 초기 심판은 UNV_RUN_ENVIRONMENT로 판정을 끝내지 못했으나, 최종 cadd46d 동일 코드 재심사에서 실제100점을 확인했습니다. 이전 내부 오류 원인은 공개되지 않았습니다.
 
 참조: [WebCrypto 키 생성](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/generateKey), [Node.js 서명 검증](https://nodejs.org/api/crypto.html#cryptoverifyalgorithm-data-key-signature-callback), [PWA 캐시 경계](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching).
 
@@ -346,3 +346,37 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 
 11단계 호환 가설 검증: 공개 예제와 대조하여 제출 점검을 GET 전용으로 제한한88526ee에서 실제15요청/18항목, 별도 비로그인 쓰기·삭제·복원거부5조건, 별도Node22 묶음 생성이 통과했습니다. 그러나 실제 심판은 같은 `UNV_RUN_ENVIRONMENT`로 확인을 끝내지 못했습니다. 읽기 전용 제한이 해결책이라는 근거가 없으므로 실험 변경을 되돌리고 기존 전체20항목 자기 점검을 복원했습니다. 서버의 인증·소유권·기기서명·복원 통제는 실험 전후 동일합니다. 내부 원인은 미확정이며 실패 명령·종료 사유·비밀값을 제거한 예외 로그가 필요합니다.
+
+## 12단계 작전실 사용·설치·검증
+
+현재 자료실 첫 화면 아래의 **탈환 작전실**은 `/api/checks`가 반환한 가린 서버 시험 기록을 표시합니다. 판정 규칙 수, 탐지 시험, 회수 뒤 거부, 복구 API 결과와 안전 정책 버전·해시를 읽습니다. 메모 본문·계정·실제 자원 UUID·토큰·기기 개인키는 이 API와 표에 넣지 않습니다. 공개되는 것은 고정 가상 입력의 결과와 시험용 계정으로 얻은 안전한 영수증뿐입니다. 이 화면은 권한을 부여하거나 현재 운영 사용자의 현황을 추정하지 않습니다.
+
+| 구성 | 파일·진입점 | 역할 |
+|---|---|---|
+| 판정 | `src/decider.mjs`의 `decide`, `RULE_IDS` | 제공 엔진의 18필드 입력 → 5필드 판정. 기기·추가 확인·정확한 구역 입장 검사 |
+| 탐지 | `src/detect.mjs`의 `detect` | 동일 가명 주체 GET 10분 120/121 경계 → 회수 **제안** |
+| 자료 API | `api/notes.js`, `api/my/notes.js`, `api/announcements.js` | 원본 로그인 검증·기기 서명·XDR·저장 소유자/편집 권한 확인 |
+| 접속 앱 | `public/device-client.mjs`, `public/device-message.mjs`, `public/app.js` | 메모리 키 소유 증명·요청 서명·승인/로그아웃. `api/device.js`가 서버 상태 확인 |
+| 복구 | `api/restore.js`, `src/recovery-policy.mjs` | 비공개 사본의 지정 메모 복원과 고정 정책 해시 확인 |
+| 기록 API | `api/checks.js`, `src/operations.mjs` | GET만 허용. 임의 입력 없이 지정된 가상 시험과 가린 영수증 반환. DB 권한 없음 |
+| 작전실 표시 | `public/operations.mjs`의 `renderReport` | 실제 API 행·요약을 `textContent`로 표시, 실패/미실행 유지 |
+| 검사 절차 | `scripts/stage11-live-check.mjs`, `src/stage12-check.mjs` | 실제 A/B 프로토콜 + 정상/금지 HTTP 검사. 단계·기대·실제·서버 요청ID·UTC 시각 수집 |
+| 보존 기록 | `config/operations-verification.json` | 검사 커밋·시각·안전한 요청 영수증·실행 범위. 서버가 읽는 원본 |
+
+**출처와 범위:** 학생이 만든 것은 판정기·탐지 규칙·XDR·접속 앱·자료 API·복구·작전실입니다. 가명 사건 전달, 학생 판정 호출/집행, 탐지 제안에 따른 엔진 회수는 **ALEPH SDP 엔진**이 제공합니다. 일반 Vercel 자료 API의 JWT/기기/소유자 검사와 제공 엔진의 판정·회수는 다른 실행 범위입니다. 고정 가상 입력을 HTTP로 실행한 결과는 `synthetic_input_over_http`, 실제 로그인·키·자료 요청은 `live_api_protocol`로 구분합니다. 대표 회귀시험 수를 41종 총공세 통과 수로 바꾸지 않습니다. 자체 41종 전체 실행은 미실행이며 전체 통과 근거는 운영 심판에서 따로 확인합니다. [원본 시작 틀](https://github.com/ChoiTimo/aleph-defense-starter), [공식 공개 점검 표본](https://github.com/ChoiTimo/byteback-sample-pass/pull/1)의 실제 HTTP 관측 방식만 참고했고, 표본의 항상 거부 API를 운영 구현으로 복사하지 않았습니다.
+
+설치·실행 순서:
+
+1. 검사 기록의 `testedCommit`으로 저장소를 받고 Node22 이상에서 `npm install`을 실행합니다. 비밀값 없는 새 사본에서도 설치와 `node --experimental-vm-modules --test test/stage12.test.mjs test/stage11.test.mjs test/stages7-12.test.mjs`가 실행됩니다. 전체 시험 중 `package-starter.test.mjs`의 초기 API 목록 항목은 원본 두 개의 패키지용 함수만 기대하는 오래된 기준으로 별도 실패합니다. 보안 회귀의 성공과 최종 제품 패키징의 미완료를 구분합니다.
+2. 기존 설치의 DB·Vercel 환경을 보존합니다. 새 설치는 위 설치 절의 단계3~5 SQL과 `sql/stage8-resources.sql`, `sql/xdr-brute-force.sql`, `sql/xdr-web-injection.sql`, `sql/stage10-recovery.sql`, `sql/stage11-device.sql`을 각 안내의 순서와 조건에 맞춰 적용합니다. 기존 정책·사용자 자료를 덮어쓰는 seed는 실행하지 않습니다. 서버 변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `TYPESAFE_API_KEY`는 공식 서버 설정에만 보관합니다. 판정 엔진은 ALEPH 제공 엔진을 사용하고 임의 CA나 별도 접속 프로그램을 설치하지 않습니다.
+3. Vercel에서 이 저장소를 배포하면 `npm run build`가 기존 접속 앱과 작전실을 준비합니다. `/aleph.json`의 커밋/단계12/저장소를 실제 저장점과 대조합니다. 일반 빌드는 시험 계정 생성·복구를 실행하지 않습니다. 작전실의 새로고침은 가린 기록 읽기만 수행합니다.
+4. 새 실제 영수증을 생성할 때에만 서버 전용 시험 환경에서 `node --experimental-vm-modules scripts/stage11-live-check.mjs`를 실행합니다. 배포가 같은 커밋인지 먼저 확인하고 새 A/B 시험 계정으로 승인·허용·타인 거부·복구·서명 변조·회수 후 거부를 재생합니다. `public/stage12-live-proof.json`은 Git 제외 결과이며 실측이 모두 통과하고 `receiptsComplete`, `stageCoverage`, `cleanupOk`가 true인지 확인합니다. 개인 토큰/계정/본문을 파일로 추출하지 않습니다. 시험 계정·메모·기기 세션만 정리하며 비공개 복구 사본/감사 이력은 보존합니다.
+5. 성공 결과의 `records`, `testedCommit`, `at`, `sourceHashes`만 가린 기록 파일에 옮깁니다. 소스 해시로 기록 후 문서/영수증 커밋과 시험한 앱 코드의 일치를 대조합니다. 1~11단계마다 정상/금지 행, 기대/실제, 요청ID와시각이 모두 있어야 합니다. `/api/checks`의 표와 실제 화면 표를 대조하고 검사 자체 실패·미실행은 그대로 표시합니다.
+6. `bundle-notes.json`에 비밀값 없는 변경 설명을 적고, 저장점 커밋 뒤 `npm run bundle`을 실행합니다. 20개 독립 HTTP 관측은 실제 응답 상태와 `ready`를 기록하고 네트워크 미실행/예상 밖 결과에 중단합니다. `alephEvidence`는 runner 관측 메타데이터이고 HTTP 헤더나 URL로 보내지 않습니다. 최종 배포 커밋 일치 후 포털에 제출하고 실제 점수를 확인합니다.
+
+중지·복구:
+
+- 접속 앱은 **로그아웃**으로 서버 기기 세션을 회수하고 메모리 키/토큰을 비웁니다. 오프라인에서는 자료 표시를 비우며 새로 열면 다시 로그인·승인합니다. 설치 제거는 OS/브라우저의 앱 제거 기능을 사용합니다.
+- 제공 엔진의 실행·중지는 운영자가 제공한 엔진 관리 절차를 따릅니다. 학생 판정/탐지 파일은 엔진에 제공하는 모듈이며 임의의 `npm start` 데몬이 아닙니다. 로컬 시험 프로세스는 종료하면 멈춥니다. Vercel 배포를 중지하려면 프로젝트의 공식 배포 관리에서 직전 검증 배포로 되돌립니다.
+- 기록 API 오류 시 미실행/오류로 표시합니다. 성공 문구를 채우거나 판정 규칙을 완화하지 않습니다. `git diff`로 변경 범위를 확인하고 직전 검증 커밋의 해당 파일만 복원한 뒤 시험·배포 신원을 다시 확인합니다. `reset --hard` 및 전체 DB 초기화는 사용하지 않습니다.
+- 정책 복원은 `node scripts/test-policy.mjs init` → `preview` → `apply <confirmation>`의 기존 격리 시험 정책 미리보기·확인값 적용 절차를 사용합니다. 지정 메모 복원은 로그인·승인된 서명 `POST /api/restore/:noteId`로만 요청합니다. 다른 메모와 감사 이력은 보존합니다. 자세한 안전 사본 검증은 위 10단계 절을 따릅니다.

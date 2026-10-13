@@ -34,6 +34,8 @@
     li { padding:20px 0; border-bottom:1px solid var(--line); }
     li strong { display:block; font-size:18px; margin-bottom:8px; } li p { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
     .skip { position:absolute; left:16px; top:-60px; } .skip:focus { top:16px; background:var(--bg); }
+    #operations { margin:40px 0; border-top:1px solid var(--line); padding-top:24px; }
+    .table-scroll { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-size:14px; } th,td { border-bottom:1px solid var(--line); padding:12px 8px; text-align:left; vertical-align:top; overflow-wrap:anywhere; min-width:96px; } caption { text-align:left; margin:16px 0; color:var(--muted); }
     @media(max-width:480px) { main { padding-top:28px; } #auth-panel { padding:20px; } }
   </style>
 </head>
@@ -79,9 +81,23 @@
       <div class="actions"><button id="refresh" type="button">목록 새로고침</button></div>
       <ul id="notes" aria-live="polite"></ul>
     </section>
+    <section id="operations" aria-labelledby="operations-title">
+      <h2 id="operations-title">탈환 작전실</h2>
+      <p>서버가 보관한 시험 기록과 안전 정책을 확인합니다. 기록에는 검사한 커밋과 시각이 있으며, 현재 사용자 현황은 포함하지 않습니다. 메모 본문과 계정 정보는 표시하지 않습니다.</p>
+      <button id="operations-refresh" type="button">검사 기록 새로고침</button>
+      <p id="operations-status" role="status" aria-live="polite"></p>
+      <div id="operations-summary"></div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="단계별 검사표 가로 스크롤">
+        <table><caption>1~11단계의 정상·금지 요청 기록. 가상 입력 시험은 제공 엔진의 실제 집행과 구분합니다.</caption>
+        <thead><tr><th scope="col">단계</th><th scope="col">요청 종류</th><th scope="col">검사 범위</th><th scope="col">검사 이름</th><th scope="col">요청</th><th scope="col">기대 결과</th><th scope="col">실제 API 결과</th><th scope="col">대조</th><th scope="col">서버 요청 ID</th><th scope="col">확인 시각</th></tr></thead>
+        <tbody id="operations-rows"></tbody></table>
+      </div>
+      <p class="quiet">학생 코드: 판정기·탐지 규칙·접속 화면·자료 API. 제공 엔진: ALEPH SDP 엔진(가명 사건 전달·판정 집행·회수). 41종 총공세의 통과는 운영 심판 결과로 확인합니다.</p>
+    </section>
   </main>
   <script src="/vendor/supabase.js" defer></script>
   <script type="module" src="/device-client.mjs"></script>
   <script src="/app.js" defer></script>
+  <script type="module" src="/operations.mjs"></script>
 </body>
 </html>

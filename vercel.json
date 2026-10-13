@@ -51,6 +51,9 @@
   "functions": {
     "api/restore.js": {
       "includeFiles": "backups/stage9-safe-policy/**"
+    },
+    "api/checks.js": {
+      "includeFiles": "{backups/stage9-safe-policy/**,config/operations-verification.json}"
     }
   }
 }

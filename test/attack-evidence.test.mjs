@@ -5,6 +5,7 @@ import {runAttackChecks} from '../src/attack-check.mjs';
 
 test('each HTTP check has distinct runner evidence without transmitting metadata, and a leaked response fails',async()=>{
   const config=JSON.parse(await readFile(new URL('../aleph.config.json',import.meta.url),'utf8'));
+  config.step=11; // Regression of the original stage11 checker; stage12 has its own HTTP contract test.
   const actualFetch=globalThis.fetch,requests=[];
   let leak=false;
   try{
