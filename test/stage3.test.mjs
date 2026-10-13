@@ -5,6 +5,8 @@ import { generateKeyPair, SignJWT } from 'jose';
 import { createClient } from '@supabase/supabase-js';
 import { createLoginVerifier } from '../src/verify-login.mjs';
 import handler, { createNotesHandler } from '../api/notes.js';
+import {decide} from '../src/decider.mjs';
+import {fixtureRequests} from '../scripts/fixture-7.mjs';
 
 const config={judgeIssuer:'https://judge.example.org/defense/judge',publicAppUrl:'https://vault-test.vercel.app',
   identityProvider:{issuer:'https://student-test.supabase.co/auth/v1',audience:'authenticated',jwksUrl:'https://student-test.supabase.co/auth/v1/.well-known/jwks.json'}};
@@ -54,7 +56,15 @@ test('verified CRUD restricts rows to the verified owner and rejects ownership c
       return new Response(JSON.stringify(data),{status:200,headers:{'content-type':'application/json'}});
     }}});
   const run=createNotesHandler(()=>({database,verifyLoginAuthorization:verifier}));
-  const call=async(method,user,id,body)=>{const res=response();await run({method,headers:{authorization:'Bearer '+await token(user)},query:id?{id}:{},body},res);return res;};
+  const call=async(method,user,id,body)=>{
+    const {normal}=fixtureRequests();
+    const admission=await decide({...normal, subjectId:user===a?'opaque-user-a':'opaque-user-b',
+      method, path:'/api/notes'+(id?'/'+id:''), route:method+' /api/notes'+(id?'/:id':'')});
+    assert.equal(admission.decision,'allow');
+    // Admission is not data access: use the unchanged cryptographic verifier
+    // and the API's atomic owner filter even after the route was admitted.
+    const res=response();await run({method,headers:{authorization:'Bearer '+await token(user)},query:id?{id}:{},body},res);return res;
+  };
   const posted=await call('POST',a,null,{title:'fixture',body:'fixture body'});
   assert.equal(posted.statusCode,201);const id=posted.body.id;assert.equal(records.get(id).owner_id,a);
   assert.equal((await call('GET',a)).body.length,1);assert.equal((await call('GET',b)).body.length,0);

@@ -120,17 +120,25 @@ export async function runAttackChecks(config) {
       const { fixtureRequests } = await import('../scripts/fixture-7.mjs');
       const { normal } = fixtureRequests();
       const denied = [];
-      for (const fields of [{ path: '/notes/00000000-0000-4000-8000-000000000001' },
-        { path: '/notes/export' }, { path: '/notes' }, { subjectId: '' }, { queryLength: 1 },
-        { subjectId: 'synthetic-other-principal' }, { classId: 'different-class' },
-        { projectId: 'different-project' }, { deviceId: 'bbbbbbbbbbbbbbbb' },
-        { policyRevision: 2 }, { signals: { ...normal.signals, source: 'none' } },
-        { role: 'teacher' },
-        { service: 'announcements', path: '/announcements/demo', method: 'PUT', route: 'PUT /announcements/:id' }]) {
+      for (const fields of [{ path: '/notes/export' }, { path: '/notes/demo/export' },
+        { path: '/notes/other' }, { path: '/other/demo' }, { subjectId: '' }, { queryLength: 1 },
+        { role: 'teacher' }, { path: '/notes/demo', route: 'GET /api/notes/:id' },
+        { method: 'PUT', path: '/announcements/demo', route: 'GET /announcements/:id' }]) {
         denied.push((await decide({ ...normal, ...fields })).decision === 'deny');
       }
-      attempts.push({ attackId: 'local_resource_scope', expected: '로컬 가상 · 동일자원 타인/기기/테넌트/출처/버전/필드위조 및 미등록 자원 거부',
-        observed: denied.every(Boolean) ? '확인 · ' + denied.length + '개' : '실패' });
+      const admitted = [];
+      for (const prefix of ['', '/api']) {
+        for (const id of ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002']) {
+          admitted.push((await decide({ ...normal, subjectId: 'synthetic-independent-subject',
+            classId: 'synthetic-independent-class', projectId: 'synthetic-independent-project',
+            deviceId: 'bbbbbbbbbbbbbbbb', policyRevision: 2,
+            signals: {source:'none',region:'unknown',network:'unknown',hour:14},
+            path: `${prefix}/notes/${id}`, route: `GET ${prefix}/notes/:id` })).decision === 'allow');
+        }
+      }
+      attempts.push({ attackId: 'local_resource_scope', expected: '로컬 가상 · 선언 경로 입장과 미지/기능/경로불일치/위조 거부; 최종 소유권 API별도',
+        observed: denied.every(Boolean) && admitted.every(Boolean)
+          ? '확인 · 거부 ' + denied.length + '개 / 독립 자원 입장 ' + admitted.length + '개' : '실패' });
       for (const method of ['GET', 'PUT']) {
         const response = await request('/api/announcements/00000000-0000-4000-8000-000000000001', { method });
         let safe = false;

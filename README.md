@@ -7,23 +7,29 @@
 실제 심판 통과를 구분합니다. 실패한 구체적 요청·엔진 호출 결과가 화면에 없어
 동일 실패의 원인은 아직 확정하지 못했습니다. 100점 전 다음 단계는 대기합니다.
 
-2026-10-13 구역·경로 선언 보완: 실제 API8개에 `service`, `pathPattern`, `zone`을
-추가했습니다. 기존 `method/path`와 API 주소는 보존합니다. 메모는 `my-notes`,
-공지 읽기는 `class-notices`, 공지 수정은 `instructor-materials`로 구별합니다.
-필드 형태와 구역 이름은 [공식 공개 표본](https://github.com/ChoiTimo/byteback-sample-pass/blob/main/aleph.config.json)을
-참고했지만 해당 표본은12단계 읽기전용 목표이므로 API/판정기를 그대로 복사하지 않습니다.
-자기 점검은 선언8개와 실제 배포의 전체 필드를 대조하며, 공지 수정의 구역 누락이나
-경로 중복도 실패로 처리합니다. 구역 이름을 적는 것 자체가 소유권/강사 권한 부여는 아닙니다.
+2026-10-13 전체 수정: 기본 판정기의 연습용 주체·반·프로젝트·기기·메모1건
+의존을 제거했습니다. 기본 판정기는 엔진이 확인한18필드에서 주체·기기·정책 버전·
+서비스·메서드·정확한 경로를 확인해 선언된 자료 API로의 입장을 판정합니다.
+메모5개·공지3개 경로와 엔진의 논리 경로(`/notes`)·실제 경로(`/api/notes`)를
+모두 지원하며, 메서드/route/path가 어긋나거나 미지·export·기능 쿼리·위조 필드가
+있으면 거부합니다. 기존 미등록 기기 거부와 복합 위험 재확인은 유지합니다.
 
-빈 VM에서 서로 독립적인 가상 권한24개를 동시에 설치해 각각의 허용·타인 거부·
-미등록 자원 거부를 확인합니다. 이는 비교 함수가 한 건에만 동작하는 문제는 아니라는
-증거입니다. 같은 요청을 기본 `decide`에 보내면 모두 거부되는 공급 누락은 남아 있습니다.
-요청18필드에는 자원 소유자/편집권한이나 가명주체와 DB사용자 사이의 연결이 없습니다.
-주체/경로를 보고 권한을 추측하거나 허용표 검사를 제거하지 않습니다. 실제 권한 공급이
-완성되기 전에는 이번 선언 보완을 이유로8단계를 재제출하지 않습니다.
+판정기의 `allow`는 자료 소유권을 확인한 결과가 아닙니다. 같은 주소에 대한 A/B의
+구역 입장 뒤에도 최종 API에서 원본 로그인 검증과 저장 owner/editor 대조가 반드시
+실행되어야 합니다. 공식 [공개 표본의 판정기](https://github.com/ChoiTimo/byteback-sample-pass/blob/main/src/decider.mjs)도
+메모 소유자 비교를 엔진과 서버 함수의 책임으로 설명합니다.18필드에 없는 소유권이나
+역할을 추측하지 않습니다. 별도 자원별 허용표를 필수로 추가했던 종전 해석은 정정합니다.
 
-점검: `node --experimental-vm-modules --test test/stage8-route-declarations.test.mjs`.
-포털8단계의 제작2 확인 조건(A 본인 허용/B 타인 거부)과 실제 심판 결과는 별도입니다.
+`allowedRoutes`8개에는 `service/method/path/pathPattern/zone`을 기록합니다.
+메모는 `my-notes`, 공지 읽기는 `class-notices`, 공지 수정은 `instructor-materials`입니다.
+이름을 적는 것 자체가 접근 권한을 부여하지 않습니다. 자기 점검은 선언8개와 실제
+배포의 전체 필드/구역/중복을 대조합니다. 실제 엔진 등록 완료는 별도 증거가 필요합니다.
+
+검증: `node --experimental-vm-modules --test test/stage8-route-declarations.test.mjs test/stages7-12.test.mjs test/stage3.test.mjs`.
+서로 독립적인 가상 주체/자원24개와 선언8개의 두 경로 형식을 시험합니다.
+기본 입장 판정을 통과한 뒤에도 타인 메모 GET/PUT/DELETE와 학생의 공지 PUT은
+최종 API에서 거부되고, 본인 CRUD와 저장 editor의 허용 공지는 유지되어야 합니다.
+이는 가상/단위 검증이며 실제 심판 결과는 아래 기록과 구분합니다.
 
 2026-10-13 실제 A/B 조회 비교: 공식 Supabase Admin API로 임시 계정2개를
 생성하고 각 계정으로 실제 로그인한 뒤, 같은 시험 메모를 조회했습니다.
@@ -53,23 +59,12 @@ B목록200·A메모없음을 확인했습니다. 시험행과 임시계정은 �
 명시적으로 실행하며 일반 빌드에서는 실행하지 않습니다. 기존 API/DB권한/화면은
 변경하지 않았고 이 API 검사 통과를8단계 심판 통과로 보고하지 않습니다.
 
-`src/decider.mjs`의 `createDecider(resourceGrants)`는 서버에서 설치한 자원별
-허용표를 복사해 보관합니다. 출처·반·프로젝트·가명 주체·기기·정책 버전·서비스·
-정확한 경로·메서드가 모두 일치해야 허용합니다. 같은 메모 경로에서도 B의 주체,
-다른 기기/반/프로젝트/버전은 거부합니다. 빈 허용표는 모두 거부하고, 요청 본문에
-권한표/role 같은 계약 밖 필드를 추가하면 거부합니다. 18필드 입력과5필드 응답,
-원본 verify-login.mjs와 judgeIssuer를 보존합니다. query는 빈 원문의 SHA-256도
-확인하며, 미등록 UUID·목록·export·알 수 없는 경로는 거부합니다.
-
-기본 `decide(request)`의 허용표는 공식 starter의 공개 가상 연습1건입니다.
-`class_fixture / project_fixture / learner_fixture / aaaaaaaaaaaaaaaa / notes/demo`
-GET·PUT을 **judge_fixture 출처·정책1에만** 한정합니다. 이 공개 가상 권한은
-source none인 실제 요청을 허용하지 않습니다. 운영 권한은 기존
-`connectXdrDecider({ resourceGrants, ...operatorBinding })`에 신뢰된 서버 설정으로
-별도 설치하며, 실제 엔진의 가명 주체를 그대로 사용합니다. DB UUID와 가명 주체를
-같다고 추측하거나 브라우저 역할을 읽지 않습니다. 현재 실제 반 엔진의 배포·권한
-설치를 수행한 증거는 없으며 가상 연습/어댑터 시험과 혼동하지 않습니다.
-운영 권한이 없는 요청은 기본 거부합니다.
+`createDecider(resourceGrants)`는 선택적으로 신뢰 서버에서 설치하는 추가 ACL을
+지원합니다. 배열을 전달하면 출처·반·프로젝트·주체·기기·정책 버전·서비스·정확경로·
+메서드를 전부 대조합니다. 빈 배열 또는 잘못된 설정은 전부 거부하며 외부 배열 변경은
+이미 설치한 ACL을 바꾸지 못합니다. `connectXdrDecider`도 이 선택 설정을 보존합니다.
+기본 `decide(request)`는 해당 추가 ACL 없이 선언 경로의 입장을 판정하며, 최종 자료
+권한은 실제 API가 확인합니다. 실제 운영 엔진에 선택 ACL을 설치했다고 주장하지 않습니다.
 
 실제 자료실의 `/api/notes`는 기존대로 검증된 사용자 ID와 저장 owner_id를
 목록·개별 CRUD에서 원자 대조합니다. `api/announcements.js`는 별도 공지 자원이고,
@@ -82,14 +77,14 @@ edit_announcement 함수가 검증 사용자와 해당 공지별 저장 편집�
 announcements[/UUID]를 구별합니다.
 
 확인: `node --experimental-vm-modules --test test/stages7-12.test.mjs test/stage3.test.mjs`
-→ 같은 메모에서 허용 주체 A는allow, 권한 없는 주체 B는deny → 기존 기기·
+→ 입장 판정 뒤 같은 메모의 A는200/B는404, 학생 공지수정은403 → 기존 기기·
 추가확인·XDR·최종 API 소유자 및 저장 공지권한 확인. 격리 모듈에서도 외부 기능 없이
 판정하고, 공식 로컬 연습과 실제 HTTP/DB·운영 심판 결과를 별도로 기록합니다.
 
 
 7단계는 judge_fixture 출처의 hour0~5/22~23, networkunusual, 최근600초
 risk_signal20건 이상이 겹치면 step_up_required로 추가 확인을 요청합니다.
-지역 단독으로 차단하지 않습니다. 허용표로 자원 권한을 확인한 요청의 신호 누락은 추가 확인하며
+지역 단독으로 차단하지 않습니다. 선언 경로의 입장 조건을 충족한 요청의 신호 누락은 추가 확인하며
 source none/unknown은 계약상 미제공 상태로 남기고 위치 정상으로 꾸미지 않습니다.
 엔진 확인 stepUp.verified와 age0~900초일 때만 재판정에서 허용합니다.
 `npm run fixture:7`과 `npm run decider:test`로 정상/복합/재확인 및

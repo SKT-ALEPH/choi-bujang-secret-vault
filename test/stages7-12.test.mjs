@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { decide, createDecider, PRACTICE_RESOURCE_GRANTS } from '../src/decider.mjs';
+import { decide, createDecider } from '../src/decider.mjs';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
+
+const fixture = fixtureRequests().normal;
+const PRACTICE_RESOURCE_GRANTS = [{source:fixture.signals.source,
+  ...Object.fromEntries(['classId','projectId','subjectId','deviceId','policyRevision','service','path']
+    .map(key=>[key,fixture[key]])),methods:['GET','PUT']}];
 
 test('step-up uses a trusted compound signal, keeps device denial, and checks freshness', async () => {
   const { normal, suspicious } = fixtureRequests();
@@ -24,9 +29,7 @@ test('step-up uses a trusted compound signal, keeps device denial, and checks fr
   const { normal } = fixtureRequests();
   assert.equal((await decide({ ...normal, method: 'PUT', route: 'PUT /notes/:id' })).decision, 'allow');
   for (const fields of [{subjectId:undefined}, {subjectId:''}, {queryLength:1},
-    {path:'/notes/00000000-0000-4000-8000-000000000001'},
-    {path:'/notes'}, {path:'/notes/all'}, {path:'/notes/other'}, {path:'/notes/export'}, {path:'/notes/demo/export'}, {service:'announcements'},
-    {method:'PUT',path:'/announcements/demo',route:'PUT /announcements/:id'}, {path:'/other/demo'}]) {
+    {path:'/notes'}, {path:'/notes/all'}, {path:'/notes/other'}, {path:'/notes/export'}, {path:'/notes/demo/export'}, {service:'announcements'}, {path:'/other/demo'}]) {
     assert.equal((await decide({ ...normal, ...fields })).decision, 'deny');
   }
   const { createNotesHandler } = await import('../api/notes.js');
@@ -54,6 +57,14 @@ test('announcements use verified identity and a stored per-resource grant, never
     }}
   }));
   const call=async(body,headers={authorization:'test-header'},query={id})=>{
+    if(headers.authorization && identity) {
+      const {normal}=fixtureRequests();
+      const admission=await decide({...normal,subjectId:'opaque-'+identity.userId,
+        service:'announcements',method:'PUT',path:'/api/announcements/'+id,
+        route:'PUT /api/announcements/:id'});
+      assert.equal(admission.decision,'allow');
+      // Stored per-announcement authority is still mandatory after admission.
+    }
     const response={headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.statusCode=n;return this;},json(v){this.body=v;}};
     await handler({method:'PUT',headers,query,body},response);return response;
   };
@@ -73,11 +84,12 @@ test('announcements use verified identity and a stored per-resource grant, never
 
 test('resource grants bind the same path to a subject, device, tenant, action and verified source', async () => {
   const {normal,suspicious}=fixtureRequests();
-  assert.equal((await decide(normal)).decision,'allow');
+  const strict = createDecider(PRACTICE_RESOURCE_GRANTS);
+  assert.equal((await strict(normal)).decision,'allow');
   for(const fields of [{subjectId:'synthetic-other-principal'}, {deviceId:'bbbbbbbbbbbbbbbb'},
     {classId:'other-class'}, {projectId:'other-project'}, {policyRevision:2}, {role:'teacher'}, {resourceGrants:PRACTICE_RESOURCE_GRANTS},
     {signals:{...normal.signals,source:'none'}}, {signals:undefined}, {querySha256:'0'.repeat(64)}]) {
-    assert.equal((await decide({...normal,...fields})).decision,'deny');
+    assert.equal((await strict({...normal,...fields})).decision,'deny');
   }
   assert.equal((await createDecider([])(normal)).decision,'deny');
   const grant={...PRACTICE_RESOURCE_GRANTS[0],source:'none',subjectId:'server-managed-opaque-user',deviceId:'bbbbbbbbbbbbbbbb',path:'/notes/00000000-0000-4000-8000-000000000001'};
@@ -105,7 +117,7 @@ test('resource policy runs with no Node or browser helpers in an empty module co
   await module.link(()=>{throw Error('external imports are not permitted');});
   await module.evaluate({timeout:1000});
   const {normal,suspicious}=fixtureRequests();
-  for(const [input,expected] of [[normal,'allow'],[{...normal,subjectId:'other-principal'},'deny'],[suspicious,'step_up']]) {
+  for(const [input,expected] of [[normal,'allow'],[{...normal,subjectId:''},'deny'],[suspicious,'step_up']]) {
     const actual=await module.namespace.decide(input);
     assert.equal(actual.decision,expected);
     assert.deepEqual(Object.keys(actual).sort(),['decision','reasonCode','requestId','ruleIds','schema']);
