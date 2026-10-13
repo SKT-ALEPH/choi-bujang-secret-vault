@@ -1,0 +1,277 @@
+{
+  "schema": "aleph.post-restore-retest.v1",
+  "at": "2026-10-13T11:25:42.769Z",
+  "buildCommit": "47a5159a785570f66959ad81def5d538ec5879b1",
+  "testedCommit": "f2ee0079077ba5b3159d8f29f973fc7cc20b848e",
+  "restoreChecks": [
+    {
+      "name": "anonymous_restore_denied",
+      "status": 401,
+      "expected": 401,
+      "passed": true,
+      "errorCode": "LOGIN_REQUIRED"
+    },
+    {
+      "name": "foreign_restore_denied",
+      "status": 404,
+      "expected": 404,
+      "passed": true,
+      "errorCode": "BACKUP_NOT_FOUND"
+    },
+    {
+      "name": "b_change_allowed",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "modified_note_restore_allowed",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "modified_note_id_and_hash_match",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "other_note_preserved",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "b_delete_allowed",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "deleted_note_absent",
+      "status": 404,
+      "expected": 404,
+      "passed": true,
+      "errorCode": "NOTE_NOT_FOUND"
+    },
+    {
+      "name": "deleted_note_restore_allowed",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "deleted_note_id_and_hash_match",
+      "status": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "name": "restored_note_foreign_read_denied",
+      "status": 404,
+      "expected": 404,
+      "passed": true,
+      "errorCode": "NOTE_NOT_FOUND"
+    },
+    {
+      "name": "restored_note_foreign_restore_denied",
+      "status": 404,
+      "expected": 404,
+      "passed": true,
+      "errorCode": "BACKUP_NOT_FOUND"
+    },
+    {
+      "name": "audit_append_confirmed",
+      "passed": true
+    },
+    {
+      "name": "body_owner_forgery_denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true,
+      "errorCode": "INVALID_RESTORE_INPUT"
+    },
+    {
+      "name": "function_query_denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true,
+      "errorCode": "RESOURCE_QUERY_NOT_ALLOWED"
+    },
+    {
+      "name": "restore_get_denied",
+      "status": 405,
+      "expected": 405,
+      "passed": true,
+      "errorCode": "METHOD_NOT_ALLOWED"
+    },
+    {
+      "name": "browser_direct_rpc_denied",
+      "status": 403,
+      "passed": true
+    }
+  ],
+  "postRestoreRetests": [
+    {
+      "name": "normal_a_own_list",
+      "kind": "live_http",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "normal_b_restored_note",
+      "kind": "live_http",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "no_public_note_bodies",
+      "kind": "live_http",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "foreign_put_denied",
+      "kind": "live_http",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "foreign_delete_denied",
+      "kind": "live_http",
+      "status": 404,
+      "passed": true
+    },
+    {
+      "name": "foreign_attempts_preserve_restored_note",
+      "kind": "live_http",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "name": "anonymous_get",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "anonymous_post",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "anonymous_put",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "anonymous_delete",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "invalid_login_token",
+      "kind": "live_http",
+      "observed": "HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "deployment_identity",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "security_header",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "anonymous_direct_database",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "public_assets_no_keys_or_seed",
+      "kind": "live_http",
+      "observed": "확인 · 공개 파일 5개",
+      "passed": true
+    },
+    {
+      "name": "allowed_routes_metadata",
+      "kind": "live_http",
+      "observed": "확인",
+      "passed": true
+    },
+    {
+      "name": "auth_proxy_rejects_data_route",
+      "kind": "live_http",
+      "observed": "HTTP 404",
+      "passed": true
+    },
+    {
+      "name": "local_device_registration",
+      "kind": "local_synthetic",
+      "observed": "확인 · 등록/미등록/누락3조건",
+      "passed": true
+    },
+    {
+      "name": "local_step_up_unverified",
+      "kind": "local_synthetic",
+      "observed": "확인 · step_up",
+      "passed": true
+    },
+    {
+      "name": "local_step_up_confirmed",
+      "kind": "local_synthetic",
+      "observed": "확인 · allow",
+      "passed": true
+    },
+    {
+      "name": "local_resource_scope",
+      "kind": "local_synthetic",
+      "observed": "확인 · 거부 12개 / 독립 자원 입장 4개",
+      "passed": true
+    },
+    {
+      "name": "anonymous_announcement_get",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "anonymous_announcement_put",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    },
+    {
+      "name": "local_revocation_proposal",
+      "kind": "local_synthetic",
+      "observed": "확인 · 6조건; 실제 기기 회수로 주장하지 않음",
+      "passed": true
+    },
+    {
+      "name": "local_safe_policy_backup",
+      "kind": "local_synthetic",
+      "observed": "확인 · stage9-5f4b4b248138 / 2파일; 운영 정책 변경 없음",
+      "passed": true
+    },
+    {
+      "name": "anonymous_restore_denied",
+      "kind": "live_http",
+      "observed": "확인 · HTTP 401",
+      "passed": true
+    }
+  ],
+  "retestedAfterRestore": true,
+  "result": "ALL_CHECKS_PASSED",
+  "cleanupOk": true,
+  "privateBackupAndAuditRetained": true
+}

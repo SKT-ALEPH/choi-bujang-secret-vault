@@ -39,9 +39,3 @@ if (process.env.XDR_VERIFY_JEV === '1') {
   const { runLiveCheck } = await import('./xdr-live-check.mjs');
   await runLiveCheck();
 }
-
-// Explicit one-time recovery verification; production builds normally leave this disabled.
-if (process.env.STAGE10_VERIFY_RECOVERY === '1' && config.step === 10) {
-  const {runRecoveryCheck} = await import('./stage10-live-check.mjs');
-  await runRecoveryCheck(config);
-}
