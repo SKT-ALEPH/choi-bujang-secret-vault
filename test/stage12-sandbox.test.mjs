@@ -20,6 +20,7 @@ test('12단계 제출은 제한된 모듈·Git 읽기·GET/HEAD만으로 실제 
   'node:child_process':{execFileSync(command,args,options){
    assert.equal(command,'git');const sub=args;
    assert.ok(['status','rev-parse','diff-tree','show'].includes(sub[0])||sub[0]==='config'&&sub.includes('--get')||sub[0]==='remote'&&sub[1]==='get-url','read-only Git command required');
+   if(sub[0]==='show')assert.equal(sub[1],'HEAD:aleph.config.json');
    assert.equal(options.cwd,root);commands.push(sub[0]);return execFileSync(command,args,{...options,env:{PATH:process.env.PATH,GIT_TERMINAL_PROMPT:'0',GIT_OPTIONAL_LOCKS:'0'}});
   }},
  };

@@ -386,3 +386,5 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 12단계 격리 실행 제약(실제 S12_BUNDLE_UNSUPPORTED 안내): 제출 경로는 node:fs/path/url, child_process의 Git 읽기, crypto의 randomUUID/SHA-256만 사용합니다. node:fs/promises는 이 경로에서 제거했습니다. 요청은 공개HTTPS GET/HEAD만 보내고 POST복원 항목은 not_run입니다. `node --experimental-vm-modules --test test/stage12-sandbox.test.mjs`가 깨끗한 Git 상태에서 제한된 모듈/명령과 실제 GET을 검사하고 새 묶음을 메모리에 확인합니다. 이는 공개된 능력 제한의 재현이며 비공개 심판 구현을 복제했다고 주장하지 않습니다.
 
 제출용 Git 호출은 `git status/rev-parse/config/remote/diff-tree/show`의 읽기만 사용하며 작업 폴더는 `cwd`로 지정합니다. 첫 인수가 실제 읽기 명령이 되게 해 `-C`를 명령으로 오인하는 검사기와의 호환 범위를 줄였습니다. 이는 명령 구문 호환 수정이며 실제 심판 내부의 원인을 확정하는 설명은 아닙니다. 원본 origin/커밋/깨끗한 상태/기록 검사는 보존합니다.
+
+12단계 영수증 완결성 검사는 깨끗한 Git 상태를 확인한 뒤 허용된 fs에서 고정 기록 파일을 읽습니다. 공식 공개 표본의 여섯 Git 읽기(상태/HEAD/origin원문/origin실효값/변경파일/단계설정) 밖에 새 `git show` 호출을 추가하지 않습니다. 영수증의 실제 성공·정상/금지·요청ID·시각 검사 자체는 유지합니다.

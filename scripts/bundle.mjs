@@ -46,7 +46,7 @@ try {
   }
   const notes = JSON.parse(readFileSync(join(root, 'bundle-notes.json'), 'utf8'));
   if(config.step===12){
-    const proof=fromCommit('config/operations-verification.json');
+    const proof=JSON.parse(readFileSync(join(root,'config/operations-verification.json'),'utf8'));
     if(proof.result!=='ALL_CHECKS_PASSED'||!proof.testedCommit||!proof.records?.length
       ||proof.records.some(r=>r.result!=='passed'||!r.requestId||!Number.isFinite(Date.parse(r.checkedAt)))
       ||!Array.from({length:11},(_,i)=>i+1).every(stage=>['normal','forbidden'].every(type=>proof.records.some(r=>r.stage===stage&&r.type===type))))fail('12단계 실제 정상·금지 요청 영수증이 완성되지 않았습니다.');
