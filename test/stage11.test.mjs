@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {authorizeDevice,fingerprint,verifyDeviceSignature,publicDeviceKey} from '../src/device-session.mjs';
-import {requestMessage} from '../public/device-message.mjs';
+import {requestMessage,canonicalTarget} from '../public/device-message.mjs';
 import {createNotesHandler} from '../api/notes.js';
 
 test('non-extractable browser key signs method/path/body/token; missing, changed, stale and replayed proof is denied',async()=>{
@@ -52,4 +52,16 @@ test('PWA caches only public offline instructions and disables persistent SDK se
  assert.match(app,/persistSession:false/);assert.doesNotMatch(app,/(?:localStorage|sessionStorage)\.setItem|indexedDB/u);
  assert.match(html,/id="device-panel"[^>]*hidden/u);assert.match(html,/rel="manifest"/u);
  assert.equal(JSON.parse(manifest).display,'standalone');assert.match(sw,/cache\.add\('\/offline.html'\)/u);assert.doesNotMatch(sw,/cache\.put|cache\.addAll/u);
+});
+
+test('signed target matches every existing Vercel rewrite and keeps different resources and query values distinct',async()=>{
+ const deployment=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
+ for(const route of deployment.rewrites){
+  const source=route.source.replace(/:id|:noteId/gu,'00000000-0000-4000-8000-000000000001');
+  const destination=route.destination.replace(/:id|:noteId/gu,'00000000-0000-4000-8000-000000000001');
+  assert.equal(canonicalTarget(source),canonicalTarget(destination));
+ }
+ assert.notEqual(canonicalTarget('/notes/a'),canonicalTarget('/notes/b'));
+ assert.notEqual(canonicalTarget('/notes/a'),canonicalTarget('/announcements/a'));
+ assert.notEqual(canonicalTarget('/notes/a?action=all'),canonicalTarget('/notes/a'));
 });
