@@ -41,7 +41,38 @@ export function createStudentView() {
       }
       return root;
     },
-    renderDecision() { return '학생 구현 대기: 서버의 판정과 이유를 연결하세요.'; },
+    renderDecision({ status, mode, data, error, appId }) {
+      const root = document.createElement('section');
+      const text = value => {
+        const node = document.createElement('p');
+        node.textContent = value;
+        root.append(node);
+        return node;
+      };
+      text({ demo: '예제 자료 (demo)', connected: '서버 연결 모드 (connected)',
+        disconnected: '연결 없음 (disconnected)' }[mode] ?? '연결 상태 확인 불가 (unknown)');
+      if (status === 'idle') {
+        text('업무 앱을 골라 접속을 요청하세요. 아직 판정을 요청하지 않았습니다.');
+      } else if (status === 'loading') {
+        text(`판정 확인 중 · 업무 앱: ${appId ?? '확인 불가'}`);
+      } else if (status === 'error') {
+        text(`판정 요청 실패: ${error?.message ?? '판정을 불러오지 못했습니다.'}`).setAttribute('role', 'alert');
+        text('요청 실패는 접근 거부 판정과 다릅니다. 접근 허용 여부를 확인할 수 없습니다.');
+      } else if (status === 'ok') {
+        const labels = { allow: '접근 허용', deny: '접근 거부', challenge: '추가 인증 또는 확인 필요', unknown: '판정 확인 불가' };
+        const decision = Object.hasOwn(labels, data?.decision) ? data.decision : 'unknown';
+        text(`${labels[decision]} (${decision})`);
+        text(`업무 앱: ${data?.appId ?? appId ?? '확인 불가'}`);
+        text(`판정 이유: ${data?.reason ?? '확인 불가'}`);
+        text(`판정 시각: ${data?.checkedAt ?? '확인 불가'}`);
+        if (decision === 'allow') text('서버 정책상 접근 허용입니다. 실제 업무 앱 접속 성공 여부는 별도입니다.');
+        if (decision === 'challenge') text('추가 확인이 필요합니다. 이 앱이 인증 절차를 대신 수행하거나 완료한 상태가 아닙니다.');
+        if (decision === 'unknown') text('접근을 허용한 것으로 해석할 수 없습니다. 확인 후 직접 다시 요청하세요.');
+      } else {
+        text('판정 확인 불가 (unknown). 직접 다시 요청해 현재 상태를 확인하세요.');
+      }
+      return root;
+    },
     renderEvents() { return '학생 구현 대기: 본인 접속·XDR 기록을 연결하세요.'; },
     renderStatus() { return '학생 구현 대기: 기기·세션·알림과 연결 점검 상태를 구분하세요.'; },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
