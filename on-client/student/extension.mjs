@@ -73,7 +73,104 @@ export function createStudentView() {
       }
       return root;
     },
-    renderEvents() { return '학생 구현 대기: 본인 접속·XDR 기록을 연결하세요.'; },
+    renderEvents({ status, mode, data, error }) {
+      const root = document.createElement('section');
+      const text = (parent, value, tag = 'p') => {
+        const node = document.createElement(tag);
+        node.textContent = value;
+        parent.append(node);
+        return node;
+      };
+      text(root, { demo: '예제 자료 (demo)', connected: '서버 연결 모드 (connected)',
+        disconnected: '연결 없음 (disconnected)' }[mode] ?? '연결 상태 확인 불가 (unknown)');
+      text(root, '서버가 전달한 본인 최근 기록 최대 40건을 표시합니다. 저장된 XDR 경보이며 이 화면에서 새로 탐지하지 않습니다.');
+      if (status === 'loading') {
+        text(root, '보안 기록을 불러오는 중입니다.');
+        return root;
+      }
+      if (status !== 'ok' || !Array.isArray(data)) {
+        text(root, `기록을 불러오지 못했습니다: ${error?.message ?? '응답을 확인할 수 없습니다.'}`).setAttribute('role', 'alert');
+        return root;
+      }
+      if (data.length === 0) {
+        text(root, '표시할 기록이 없습니다.');
+        return root;
+      }
+      const records = [...data].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+      const kinds = { access: '접속 기록', xdr: 'XDR 경보' };
+      const states = {
+        access: { allowed: '접근 허용', denied: '접근 거부', unknown: '확인 불가' },
+        session: { active: '활성', expired: '만료', revoked: '철회됨', unknown: '확인 불가' },
+        device: { compliant: '보안 기준 충족', noncompliant: '보안 기준 미충족', unknown: '확인 불가' },
+      };
+      const stateText = (kind, value) => Object.hasOwn(states[kind], value)
+        ? `${states[kind][value]} (${value})` : '확인 불가 (unknown)';
+      const filters = {};
+      for (const [name, key, read] of [
+        ['기록 종류', 'kind', event => event.kind],
+        ['업무 앱', 'appId', event => event.appId],
+        ['접속 상태', 'access', event => event.state?.access],
+      ]) {
+        const label = text(root, name, 'label');
+        const select = document.createElement('select');
+        select.setAttribute('aria-label', name);
+        for (const value of ['all', ...new Set(records.map(read).filter(value => typeof value === 'string'))]) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value === 'all' ? '전체' : key === 'kind'
+            ? `${kinds[value] ?? '확인 불가'} (${value})` : key === 'access' ? stateText('access', value) : value;
+          select.append(option);
+        }
+        select.value = 'all';
+        select.addEventListener('change', () => draw());
+        label.append(select);
+        filters[key] = select;
+      }
+      const count = text(root, '');
+      const list = document.createElement('ul');
+      const detail = document.createElement('section');
+      detail.setAttribute('aria-label', '선택한 보안 기록 상세');
+      root.append(list, detail);
+      const showDetail = event => {
+        detail.replaceChildren();
+        detail.setAttribute('data-student-event-detail', event.id);
+        text(detail, `사건 ID: ${event.id}`, 'h3');
+        text(detail, `업무 앱: ${event.appId || '앱 확인 불가'}`);
+        for (const [title, entries] of [['근거', event.evidence], ['규칙', event.rules]]) {
+          text(detail, title, 'h4');
+          if (!entries?.length) text(detail, `${title} 정보가 없습니다.`);
+          for (const entry of entries ?? []) text(detail, `${entry.id}: ${entry.text}`);
+        }
+        for (const [key, label] of [['access', '접속 상태'], ['session', '세션 상태'], ['device', '기기 상태']]) {
+          text(detail, `${label}: ${stateText(key, event.state?.[key])}`);
+        }
+      };
+      function draw() {
+        list.replaceChildren();
+        detail.replaceChildren();
+        detail.removeAttribute('data-student-event-detail');
+        const filtered = records.filter(event =>
+          (filters.kind.value === 'all' || event.kind === filters.kind.value)
+          && (filters.appId.value === 'all' || event.appId === filters.appId.value)
+          && (filters.access.value === 'all' || event.state?.access === filters.access.value));
+        count.textContent = `표시 ${filtered.length}건 / 받은 기록 ${records.length}건`;
+        if (!filtered.length) text(list, '필터에 맞는 기록이 없습니다.', 'li');
+        for (const event of filtered) {
+          const row = document.createElement('li');
+          row.setAttribute('data-student-event-id', event.id);
+          text(row, `사건 ID: ${event.id} · 시각: ${event.at}`);
+          text(row, `종류: ${kinds[event.kind] ?? '확인 불가'} (${event.kind}) · 업무 앱: ${event.appId || '앱 확인 불가'}`);
+          text(row, event.summary);
+          const button = text(row, `${event.id} 상세`, 'button');
+          button.type = 'button';
+          button.className = 'btn';
+          button.addEventListener('click', () => showDetail(event));
+          list.append(row);
+        }
+      }
+      draw();
+      return root;
+    },
     renderStatus() { return '학생 구현 대기: 기기·세션·알림과 연결 점검 상태를 구분하세요.'; },
     renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
     renderAiConnection() { return '학생 구현 대기: 모델 응답 점검과 실제 사건 설명을 구분하고 AI 오류·취소·수동 복구를 안내하세요.'; },
