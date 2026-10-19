@@ -4,6 +4,7 @@ export function createStudentView() {
   return {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
+      root.className = 'identity-view';
       const deviceStates = { compliant: '보안 기준 충족', noncompliant: '보안 기준 미충족', unknown: '확인 불가' };
       const sessionStates = { active: '활성', expired: '만료', revoked: '철회됨', unknown: '확인 불가' };
       const stateText = (value, labels) => `${labels[value] ?? labels.unknown} (${value ?? 'unknown'})`;
@@ -43,6 +44,7 @@ export function createStudentView() {
     },
     renderDecision({ status, mode, data, error, appId }) {
       const root = document.createElement('section');
+      root.className = 'decision-view';
       const text = value => {
         const node = document.createElement('p');
         node.textContent = value;
@@ -61,6 +63,7 @@ export function createStudentView() {
       } else if (status === 'ok') {
         const labels = { allow: '접근 허용', deny: '접근 거부', challenge: '추가 인증 또는 확인 필요', unknown: '판정 확인 불가' };
         const decision = Object.hasOwn(labels, data?.decision) ? data.decision : 'unknown';
+        root.setAttribute('data-decision', decision);
         text(`${labels[decision]} (${decision})`);
         text(`업무 앱: ${data?.appId ?? appId ?? '확인 불가'}`);
         text(`판정 이유: ${data?.reason ?? '확인 불가'}`);
@@ -75,6 +78,7 @@ export function createStudentView() {
     },
     renderEvents({ status, mode, data, error }) {
       const root = document.createElement('section');
+      root.className = 'events-view';
       const text = (parent, value, tag = 'p') => {
         const node = document.createElement(tag);
         node.textContent = value;
@@ -181,6 +185,7 @@ export function createStudentView() {
     },
     renderStatus({ devices, sessions, notifications, diagnostics, mode }) {
       const root = document.createElement('section');
+      root.className = 'status-view';
       const text = (parent, value, tag = 'p') => {
         const node = document.createElement(tag);
         node.textContent = value;

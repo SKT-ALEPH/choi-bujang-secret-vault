@@ -1,84 +1,18 @@
 <!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <meta name="referrer" content="no-referrer">
-  <title>케셰브 · ZTNA &amp; XDR</title>
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="/app.js"></script>
-</head>
-<body>
-  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
-
-  <header class="topbar">
-    <div class="brand">
-      <img class="alekov-art brand-icon" src="/assets/alekov/alekov-app-icon.webp" alt="" aria-hidden="true" width="32" height="32" draggable="false">
-      <span class="brand-mark" id="brand-mark-fallback" aria-hidden="true" hidden>A</span>
-      <span class="brand-name">케셰브 <small>ZTNA &amp; XDR 보안 Agent</small></span>
-    </div>
-    <div class="topbar-status">
-      <span id="mode-badge" class="mode-badge" data-mode="loading" role="status" aria-live="polite">상태 확인 중</span>
-      <span id="checked-at" class="checked-at"></span>
-      <button type="button" id="refresh" class="btn">다시 불러오기</button>
-    </div>
-  </header>
-
-  <div class="layout">
-    <nav class="sidebar" aria-label="주 메뉴">
-      <div role="tablist" aria-orientation="vertical" id="nav">
-        <button type="button" role="tab" id="tab-protection" data-testid="nav-protection" data-view="protection" aria-controls="view-protection" aria-selected="true" tabindex="0">보호 현황</button>
-        <button type="button" role="tab" id="tab-apps" data-testid="nav-apps" data-view="apps" aria-controls="view-apps" aria-selected="false" tabindex="-1">업무 앱</button>
-        <button type="button" role="tab" id="tab-records" data-testid="nav-records" data-view="records" aria-controls="view-records" aria-selected="false" tabindex="-1">보안 기록</button>
-      </div>
-      <p class="sidebar-note">메뉴는 위·아래 방향키로 이동할 수 있습니다.</p>
-    </nav>
-
-    <main id="main" tabindex="-1">
-      <div id="error-message" class="error-banner" data-testid="error-message" role="alert" hidden></div>
-
-      <p class="notice">
-        <strong>제공 공통 UI</strong>와 <strong>학생 구현 표시</strong>(student/extension.mjs)는 구분되어 있습니다.
-        제공 코드는 학생 성취로 계산되지 않으며, 예제(demo)·연결 없음 상태는 실제 연결 성공이 아닙니다.
-      </p>
-
-      <section id="view-protection" class="view" role="tabpanel" aria-labelledby="tab-protection">
-        <h1>보호 현황</h1>
-
-        <div class="grid-2">
-          <section class="card provided" aria-labelledby="identity-title">
-            <h2 id="identity-title">현재 로그인 <span class="tag">제공</span></h2>
-            <dl class="identity">
-              <dt>사용자</dt><dd data-testid="identity-user" id="identity-user">불러오는 중</dd>
-              <dt>기기</dt><dd data-testid="identity-device" id="identity-device">불러오는 중</dd>
-              <dt>세션</dt><dd data-testid="identity-session" id="identity-session">불러오는 중</dd>
-            </dl>
-          </section>
-
-          <section class="card student" aria-labelledby="student-identity-title">
-            <h2 id="student-identity-title">학생 구현 표시 <span class="tag tag-student">student/extension.mjs · renderIdentity</span></h2>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#f6f5f0"><title>케셰브 · 나의 보안 워크스페이스</title><link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script></head>
+<body class="client-app"><a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header class="topbar"><div class="brand"><span id="brand-mark-fallback" class="brand-mark" hidden aria-hidden="true">K</span><span class="brand-symbol"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 3 28 8v10c0 8-7 13-12 16C11 31 4 26 4 18V8Z" stroke="currentColor" stroke-width="1.6"/><path d="m10 18 4 4 8-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="brand-name"><span lang="en">Keshev</span><small>케셰브 · 나의 보안 워크스페이스</small></span></div><div class="topbar-status"><span id="mode-badge" class="mode-badge" data-mode="loading" role="status" aria-live="polite">상태 확인 중</span><button type="button" id="refresh" class="btn btn-refresh">다시 불러오기</button></div></header>
+<div class="layout"><nav class="sidebar" aria-label="주 메뉴"><p class="nav-label">WORKSPACE</p><div role="tablist" aria-orientation="vertical" id="nav"><button type="button" role="tab" id="tab-protection" data-testid="nav-protection" data-view="protection" aria-controls="view-protection" aria-selected="true" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="m8 12 3 3 5-6"/></svg><span>보호 현황<small aria-hidden="true">내 계정과 기기</small></span></button><button type="button" role="tab" id="tab-apps" data-testid="nav-apps" data-view="apps" aria-controls="view-apps" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>업무 앱<small aria-hidden="true">접속 요청과 결과</small></span></button><button type="button" role="tab" id="tab-records" data-testid="nav-records" data-view="records" aria-controls="view-records" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h5"/></svg><span>보안 기록<small aria-hidden="true">접속 이력 살펴보기</small></span></button></div><div class="sidebar-footer"><p class="sidebar-wordmark" lang="en">Quietly,<br>by your side.</p><p>업무에 집중할 수 있도록.<br>나의 접속과 보안 상태를 함께 확인하세요.</p><p class="sidebar-note">메뉴는 위·아래 방향키로 이동할 수 있습니다.</p><span class="sidebar-edition">ZTNA &amp; XDR · PERSONAL AGENT</span></div></nav>
+<main id="main" tabindex="-1"><div class="workspace-meta"><span>나의 보안 워크스페이스</span><span id="checked-at" class="checked-at"></span></div><div id="error-message" class="error-banner" data-testid="error-message" role="alert" hidden></div>
+<section id="view-protection" class="view" role="tabpanel" aria-labelledby="tab-protection"><header class="page-heading"><div><p class="eyebrow">YOUR WORKSPACE / 01</p><p class="display-title" lang="en">Personal security.</p><h1>보호 현황</h1><p class="page-description">지금 접속한 계정과 기기를 확인하고, 주의가 필요한 상태를 살펴보세요.</p></div><div class="hero-seal" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 3 28 8v10c0 8-7 13-12 16C11 31 4 26 4 18V8Z" stroke="currentColor" stroke-width="1.6"/><path d="m10 18 4 4 8-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>PERSONAL<br>SECURITY</span></div></header><section class="card student" aria-labelledby="student-identity-title">
+            <h2 id="student-identity-title">내 계정과 기기 <span class="tag tag-student">현재 상태</span></h2>
             <div id="student-identity" class="student-slot" aria-live="polite"></div>
-          </section>
-        </div>
-
-        <div class="grid-2">
-          <section class="card provided" aria-labelledby="devices-title">
-            <h2 id="devices-title">내 기기 <span class="tag">제공</span></h2>
-            <div id="devices" aria-live="polite"></div>
-          </section>
-          <section class="card provided" aria-labelledby="sessions-title">
-            <h2 id="sessions-title">내 세션 <span class="tag">제공</span></h2>
-            <div id="sessions" aria-live="polite"></div>
-          </section>
-        </div>
-
-        <section class="card student" aria-labelledby="student-status-title">
-          <h2 id="student-status-title">학생 상태·알림 표시 <span class="tag tag-student">student/extension.mjs · renderStatus</span></h2>
+          </section><section class="card student" aria-labelledby="student-status-title">
+          <h2 id="student-status-title">상태 알림과 도움정보 <span class="tag tag-student">직접 확인</span></h2>
           <div id="student-status" class="student-slot" aria-live="polite"></div>
-        </section>
-
-        <section class="card provided" aria-labelledby="diag-title">
+        </section><details class="secondary-tools"><summary>도움정보 불러오기 · 지원 요청</summary><div class="details-body"><section class="card provided" aria-labelledby="diag-title">
           <h2 id="diag-title">도움정보 <span class="tag">제공</span></h2>
           <p class="muted">서버의 비밀 없는 연결 점검 결과를 불러와 직접 확인한 뒤 복사할 수 있습니다. 자동으로 전송하지 않습니다.</p>
           <div class="row">
@@ -87,9 +21,7 @@
           </div>
           <p id="diag-status" class="muted" role="status" aria-live="polite"></p>
           <pre id="diag-output" class="diag-output" tabindex="0" hidden></pre>
-        </section>
-
-        <section class="card provided" aria-labelledby="ai-connect-title" data-testid="ai-connect-card">
+        </section></div></details><details class="secondary-tools"><summary>계정 연결과 확장 기능</summary><div class="details-body"><p class="section-intro">계정 연결, AI와 취약점 조회를 위한 제공 도구입니다. 단계별 준비 상태와 실제 연결 결과를 각각 확인하세요.</p><section class="card provided" aria-labelledby="ai-connect-title" data-testid="ai-connect-card">
           <h2 id="ai-connect-title">AI 연결 <span class="tag">제공 · 17단계 연결 절차</span></h2>
           <div class="connect-layout">
             <div class="connect-body">
@@ -140,9 +72,7 @@
               <img id="ai-connect-art-unknown" class="alekov-art art-connect" src="/assets/alekov/alekov-connection-unknown.webp" alt="" aria-hidden="true" draggable="false" hidden>
             </div>
           </div>
-        </section>
-
-        <section class="card provided" aria-labelledby="ai-connection-title">
+        </section><section class="card provided" aria-labelledby="ai-connection-title">
           <h2 id="ai-connection-title">AI 연결 점검 <span class="tag">제공</span></h2>
           <p class="muted">현재 로그인과 앱 권한으로 모델 응답을 점검합니다. 설정값 존재·모델 목록 응답은 사건 설명의 성공과 별도로 확인합니다. 브라우저에서 열쇠를 입력하거나 복사하지 않습니다.</p>
           <div class="row">
@@ -150,13 +80,10 @@
             <button type="button" id="ai-check-cancel" class="btn" disabled>AI 연결 점검 취소</button>
           </div>
           <div id="ai-connection-result" class="ai-result" data-state="idle" aria-live="polite"></div>
-        </section>
-        <section class="card student" aria-labelledby="student-ai-connection-title">
+        </section><section class="card student" aria-labelledby="student-ai-connection-title">
           <h2 id="student-ai-connection-title">학생 AI 연결 표시 <span class="tag tag-student">student/extension.mjs · renderAiConnection</span></h2>
           <div id="student-ai-connection" class="student-slot" aria-live="polite"></div>
-        </section>
-
-        <section class="card provided" aria-labelledby="vulnerabilities-title">
+        </section><section class="card provided" aria-labelledby="vulnerabilities-title">
           <h2 id="vulnerabilities-title">설치 패키지와 취약점 정보 <span class="tag">제공 · OSV</span></h2>
           <p class="muted">서버에 연결한 프로젝트의 공개 조회 승인 패키지만 정확한 설치 버전으로 대조합니다. 조회 실패와 미조회는 알려진 항목 없음이 아닙니다.</p>
           <div class="row">
@@ -164,55 +91,52 @@
             <button type="button" id="vulnerabilities-cancel" class="btn" disabled>패키지 조회 취소</button>
           </div>
           <div id="vulnerabilities-result" class="vulnerabilities-result" aria-live="polite"></div>
-        </section>
-        <section class="card student" aria-labelledby="student-vulnerabilities-title">
+        </section><section class="card student" aria-labelledby="student-vulnerabilities-title">
           <h2 id="student-vulnerabilities-title">학생 패키지 조회 표시 <span class="tag tag-student">student/extension.mjs · renderVulnerabilities</span></h2>
           <div id="student-vulnerabilities" class="student-slot" aria-live="polite"></div>
-        </section>
-      </section>
-
-      <section id="view-apps" class="view" role="tabpanel" aria-labelledby="tab-apps" hidden>
-        <h1>업무 앱</h1>
-        <div class="grid-2">
-          <section class="card provided" aria-labelledby="apps-title">
+        </section></div></details><details class="reference-tools"><summary>학습용 원본 화면 비교</summary><div class="details-body"><section class="card provided" aria-labelledby="identity-title">
+            <h2 id="identity-title">현재 로그인 <span class="tag">제공</span></h2>
+            <dl class="identity">
+              <dt>사용자</dt><dd data-testid="identity-user" id="identity-user">불러오는 중</dd>
+              <dt>기기</dt><dd data-testid="identity-device" id="identity-device">불러오는 중</dd>
+              <dt>세션</dt><dd data-testid="identity-session" id="identity-session">불러오는 중</dd>
+            </dl>
+          </section><section class="card provided" aria-labelledby="devices-title">
+            <h2 id="devices-title">내 기기 <span class="tag">제공</span></h2>
+            <div id="devices" aria-live="polite"></div>
+          </section><section class="card provided" aria-labelledby="sessions-title">
+            <h2 id="sessions-title">내 세션 <span class="tag">제공</span></h2>
+            <div id="sessions" aria-live="polite"></div>
+          </section></div></details></section>
+<section id="view-apps" class="view" role="tabpanel" aria-labelledby="tab-apps" hidden><header class="page-heading"><div><p class="eyebrow">YOUR WORKSPACE / 02</p><p class="display-title" lang="en">Work, with confidence.</p><h1>업무 앱</h1><p class="page-description">필요한 업무 앱을 선택하세요. 접속 가능 여부와 이유를 확인할 수 있습니다.</p></div><div class="hero-seal" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 3 28 8v10c0 8-7 13-12 16C11 31 4 26 4 18V8Z" stroke="currentColor" stroke-width="1.6"/><path d="m10 18 4 4 8-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>PERSONAL<br>SECURITY</span></div></header><div class="grid-2 apps-grid"><section class="card provided" aria-labelledby="apps-title">
             <h2 id="apps-title">접속 요청 <span class="tag">제공</span></h2>
             <p class="muted">앱을 선택하면 서버에 접속 판정을 한 번 요청합니다. 실패해도 자동으로 다시 시도하지 않습니다.</p>
             <div id="apps" aria-live="polite"></div>
-          </section>
-          <section class="card provided" aria-labelledby="access-title">
+          </section><section class="card student" aria-labelledby="student-decision-title">
+          <h2 id="student-decision-title">접속 요청 결과 <span class="tag tag-student">서버 판정</span></h2>
+          <div id="student-decision" class="student-slot" aria-live="polite"></div>
+        </section></div><details class="reference-tools"><summary>원본 접속 판정 확인</summary><div class="details-body"><section class="card provided" aria-labelledby="access-title">
             <h2 id="access-title">판정 결과 <span class="tag">제공</span></h2>
             <div id="access-result" data-testid="access-result" data-decision="none" aria-live="polite">
               <p class="muted">아직 요청한 앱이 없습니다.</p>
             </div>
-          </section>
-        </div>
-        <section class="card student" aria-labelledby="student-decision-title">
-          <h2 id="student-decision-title">학생 구현 표시 <span class="tag tag-student">student/extension.mjs · renderDecision</span></h2>
-          <div id="student-decision" class="student-slot" aria-live="polite"></div>
-        </section>
-      </section>
-
-      <section id="view-records" class="view" role="tabpanel" aria-labelledby="tab-records" hidden>
-        <h1>보안 기록</h1>
-        <section class="card provided" aria-labelledby="records-title">
+          </section></div></details></section>
+<section id="view-records" class="view" role="tabpanel" aria-labelledby="tab-records" hidden><header class="page-heading"><div><p class="eyebrow">YOUR WORKSPACE / 03</p><p class="display-title" lang="en">Your security journal.</p><h1>보안 기록</h1><p class="page-description">내 접속 이력과 저장된 경보를 살펴보고, 필요한 기록의 근거를 확인하세요.</p></div><div class="hero-seal" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 3 28 8v10c0 8-7 13-12 16C11 31 4 26 4 18V8Z" stroke="currentColor" stroke-width="1.6"/><path d="m10 18 4 4 8-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>PERSONAL<br>SECURITY</span></div></header><section class="card student" aria-labelledby="student-events-title">
+          <h2 id="student-events-title">내 보안 기록 <span class="tag tag-student">최근 기록</span></h2>
+          <div id="student-events" class="student-slot" aria-live="polite"></div>
+        </section><details class="secondary-tools"><summary>원본 기록과 AI·대응 도구</summary><div class="details-body"><section class="card provided" aria-labelledby="records-title">
           <h2 id="records-title">접속·XDR 기록 <span class="tag">제공</span></h2>
           <p class="muted">AI 설명은 기록 식별자만 보내며, 실패해도 기록은 그대로 유지됩니다. 조치는 원천 권한 확인과 별도의 사람 확인을 거칩니다.</p>
           <div id="records" aria-live="polite">
             <ul id="records-list" data-testid="records-list" class="records"></ul>
           </div>
-        </section>
-        <section class="card student" aria-labelledby="student-events-title">
-          <h2 id="student-events-title">학생 구현 표시 <span class="tag tag-student">student/extension.mjs · renderEvents</span></h2>
-          <div id="student-events" class="student-slot" aria-live="polite"></div>
-        </section>
-        <section class="card student" aria-labelledby="student-explanation-title">
+        </section><section class="card student" aria-labelledby="student-explanation-title">
           <img class="alekov-art art-explain" src="/assets/alekov/alekov-ai-explain.webp" alt="" aria-hidden="true" draggable="false">
           <h2 id="student-explanation-title">학생 AI 사건 설명 <span class="tag tag-student">student/extension.mjs · renderExplanation</span></h2>
           <p class="muted">선택한 사건의 근거·규칙·현재 상태와 설명 결과를 함께 확인합니다. 조치 제안은 실행되지 않습니다.</p>
           <button type="button" id="ai-explanation-cancel" class="btn" disabled>AI 설명 취소</button>
           <div id="student-explanation" class="student-slot" aria-live="polite"></div>
-        </section>
-        <section class="card provided" aria-labelledby="action-title">
+        </section><section class="card provided" aria-labelledby="action-title">
           <h2 id="action-title">조치 준비와 원천 결과 <span class="tag">제공</span></h2>
           <p class="muted">현재 선택한 사건의 AI 제안에서 조치를 직접 준비합니다. 사건·실제 대상·확인 기한을 읽은 뒤 사람 확인 버튼을 누르세요. ACK·취소·시간 초과는 효과 없음이나 완료가 아닙니다.</p>
           <div id="action-result" data-state="idle" aria-live="polite"></div>
@@ -221,13 +145,7 @@
             <button type="button" id="action-result-load" class="btn" disabled>원천 결과만 재조회</button>
             <button type="button" id="action-cancel" class="btn" disabled>조치 화면 취소</button>
           </div>
-        </section>
-        <section class="card student" aria-labelledby="student-action-title">
+        </section><section class="card student" aria-labelledby="student-action-title">
           <h2 id="student-action-title">학생 조치 상태 표시 <span class="tag tag-student">student/extension.mjs · renderAction</span></h2>
           <div id="student-action" class="student-slot" aria-live="polite"></div>
-        </section>
-      </section>
-    </main>
-  </div>
-</body>
-</html>
+        </section></div></details></section><details class="learning-note"><summary>이 화면의 예제·학습 범위 안내</summary><div class="details-body"><p>제공 공통 UI와 학생 구현 표시(student/extension.mjs)는 구분되어 있습니다. 제공 코드는 학생 성취로 계산되지 않으며, 예제(demo)·연결 없음 상태는 실제 연결 성공이 아닙니다. 학생 구현 화면을 먼저 보여주고, 제공 원본 화면은 비교 항목에서 펼쳐볼 수 있습니다.</p></div></details><footer class="page-footer"><span lang="en">KESHEV / PERSONAL SECURITY</span><span>접속의 이유까지, 명확하게.</span></footer></main></div></body></html>

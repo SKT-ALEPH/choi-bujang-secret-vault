@@ -11,6 +11,12 @@ if (!Array.isArray(data.notes)) {
   throw new Error('실습용 공개 자료 형식을 확인하세요. 실제 학생 자료를 넣으면 안 됩니다.');
 }
 await mkdir(resolve(root, 'public'), { recursive: true });
+// Employee app is the canonical theme; keep the vault and offline view in sync.
+await copyFile(resolve(root, 'on-client/public/style.css'), resolve(root, 'public/style.css'));
+const theme = await readFile(resolve(root, 'public/style.css'), 'utf8');
+const offlinePath = resolve(root, 'public/offline.html');
+const offline = await readFile(offlinePath, 'utf8');
+await writeFile(offlinePath, offline.replace(/<link rel="stylesheet" href="\/style.css">|<style id="shared-theme">[\s\S]*?<\/style>/u, () => `<style id="shared-theme">${theme}</style>`));
 if (config.step === 1) {
   await copyFile(source, output);
 } else if (config.step >= 2 && config.step <= 12) {

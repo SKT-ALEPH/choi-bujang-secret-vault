@@ -25,3 +25,7 @@ npm start도 같은 서버를 켭니다. 기본 실행은 실제 회사 시스�
 - 오류 코드별 해결: docs/CONNECTION_TROUBLESHOOT.md
 - 시작 틀 업데이트(내 파일 보존): docs/STARTER_UPDATE.md
 - 실제 회사 시스템(SDP)·앱 안 AI 연결은 담당자가 따로 안내할 때만 씁니다: docs/SDP_HOST_CONNECTION.md, docs/AI_SETUP_GUIDE.md. 이 연결은 앱을 처음 켜고 13~16단계 화면을 만들거나 공식 AI 코드 판정을 받기 위한 전제 조건은 아닙니다. 다만 17단계 이후의 실제 연결과 새 환경 재현은 해당 단계의 기준에 따라 따로 확인합니다.
+
+## 화면 디자인
+
+직원 앱과 기존 자료실은 Soft UI Evolution 공통 디자인을 사용합니다. 기준은 [디자인 시스템](../design-system/keshev/MASTER.md)입니다. `public/style.css`가 테마 원본이며, 저장소 루트에서 `npm run build -- --local`을 실행하면 기존 자료실과 오프라인 안내에도 동기화됩니다. 화면 구조를 바꾸더라도 원래 버튼 ID·접근 가능한 이름·학생 data 속성과 예제/미연결 구분을 유지하세요.
