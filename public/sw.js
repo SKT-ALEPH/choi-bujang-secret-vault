@@ -1,4 +1,4 @@
-const CACHE='aleph-offline-v1';
+const CACHE='aleph-offline-v2';
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.add('/offline.html'))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('aleph-offline-')&&key!==CACHE).map(key=>caches.delete(key))))));
 // Only the public offline explanation is cached. Auth and protected responses never enter a cache.

@@ -15,7 +15,7 @@ ui-ux-pro-max 공식 v2.15.0의 `style: Soft UI Evolution`, `typography: Luxury 
 - `scripts/build-public.mjs`: 기존 빌드에 테마 복사와 오프라인 테마 내장을 추가한다.
 - `on-client/public/index.html`: 보호 현황 / 업무 앱 / 보안 기록, 연결 도구, 원본 비교 화면.
 - `public/index.html`, `public/offline.html`, `public/manifest.webmanifest`, `public/icon.svg`: 자료실 로그인·기기 확인·메모·검사 기록·오프라인·설치 표면.
-- `public/sw.js`: 원본 그대로 공개 오프라인 문서 하나만 캐시한다. 오프라인 문서에는 빌드가 공통 테마를 내장하므로 추가 캐시가 필요 없다. 보호 자료와 인증 응답 캐시 금지를 유지한다.
+- `public/sw.js`: 공개 오프라인 문서 하나만 캐시하는 원래 정책을 유지한다. 디자인 배포 때 캐시 버전을 v2로 올려 기존 설치본의 안내도 갱신한다. 오프라인 문서에는 빌드가 공통 테마를 내장하므로 추가 캐시가 필요 없다. 보호 자료와 인증 응답 캐시 금지를 유지한다.
 
 기존 제공 `app.js`, 서버, 인증, SDP adapter, 판정·탐지·XDR·DB 계약은 바꾸지 않는다. 학생 표시 함수의 클래스·표시용 data 속성만 추가한다. 공식 통과 기록을 새 UI 검증으로 대체하지 않고, 새 심판 제출이나 운영 배포를 수행하지 않는다.
 
