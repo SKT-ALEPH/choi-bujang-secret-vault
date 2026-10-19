@@ -1420,3 +1420,469 @@ authentication flow unchanged. */
     scroll-behavior:auto!important
   }
 }
+
+/* Vault layout: access first, notes and editor together, supporting records on demand. */
+.vault-workspace-layout .vault-topbar {
+  margin-bottom:16px;
+  padding-bottom:20px;
+  min-height:64px;
+}
+.vault-workspace-layout .vault-brand {
+  text-decoration:none;
+  min-height:44px;
+}
+.vault-utility {
+  display:flex;
+  gap:24px;
+  flex-wrap:wrap;
+}
+.vault-utility a {
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  font-size:.8125rem;
+  color:var(--muted);
+  text-decoration:none;
+}
+.vault-utility a:hover {
+  color:var(--accent);
+  text-decoration:underline;
+}
+.vault-workspace-layout .vault-status {
+  margin:0 0 16px;
+  padding:10px 14px;
+  border:1px solid var(--border);
+  background:var(--surface-inset);
+  border-radius:var(--radius-sm);
+  font-size:.8125rem;
+}
+.vault-access {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,440px);
+  align-items:center;
+  gap:clamp(32px,6vw,80px);
+  padding:16px 0 36px;
+}
+.access-intro,.access-panel {
+  min-width:0;
+}
+.access-intro .eyebrow {
+  font-size:.625rem;
+  letter-spacing:.14em;
+  margin-bottom:16px;
+}
+.vault-workspace-layout .access-intro h1 {
+  font-size:clamp(2rem,3.5vw,2.8rem);
+  font-weight:600;
+  letter-spacing:-.06em;
+  color:var(--accent);
+  margin:0 0 20px;
+}
+.access-description {
+  max-width:42ch;
+  font-size:.875rem;
+  line-height:1.9;
+  color:var(--muted);
+  word-break:keep-all;
+  text-wrap:pretty;
+}
+.access-steps {
+  display:grid;
+  gap:20px;
+  list-style:none;
+  padding:0;
+  margin:32px 0;
+}
+.access-steps li {
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  padding:0;
+}
+.step-number {
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  font-size:.625rem;
+  font-weight:600;
+  color:var(--accent);
+  flex:none;
+}
+.vault-workspace-layout .access-steps strong {
+  font-size:.875rem;
+  font-weight:600;
+  margin:0;
+}
+.access-steps small {
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:.75rem;
+}
+.access-footnote {
+  color:var(--muted);
+  font-size:.75rem;
+  margin:0;
+}
+.vault-workspace-layout #auth-panel,.vault-workspace-layout #device-panel {
+  max-width:none;
+  margin:0;
+  padding:28px;
+  box-shadow:var(--shadow-soft);
+}
+.panel-eyebrow {
+  font-size:.625rem;
+  font-weight:600;
+  letter-spacing:.1em;
+  color:var(--muted);
+  margin:0 0 8px;
+}
+.vault-workspace-layout #auth-title,.vault-workspace-layout #device-title {
+  font-size:1.25rem;
+  margin-bottom:8px;
+}
+.vault-workspace-layout #auth-help {
+  font-size:.8125rem;
+  margin:0 0 20px;
+}
+.vault-workspace-layout #auth-panel label {
+  margin-top:16px;
+}
+.vault-workspace-layout #auth-error:empty {
+  margin:0;
+}
+.vault-workspace-layout #auth-panel .actions {
+  gap:8px;
+  padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.vault-workspace-layout #auth-panel .actions button {
+  flex:1;
+  padding-inline:10px;
+}
+.vault-workspace-layout #device-panel p {
+  font-size:.875rem;
+}
+.vault-workspace-layout #device-state {
+  padding:16px;
+  margin:20px 0;
+  background:var(--surface-inset);
+  border-radius:var(--radius-sm);
+}
+.vault-workspace-layout #approve-device {
+  flex:1;
+}
+/* Layout follows the existing controller's hidden state; it never grants access. */
+.vault-workspace-layout:has(#workspace:not([hidden])) .vault-access {
+  display:none;
+}
+.vault-workspace-layout #auth-panel:not([hidden]) ~ #device-panel {
+  display:none;
+}
+.vault-workspace-layout:has(#device-panel:not([hidden])):not(:has(#auth-panel:not([hidden]))) .access-steps li:nth-child(2) .step-number,
+.vault-workspace-layout:has(#auth-panel:not([hidden])) .access-steps li:first-child .step-number {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+}
+.vault-workspace-layout #workspace>.workspace-header {
+  border:0;
+  padding:8px 0 20px;
+  align-items:center;
+}
+.workspace-header .eyebrow {
+  margin:0 0 8px;
+}
+.vault-workspace-layout .workspace-header h1 {
+  margin:0 0 8px;
+  font-size:1.8rem;
+}
+.workspace-header .quiet {
+  margin:0;
+}
+.workspace-header-actions {
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.vault-work-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+  align-items:start;
+  gap:28px;
+  margin-bottom:36px;
+}
+.notes-pane,.editor-pane {
+  min-width:0;
+}
+.notes-toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+.vault-workspace-layout .notes-toolbar h2 {
+  margin:0;
+  font-size:1rem;
+}
+.vault-workspace-layout #notes {
+  margin:0;
+}
+.vault-workspace-layout #notes li {
+  padding:24px;
+}
+.vault-workspace-layout #notes li p {
+  font-size:.875rem;
+  line-height:1.8;
+}
+.vault-workspace-layout #notes li .actions {
+  margin-top:20px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.vault-workspace-layout #editor {
+  margin:0;
+  padding:20px;
+  border-top:2px solid #a3b49b;
+}
+.vault-workspace-layout #editor-title {
+  margin-bottom:20px;
+}
+.vault-workspace-layout #note-body {
+  min-height:160px;
+}
+.vault-workspace-layout #save-note {
+  flex:1;
+}
+.editor-shortcut {
+  font-size:.75rem;
+  color:var(--muted);
+  margin:16px 0 0;
+}
+.vault-support {
+  display:grid;
+  gap:12px;
+}
+.vault-workspace-layout .vault-disclosure,
+.vault-workspace-layout #operations {
+  margin:0;
+  padding:0;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface);
+  min-width:0;
+}
+.vault-disclosure>summary {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  min-height:76px;
+  padding:18px 22px;
+  cursor:pointer;
+  border-radius:16px;
+  transition:background var(--duration-hover) var(--ease);
+}
+.vault-disclosure>summary:hover {
+  background:var(--accent-soft);
+}
+.vault-disclosure>summary strong {
+  display:block;
+  font-size:.875rem;
+  font-weight:600;
+}
+.vault-disclosure>summary small {
+  display:block;
+  color:var(--muted);
+  font-size:.75rem;
+  margin-top:3px;
+}
+.disclosure-hint {
+  font-size:.75rem;
+  color:var(--accent);
+  flex:none;
+}
+.vault-disclosure[open]>summary {
+  border-bottom:1px solid var(--border);
+  border-radius:16px 16px 0 0;
+}
+.vault-disclosure-body {
+  padding:24px;
+  min-width:0;
+}
+.vault-disclosure-body>p {
+  color:var(--muted);
+  font-size:.875rem;
+  max-width:78ch;
+}
+.vault-workspace-layout #operations-summary {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin:24px 0;
+}
+.vault-workspace-layout #operations-summary p {
+  padding:16px;
+  margin:0;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--bg);
+  font-size:.75rem;
+}
+.vault-workspace-layout .table-scroll {
+  max-height:540px;
+  overflow:auto;
+}
+.vault-workspace-layout table {
+  min-width:1120px;
+}
+.vault-footer {
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:.625rem;
+  letter-spacing:.04em;
+  padding-top:24px;
+  margin-top:24px;
+  border-top:1px solid var(--border);
+}
+@media(max-width:900px) {
+  .vault-access {
+    gap:28px;
+    grid-template-columns:minmax(0,1fr) minmax(0,380px);
+  }
+  .access-description br {
+    display:none;
+  }
+  .vault-work-grid {
+    grid-template-columns:1fr;
+  }
+  .vault-workspace-layout #note-body {
+    min-height:180px;
+  }
+}
+@media(max-width:680px) {
+  .vault-workspace-layout main {
+    padding-top:16px;
+  }
+  .vault-workspace-layout .vault-topbar {
+    flex-wrap:wrap;
+    gap:12px;
+    margin-bottom:12px;
+    padding-bottom:12px;
+    min-height:56px;
+  }
+  .vault-workspace-layout .vault-brand {
+    font-size:1.9rem;
+  }
+  .vault-workspace-layout .vault-brand small {
+    display:none;
+  }
+  .vault-utility {
+    gap:16px;
+  }
+  .vault-utility a {
+    font-size:.75rem;
+  }
+  .vault-workspace-layout .vault-status {
+    font-size:.75rem;
+    padding:8px 12px;
+    margin-bottom:16px;
+  }
+  .vault-access {
+    grid-template-columns:1fr;
+    gap:20px;
+    padding:0 0 28px;
+  }
+  .access-intro .eyebrow {
+    display:none;
+  }
+  .vault-workspace-layout .access-intro h1 {
+    font-size:1.6rem;
+    margin-bottom:8px;
+  }
+  .access-description {
+    font-size:.8125rem;
+    line-height:1.75;
+    margin:0;
+  }
+  .access-steps {
+    display:flex;
+    gap:12px;
+    justify-content:space-between;
+    margin:16px 0 0;
+  }
+  .access-steps li {
+    flex:1;
+    gap:6px;
+    align-items:center;
+  }
+  .step-number {
+    width:24px;
+    height:24px;
+    font-size:.5625rem;
+  }
+  .vault-workspace-layout .access-steps strong {
+    font-size:.6875rem;
+    white-space:nowrap;
+  }
+  .access-steps small {
+    display:none;
+  }
+  .access-footnote {
+    margin-top:12px;
+    font-size:.75rem;
+  }
+  .vault-workspace-layout #auth-panel,.vault-workspace-layout #device-panel {
+    padding:22px;
+  }
+  .panel-eyebrow {
+    font-size:.625rem;
+  }
+  .vault-workspace-layout #auth-panel .actions {
+    flex-wrap:wrap;
+  }
+  .vault-workspace-layout #workspace>.workspace-header {
+    display:block;
+    padding-top:8px;
+    padding-bottom:24px;
+  }
+  .workspace-header-actions {
+    margin-top:16px;
+  }
+  .workspace-header-actions>* {
+    flex:1;
+  }
+  .vault-work-grid {
+    gap:24px;
+  }
+  .vault-workspace-layout #editor,.vault-workspace-layout #notes li {
+    padding:20px;
+  }
+  .vault-disclosure>summary {
+    padding:16px;
+  }
+  .vault-disclosure-body {
+    padding:18px;
+  }
+  .vault-workspace-layout #operations-summary {
+    grid-template-columns:1fr;
+  }
+}
+
+.vault-disclosure .disclosure-hint { display:inline-flex; align-items:center; gap:12px; }
+.vault-disclosure .disclosure-hint::after { content:''; width:7px; height:7px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg); }
+.vault-disclosure[open] .disclosure-hint::after { transform:rotate(225deg); }
+
+.vault-workspace-layout #editor label { margin-top:16px; }
+
+/* Keep sign-out available when password recovery and a session coexist. */
+.vault-workspace-layout .access-logout { display:none; }
+.vault-workspace-layout .access-panel:has(#device-panel:not([hidden]))>.access-logout { display:flex; justify-content:flex-end; margin-top:12px; }
+.vault-workspace-layout #auth-panel:has(#auth-form[data-recovery="true"]) #auth-help,
+.vault-workspace-layout #auth-panel:has(#auth-form[data-recovery="true"])>.actions { display:none; }

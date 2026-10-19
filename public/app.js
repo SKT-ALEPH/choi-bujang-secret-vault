@@ -49,7 +49,7 @@
         });
         actions.append(edit,remove); item.append(title,body,actions); return item;
       });
-      if(!items.length){const item=document.createElement('li'); item.textContent='아직 내 메모가 없습니다. 위에서 첫 메모를 추가하세요.';items.push(item);}
+      if(!items.length){const item=document.createElement('li'); item.textContent='아직 내 메모가 없습니다. 메모 작성 영역에서 첫 메모를 추가하세요.';items.push(item);}
       $('#notes').replaceChildren(...items);
       status('내 메모를 불러왔습니다.');
     } catch(error){if(current===revision) status(error.message);}

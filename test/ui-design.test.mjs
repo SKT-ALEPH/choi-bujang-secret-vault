@@ -37,3 +37,17 @@ test('semantic foregrounds and actionable boundaries meet measured contrast targ
  for(const [a,b] of [['text','bg'],['text','surface'],['muted','bg'],['muted','surface-inset'],['surface','accent'],['allow','allow-soft'],['deny','deny-soft'],['challenge','challenge-soft'],['unknown','unknown-soft']])assert.ok(contrast(a,b)>=4.5,`${a}/${b}: ${contrast(a,b)}`);
  for(const surface of ['bg','surface'])assert.ok(contrast('control-border',surface)>=3,`control border/${surface}: ${contrast('control-border',surface)}`);
 });
+
+
+test('vault layout preserves controller hooks and approval-controlled visibility',async()=>{
+ const [html,app]=await Promise.all(['public/index.html','public/app.js'].map(read));
+ const ids=[...html.matchAll(/\bid="([^"]+)"/gu)].map(m=>m[1]);
+ assert.equal(ids.length,new Set(ids).size);
+ for(const match of app.matchAll(/\$\(['"]#([a-z][a-z-]+)['"]\)/gu))assert.ok(ids.includes(match[1]),`missing controller target: ${match[1]}`);
+ for(const id of ['auth-panel','device-panel','workspace'])assert.match(html,new RegExp(`<section id="${id}"[^>]*hidden`,'u'));
+ assert.match(html,/<p id="status"[^>]*role="status"[^>]*aria-live="polite"/u);
+ assert.match(html,/<details id="operations"[^>]*>/u);
+ assert.doesNotMatch(html,/<details id="operations"[^>]*\bopen\b/u);
+ assert.match(html,/autocomplete="current-password"/u);
+ assert.match(html,/id="password"[^>]*aria-describedby="auth-error"/u);
+});

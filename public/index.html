@@ -9,18 +9,32 @@
   <title>BYTE BACK | 내 자료실</title>
   <link rel="stylesheet" href="/style.css">
 </head>
-<body class="vault-app">
+<body class="vault-app vault-workspace-layout">
   <a class="skip" href="#main">본문으로 이동</a>
-  <main id="main">
-    <header class="vault-topbar"><div class="brand" lang="en">Keshev <small>BYTE BACK · 나의 자료실</small></div><span class="eyebrow">PERSONAL WORKSPACE</span></header>
-    <p class="display-title" lang="en">A quiet place for your work.</p>
-    <h1>내 자료실</h1>
-    <p class="vault-intro">로그인한 뒤 이 화면의 기기 승인을 요청하면 내 메모를 이어 쓸 수 있습니다. 실습용 가상 자료만 입력해 주세요.</p>
-    <div class="actions"><button id="install-app" type="button" hidden>자료실 앱 설치</button><a href="/offline.html">오프라인 이용 안내</a></div>
-    <p class="quiet">설치는 승인을 대신하지 않습니다. 로그인과 기기 키는 열린 화면의 메모리에만 유지되며, 새로 열면 다시 로그인하고 승인해야 합니다.</p>
-    <p id="status" role="status" aria-live="polite">로그인 상태를 확인하는 중입니다.</p>
-    <section id="auth-panel" aria-labelledby="auth-title" hidden>
+  <main id="main" tabindex="-1">
+    <header class="vault-topbar">
+      <a class="brand vault-brand" href="#main" aria-label="자료실 본문으로 이동"><span lang="en">Keshev</span><small>BYTE BACK · 내 자료실</small></a>
+      <nav class="vault-utility" aria-label="자료실 도움 메뉴"><a href="#usage-title">이용 안내</a><a href="#operations-title">검사 기록</a></nav>
+    </header>
+    <p id="status" class="vault-status" role="status" aria-live="polite">로그인 상태를 확인하는 중입니다.</p>
+
+    <div class="vault-access">
+      <section class="access-intro" aria-labelledby="vault-title">
+        <p class="eyebrow">YOUR PERSONAL WORKSPACE</p>
+        <h1 id="vault-title">내 자료실</h1>
+        <p class="access-description">내 메모를 확인하고 이어 쓰세요.<br> 계정과 기기를 확인하면 이용할 수 있어요.</p>
+        <ol class="access-steps" aria-label="자료실 이용 순서">
+          <li><span class="step-number" aria-hidden="true">01</span><span><strong>계정 로그인</strong><small>내 계정인지 확인합니다.</small></span></li>
+          <li><span class="step-number" aria-hidden="true">02</span><span><strong>이 기기 확인</strong><small>서버에 기기 접속 승인을 요청합니다.</small></span></li>
+          <li><span class="step-number" aria-hidden="true">03</span><span><strong>내 메모 이용</strong><small>목록을 보고 메모를 추가·수정합니다.</small></span></li>
+        </ol>
+        <p class="access-footnote">이 자료실에는 실습용 가상 자료만 입력해 주세요.</p>
+      </section>
+      <div class="access-panel">
+        <section id="auth-panel" aria-labelledby="auth-title" hidden>
+      <p class="panel-eyebrow">01 / 계정 확인</p>
       <h2 id="auth-title">자료실 로그인</h2>
+<p id="auth-help" class="quiet">가입한 이메일과 비밀번호로 로그인하세요.</p>
       <form id="auth-form">
         <label for="email">이메일</label>
         <input id="email" name="email" type="email" autocomplete="username" required aria-describedby="auth-error">
@@ -33,26 +47,53 @@
         <button id="auth-submit" class="primary" type="submit">로그인</button>
       </form>
       <div class="actions"><button id="auth-mode" type="button">계정 만들기</button><button id="reset-password" type="button">비밀번호 재설정</button></div>
-      <p id="auth-help" class="quiet">가입한 이메일과 비밀번호로 로그인하세요.</p>
     </section>
-    <section id="device-panel" aria-labelledby="device-title" hidden>
+        <section id="device-panel" aria-labelledby="device-title" hidden>
+      <p class="panel-eyebrow">02 / 이 기기 확인</p>
       <h2 id="device-title">이 기기의 접속 확인</h2>
       <p id="device-state" role="status" aria-live="polite">승인 전에는 보호 자료를 표시하지 않습니다.</p>
       <p class="quiet">서버가 로그인과 이 화면의 키 소유 증명을 확인해 최대 1시간의 접속을 승인합니다. 기기를 영구 등록하거나 운영자의 승인으로 표시하지 않습니다.</p>
-      <div class="actions"><button id="approve-device" class="primary" type="button">기기 승인 요청</button><button id="device-logout" type="button">로그아웃</button></div>
+      <div class="actions"><button id="approve-device" class="primary" type="button">기기 승인 요청</button></div>
     </section>
+        <div class="access-logout"><button id="device-logout" type="button">로그아웃</button></div>
+      </div>
+    </div>
+
     <section id="workspace" aria-label="내 메모" hidden>
-      <header><h2>내 메모</h2><button id="logout" type="button">로그아웃</button></header>
-      <form id="editor">
+      <header class="workspace-header">
+        <div><h1>내 메모</h1><p class="quiet">목록에서 메모를 확인하고, 작성 영역에서 이어 쓰세요.</p></div>
+        <div class="workspace-header-actions"><a class="button-link" href="#note-title">메모 작성으로 이동</a><button id="logout" type="button">로그아웃</button></div>
+      </header>
+      <div class="vault-work-grid">
+        <section class="notes-pane" aria-labelledby="notes-heading">
+          <div class="notes-toolbar"><h2 id="notes-heading">메모 목록</h2><button id="refresh" type="button">목록 새로고침</button></div>
+          <ul id="notes" aria-live="polite"></ul>
+        </section>
+        <aside class="editor-pane" aria-labelledby="editor-title">
+          <form id="editor">
         <h2 id="editor-title">메모 추가</h2>
         <label for="note-title">제목</label><input id="note-title" name="title" maxlength="200" required>
         <label for="note-body">내용</label><textarea id="note-body" name="body" maxlength="10000"></textarea>
         <div class="actions"><button id="save-note" class="primary" type="submit">메모 추가</button><button id="cancel-edit" type="button" hidden>수정 취소</button></div>
+      <p class="editor-shortcut">Ctrl 또는 ⌘ + Enter로 저장할 수 있습니다.</p>
       </form>
-      <div class="actions"><button id="refresh" type="button">목록 새로고침</button></div>
-      <ul id="notes" aria-live="polite"></ul>
+        </aside>
+      </div>
     </section>
-    <section id="operations" aria-labelledby="operations-title">
+
+    <div class="vault-support">
+      <details id="usage-guide" class="vault-disclosure">
+        <summary><span><strong>자료실 이용 안내</strong><small>앱 설치, 접속 유지와 오프라인 안내</small></span><span class="disclosure-hint" aria-hidden="true">자세히</span></summary>
+        <div class="vault-disclosure-body">
+          <h2 id="usage-title">접속과 앱 설치</h2>
+          <p>로그인 후 이 화면의 기기 승인을 요청하면 내 메모를 이용할 수 있습니다. 앱 설치는 기기 승인을 대신하지 않습니다.</p>
+          <p>로그인과 기기 키는 열린 화면의 메모리에만 유지됩니다. 새로 열면 다시 로그인하고 승인해야 합니다. 보호 자료와 로그인 정보는 오프라인에 저장하지 않습니다.</p>
+          <div class="actions"><button id="install-app" type="button" hidden>자료실 앱 설치</button><a href="/offline.html">오프라인 이용 안내</a></div>
+        </div>
+      </details>
+      <details id="operations" class="vault-disclosure">
+      <summary><span><strong>보안 검사 기록</strong><small>저장된 시험 결과와 안전 정책 확인</small></span><span class="disclosure-hint" aria-hidden="true">자세히</span></summary>
+      <div class="vault-disclosure-body">
       <h2 id="operations-title">탈환 작전실</h2>
       <p>서버가 보관한 시험 기록과 안전 정책을 확인합니다. 기록에는 검사한 커밋과 시각이 있으며, 현재 사용자 현황은 포함하지 않습니다. 메모 본문과 계정 정보는 표시하지 않습니다.</p>
       <button id="operations-refresh" type="button">검사 기록 새로고침</button>
@@ -64,7 +105,10 @@
         <tbody id="operations-rows"></tbody></table>
       </div>
       <p class="quiet">학생 코드: 판정기·탐지 규칙·접속 화면·자료 API. 제공 엔진: ALEPH SDP 엔진(가명 사건 전달·판정 집행·회수). 41종 총공세의 통과는 운영 심판 결과로 확인합니다.</p>
-    </section>
+    </div>
+    </details>
+    </div>
+    <footer class="vault-footer"><span lang="en">KESHEV / PERSONAL WORKSPACE</span><span>내 자료를 위한, 분명한 접속 절차.</span></footer>
   </main>
   <script src="/vendor/supabase.js" defer></script>
   <script type="module" src="/device-client.mjs"></script>
