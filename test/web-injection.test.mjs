@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, mkdir, rm } from 'node:fs/promises';
@@ -29,8 +30,11 @@ test('26 original/extracted events produce 8/9/9 in an empty VM with changed IDs
     counts[expected.action]++;
   }
   assert.deepEqual(counts,{block:8,alert:9,record:9});
-  const privateRow=normalizeAlert({...fixture.alerts[0],rule:{level:6,description:'password="do-not-store" Bearer do-not-send person@example.invalid'},data:{srcip:'192.0.2.9',srcuser:'person@example.invalid'}});
-  assert.doesNotMatch(JSON.stringify(privateRow),/do-not|person@/u);
+  // Ephemeral values exercise redaction without committing credential-shaped literals.
+  const fakePassword=randomUUID(),fakeBearer=randomUUID();
+  const privateRow=normalizeAlert({...fixture.alerts[0],rule:{level:6,description:JSON.stringify({password:fakePassword})+' Bearer '+fakeBearer+' person@example.invalid'},data:{srcip:'192.0.2.9',srcuser:'person@example.invalid'}});
+  assert.doesNotMatch(JSON.stringify(privateRow),/person@/u);
+  for(const value of [fakePassword,fakeBearer]) assert.equal(JSON.stringify(privateRow).includes(value),false);
 });
 
 test('clear syntax, safe words, percent encoding and bounded same-source repeated events', async () => {
@@ -50,11 +54,12 @@ test('Jev thresholds, no single-event block, failures and provider privacy', asy
   for(const [score,action] of [[0.1,'record'],[.5,'alert'],[.85,'alert'],[1,'alert'],[null,'alert'],[NaN,'alert']]) assert.equal((await createDecider({askJev:async()=>score})(ambiguous)).action,action);
   assert.equal((await createDecider({askJev:async()=>{throw Error('error');}})(ambiguous)).action,'alert');
   assert.equal((await createDecider({timeoutMs:5,askJev:()=>new Promise(()=>{})})(ambiguous)).action,'alert');
-  let transmitted;
-  const client=createJevClient({enabled:true,getApiKey:()=> 'test-only',fetchImpl:async(_url,options)=>{transmitted=JSON.parse(options.body);return {ok:true,json:async()=>({answers:{is_web_injection:{type:'noul',noul:.6}}})};}});
-  assert.equal(await client({level:6,repeatCount:1,sql:true,description:'private memo',source:'private address',password:'private password'}),.6);
+  let transmitted;const fakePassword=randomUUID();
+  const client=createJevClient({enabled:true,getApiKey:()=> randomUUID(),fetchImpl:async(_url,options)=>{transmitted=JSON.parse(options.body);return {ok:true,json:async()=>({answers:{is_web_injection:{type:'noul',noul:.6}}})};}});
+  assert.equal(await client({level:6,repeatCount:1,sql:true,description:'private memo',source:'private address',password:fakePassword}),.6);
+  assert.equal(JSON.stringify(transmitted).includes(fakePassword),false);
   assert.deepEqual(Object.keys(transmitted.state).sort(),['command','level','repeatCount','script','sql','traversal']);
-  assert.doesNotMatch(JSON.stringify(transmitted),/private memo|private address|private password/u);
+  assert.doesNotMatch(JSON.stringify(transmitted),/private memo|private address/u);
 });
 
 test('responder persistence, normal replay, expiry and original deny/step-up preservation',async()=>{
@@ -81,8 +86,8 @@ function databaseMock(){
 }
 test('live syntax aggregation, real handler denial, credential exclusion and storage failure',async()=>{
   const database=databaseMock();let answers=0;
-  const web=createLiveWebXdr({database,secret:'test-only',getSource:()=> '192.0.2.8',now:()=> '2026-10-07T00:00:00Z',askJev:async()=>{answers++;return.6;}});
-  const safe={query:{path:'recover',q:'select course',password:'<script>credential</script>'},body:{password:'private'}};
+  const web=createLiveWebXdr({database,secret:randomUUID(),getSource:()=> '192.0.2.8',now:()=> '2026-10-07T00:00:00Z',askJev:async()=>{answers++;return.6;}});
+  const safe={query:{path:'recover',q:'select course',password:`<script>${randomUUID()}</script>`},body:{password:randomUUID()}};
   assert.equal(await web.inspect(safe),null);assert.equal(database.calls.length,0);
   let upstream=0;
   const handler=createAuthHandler(async()=>{upstream++;return{ok:false,status:400,json:async()=>({code:'validation_failed'})};},{getXdr:()=>web});
@@ -93,6 +98,6 @@ test('live syntax aggregation, real handler denial, credential exclusion and sto
   }
   assert.equal(upstream,7);assert.equal(answers,7);
   assert.doesNotMatch(JSON.stringify(database.calls),/OR 1=1|private|192\.0\.2\.8/u);
-  const failing=createLiveWebXdr({database:{from(){throw Error('storage');}},secret:'test-only',getSource:()=> '192.0.2.8'});
+  const failing=createLiveWebXdr({database:{from(){throw Error('storage');}},secret:randomUUID(),getSource:()=> '192.0.2.8'});
   const result=response();await createAuthHandler(async()=>{throw Error('must not run');},{getXdr:()=>failing})({method:'POST',query:{path:'recover'},body:{},headers:{}},result);assert.equal(result.statusCode,502);
 });

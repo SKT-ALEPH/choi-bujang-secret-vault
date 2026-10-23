@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '@supabase/supabase-js';
@@ -35,20 +36,20 @@ test('Auth proxy permits only fixed Auth routes, keeps public key upstream, and 
         headers:Object.fromEntries(new Headers(options.headers)),body:options.body},res);
       return Response.json(res.body,{status:res.statusCode});
     }}});
-  const failed=await client.auth.signInWithPassword({email:'fixture',password:'fixture'});
+  const failed=await client.auth.signInWithPassword({email:'fixture',password:randomUUID()});
   assert.equal(failed.error.code,'invalid_credentials'); assert.equal(failed.data.session,null);
 });
 
 test('official SDK signs in, refreshes and signs out through the Auth proxy without a browser key', async () => {
-  const seen=[];
+  const seen=[];const accessToken=randomUUID(),refreshToken=randomUUID();
   const handler=createAuthHandler(async(target,options)=>{
     const url=new URL(target);seen.push(url.pathname);
     assert.equal(options.headers.apikey,settings.publishableKey);
-    if(url.pathname==='/auth/v1/logout') {assert.equal(options.headers.Authorization,'Bearer fixture-session');return new Response(null,{status:204});}
+    if(url.pathname==='/auth/v1/logout') {assert.equal(options.headers.Authorization,'Bearer '+accessToken);return new Response(null,{status:204});}
     if(url.pathname==='/auth/v1/user') return Response.json({id:'fixture-user'});
     assert.equal(url.pathname,'/auth/v1/token');
     assert.ok(['password','refresh_token'].includes(url.searchParams.get('grant_type')));
-    return Response.json({access_token:'fixture-session',refresh_token:'fixture-refresh',token_type:'bearer',expires_in:3600,user:{id:'fixture-user'}});
+    return Response.json({access_token:accessToken,refresh_token:refreshToken,token_type:'bearer',expires_in:3600,user:{id:'fixture-user'}});
   });
   const client=createClient(settings.url,'auth-via-server',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:async(target,options)=>{
     const url=new URL(target);assert.equal(url.origin,settings.url);
@@ -58,7 +59,7 @@ test('official SDK signs in, refreshes and signs out through the Auth proxy with
     return Response.json(result.body,{status:result.statusCode});
   }}});
   // Deliberately invalid fixture credentials go only to the injected transport.
-  const login=await client.auth.signInWithPassword({email:'fixture',password:'fixture'});assert.equal(login.error,null);
+  const login=await client.auth.signInWithPassword({email:'fixture',password:randomUUID()});assert.equal(login.error,null);
   assert.equal((await client.auth.refreshSession()).error,null);
   assert.equal((await client.auth.signOut()).error,null);
   assert.equal((await client.auth.getSession()).data.session,null);

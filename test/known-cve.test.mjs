@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, mkdir, rm } from 'node:fs/promises';
@@ -38,8 +39,10 @@ test('standalone CVE evaluator: raw/reader, reversed IDs, pattern references and
 test('CVE words/partial syntax are not blocks; full lookup remains a block independent of level',()=>{
   for(const url of ['/search?q=CVE-2021-44228','/notes?q=jndi','/search?q=${jndi:','/health'])assert.notEqual(decide({rule:{level:15},data:{url}}).action,'block');
   const original=fixture.alerts[0];assert.equal(decide({...original,rule:{level:1},data:{useragent:original.data.useragent}}).action,'block');
-  const safe=normalizeAlert({rule:{level:6,description:'password="fixture-secret" Bearer fixture-token email@example.invalid'},data:{srcuser:'email@example.invalid',srcip:'192.0.2.8'}});
-  assert.doesNotMatch(JSON.stringify(safe),/fixture-secret|fixture-token|email@/u);
+  const fakePassword=randomUUID(),fakeBearer=randomUUID();
+  const safe=normalizeAlert({rule:{level:6,description:JSON.stringify({password:fakePassword})+' Bearer '+fakeBearer+' email@example.invalid'},data:{srcuser:'email@example.invalid',srcip:'192.0.2.8'}});
+  assert.doesNotMatch(JSON.stringify(safe),/email@/u);
+  for(const value of [fakePassword,fakeBearer]) assert.equal(JSON.stringify(safe).includes(value),false);
 });
 
 test('CVE response: private rules/log dedup, real base integration, normal pass, expiry and prior denial',async()=>{

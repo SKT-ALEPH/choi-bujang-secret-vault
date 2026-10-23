@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createLiveXdr, trustedVercelSource } from '../xdr/brute-force/live.mjs';
@@ -38,22 +39,23 @@ test('trusted source uses only Vercel edge context, never body, socket guesses o
 
 test('HTTP login failures feed the real guard and notes gate; expiry restores the previous pipeline',async()=>{
   const database=makeDatabase();let time=at;let upstreamCalls=0;
-  const xdr=createLiveXdr({database,secret:'test-only',getSource:()=> '192.0.2.120',now:()=>time,askJev:async()=>null});
+  const xdr=createLiveXdr({database,secret:randomUUID(),getSource:()=> '192.0.2.120',now:()=>time,askJev:async()=>null});
   const auth=createAuthHandler(async()=>{upstreamCalls++;return Response.json({error_code:'invalid_credentials'},{status:400});},
     {getXdr:()=>xdr});
+  const fakePassword=randomUUID();
   const request={method:'POST',query:{path:'token',grant_type:'password'},
-    body:{email:'fictional@example.invalid',password:'test-only-password'}};
+    body:{email:'fictional@example.invalid',password:fakePassword}};
   for(let i=0;i<20;i++){const res=response();await auth(request,res);assert.equal(res.statusCode,400);}
   const blocked=response();await auth(request,blocked);assert.equal(blocked.statusCode,429);assert.equal(upstreamCalls,20);
   assert.equal(blocked.headers['Retry-After'],'900');
   assert.equal(JSON.stringify(database.calls).includes('fictional@example.invalid'),false);
-  assert.equal(JSON.stringify(database.calls).includes('test-only-password'),false);
+  assert.equal(JSON.stringify(database.calls).includes(fakePassword),false);
   assert.equal(JSON.stringify(database.calls).includes('192.0.2.120'),false);
   let noteReads=0;
   const noteDatabase={from(){noteReads++;return {select(){return this;},eq(){return this;},order(){return this;},limit(){return this;},
     async abortSignal(){return {data:[],error:null};}};}};
   const notes=createNotesHandler(()=>({database:noteDatabase,xdr,verifyLoginAuthorization:async()=>({userId:'fixture'})}));
-  const noteRequest={method:'GET',headers:{authorization:'Bearer test-only'}};
+  const noteRequest={method:'GET',headers:{authorization:'Bearer '+randomUUID()}};
   const denied=response();await notes(noteRequest,denied);assert.equal(denied.statusCode,403);assert.equal(noteReads,0);
   const unsigned=response();await notes({method:'GET',headers:{}},unsigned);assert.equal(unsigned.statusCode,401);
   time='2026-10-07T09:45:00Z';

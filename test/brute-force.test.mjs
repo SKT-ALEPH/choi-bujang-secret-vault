@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile, mkdtemp, rm, mkdir, writeFile, stat } from 'node:fs/promises';
@@ -28,20 +29,21 @@ test('official Jev adapter requires opt-in and a key, sends only whitelisted evi
     assert.equal(JSON.stringify(body).includes('private-fixture'),false);
     return {ok:true,json:async()=>({answers:{is_brute_force:{type:'noul',noul:0.7}}})};
   };
-  assert.equal(await createJevClient({enabled:false,getApiKey:()=> 'test-only',fetchImpl})(summary),null);
+  assert.equal(await createJevClient({enabled:false,getApiKey:()=> randomUUID(),fetchImpl})(summary),null);
   assert.equal(await createJevClient({enabled:true,getApiKey:()=>'',fetchImpl})(summary),null);assert.equal(calls,0);
-  assert.equal(await createJevClient({enabled:true,getApiKey:()=> 'test-only',fetchImpl})(summary),0.7);assert.equal(calls,1);
+  assert.equal(await createJevClient({enabled:true,getApiKey:()=> randomUUID(),fetchImpl})(summary),0.7);assert.equal(calls,1);
   for (const response of [{ok:false}, {ok:true,json:async()=>({answers:{is_brute_force:{type:'noul',noul:2}}})},
     {ok:true,json:async()=>({answers:{is_brute_force:{type:'choice',noul:0.9}}})}]) {
-    assert.equal(await createJevClient({enabled:true,getApiKey:()=> 'test-only',fetchImpl:async()=>response})(summary),null);
+    assert.equal(await createJevClient({enabled:true,getApiKey:()=> randomUUID(),fetchImpl:async()=>response})(summary),null);
   }
 });
 
 test('reader emits five fields for every alert and redacts credentials and personal account names', async()=>{
   const rows=await readAlerts(); assert.equal(rows.length,fixture.alerts.length);
   assert.deepEqual(Object.keys(rows[0]).sort(),['account','description','level','sourceAddress','timestamp']);
-  const original=sample('password=private-fixture-value\n token=private-fixture-token {"api_key":"private-fixture-key"}');original.data.srcuser='private fixture account';
-  const out=normalizeAlert(original);assert.equal(JSON.stringify(out).includes('private-fixture'),false);
+  const values=[randomUUID(),randomUUID(),randomUUID()];
+  const original=sample('password='+values[0]+'\n token='+values[1]+' '+JSON.stringify({api_key:values[2]}));original.data.srcuser='private fixture account';
+  const out=normalizeAlert(original);for(const value of values) assert.equal(JSON.stringify(out).includes(value),false);
   assert.equal(JSON.stringify(out).includes('private fixture account'),false);assert.ok(out.account.startsWith('opaque:'));
   assert.equal(out.description.includes('\n'),false); assert.equal(original.data.srcuser,'private fixture account');
 });
