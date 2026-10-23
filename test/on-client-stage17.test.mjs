@@ -46,8 +46,8 @@ test('17단계 연결 상태·오류 복구와 설명 성공의 사건 귀속을
       for (const wanted of [audienceAuthorization,'모델 수: 3',input.checkedAt,'사건 설명은 아직 실행하지 않았습니다','예제 자료','직접 누르세요']) assert.ok(result.includes(wanted),wanted);
       assert.doesNotMatch(result,/이전 인증 오류|EXTRA_PRIVATE_VALUE/u);
     }
-    const event = {id:'event-17'};
-    const explanation = {status:'ok',data:{summary:'<script>문자 그대로</script>',rawError:'EXTRA_PRIVATE_VALUE'}};
+    const event = {id:'event-17', evidence:[{id:'e-17',text:'가상 근거'}], rules:[{id:'r-17',text:'가상 규칙'}], state:{}, supportedActions:[]};
+    const explanation = {status:'ok',data:{summary:'<script>문자 그대로</script>',evidenceIds:['e-17'],proposals:[],executed:false,requiresHumanConfirmation:true,rawError:'EXTRA_PRIVATE_VALUE'}};
     const success = view.renderExplanation({event,explanation,checkedAt:input.checkedAt});
     assert.equal(success.attributes['data-student-explanation-event'],event.id);
     assert.match(success.textContent,/<script>문자 그대로<\/script>/u);

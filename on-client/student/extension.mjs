@@ -303,24 +303,62 @@ export function createStudentView() {
     },
     renderExplanation({ event, explanation, checkedAt }) {
       const root = document.createElement('section');
+      root.className = 'explanation-view';
       const text = value => {
         const node = document.createElement('p');
         node.textContent = value;
         root.append(node);
         return node;
       };
-      if (!event) text('보안 기록에서 설명할 사건을 먼저 선택하세요.');
+      const failure = (code, message) => {
+        text(`AI 설명 실패: ${code} · ${message}`).setAttribute('role', 'alert');
+        text('기존 기록은 그대로 유지됩니다. AI 연결이나 응답 문제는 과제 실패를 뜻하지 않습니다. 필요하면 직접 다시 요청하세요.');
+      };
+      // A rejected/insufficient event may be null; show its error before selection help.
+      if (explanation?.status === 'error') {
+        failure(explanation.error?.code ?? 'AI_REQUEST_UNVERIFIED', explanation.error?.message ?? '응답을 확인할 수 없습니다.');
+      } else if (!event) text('보안 기록에서 설명할 사건을 먼저 선택하세요.');
       else if (explanation?.status === 'ok') {
-        root.setAttribute('data-student-explanation-event', event.id);
-        text(`사건 ID: ${event.id}`);
-        text(explanation.data.summary);
-        text(`설명 확인 시각: ${checkedAt ?? '확인 불가'}`);
-        text('AI 설명은 참고용 해석입니다. 실제 조치를 실행한 결과가 아닙니다.');
+        const data = explanation.data;
+        const evidence = new Map((event.evidence ?? []).map(row => [row.id, row.text]));
+        const referencesMatch = ids => Array.isArray(ids) && ids.length > 0
+          && new Set(ids).size === ids.length && ids.every(id => evidence.has(id));
+        if (!evidence.size || !event.rules?.length) {
+          failure('ON_AI_INVALID_INPUT', '설명에 필요한 사건 근거 또는 규칙이 부족합니다. 기존 기록을 확인하세요.');
+        } else if (!data || data.executed !== false || data.requiresHumanConfirmation !== true) {
+          failure('ON_AI_INVALID_OUTPUT', 'AI가 이미 실행했다고 답했거나 사람 확인·미실행 상태를 확인할 수 없어 이 설명을 사용할 수 없습니다.');
+        } else if (!referencesMatch(data.evidenceIds) || data.evidenceIds.length !== evidence.size
+          || !Array.isArray(data.proposals) || data.proposals.some(proposal =>
+            !referencesMatch(proposal.evidenceIds) || !event.supportedActions?.includes(proposal.action))) {
+          failure('ON_AI_INVALID_OUTPUT', '현재 사건의 근거 ID 또는 지원 조치와 맞지 않아 이 설명을 사용할 수 없습니다.');
+        } else {
+          root.setAttribute('data-student-explanation-event', event.id);
+          text(`사건 ID: ${event.id}`);
+          text('AI 설명(참고용)');
+          text(data.summary);
+          text(`설명 확인 시각: ${checkedAt ?? '확인 불가'}`);
+          text('인용 근거');
+          for (const id of data.evidenceIds) text(`${id} — ${evidence.get(id)}`);
+          text('적용 규칙');
+          for (const rule of event.rules) text(`${rule.id} — ${rule.text}`);
+          text('확인 불가 상태');
+          const unknown = [['access', '접속'], ['session', '세션'], ['device', '기기']]
+            .filter(([key]) => event.state?.[key] === 'unknown');
+          if (!unknown.length) text('없음');
+          for (const [, label] of unknown) text(`${label}: 확인 불가(unknown)`);
+          if (!data.proposals.length) text(event.supportedActions?.length
+            ? 'AI가 제안한 조치가 없습니다.' : '연동 시스템이 지원하는 조치가 없어 제안이 없습니다(정상).');
+          for (const proposal of data.proposals) {
+            text(`제안 조치: ${proposal.action} · 이유: ${proposal.reason}`);
+            text(`제안 근거 ID: ${proposal.evidenceIds.join(', ')}`);
+            text('사람 확인이 필요하며 실행되지 않았습니다.');
+          }
+          text('AI 설명은 참고용 해석입니다. 실제 조치를 실행한 결과가 아닙니다.');
+        }
       } else if (explanation?.status === 'loading') text(`사건 ${event.id}의 AI 설명을 요청하는 중입니다.`);
       else if (explanation?.status === 'idle') text(`사건 ${event.id}의 AI 설명 요청 전입니다.`);
       else {
-        text(`AI 설명 실패: ${explanation?.error?.code ?? 'AI_REQUEST_UNVERIFIED'} · ${explanation?.error?.message ?? '응답을 확인할 수 없습니다.'}`).setAttribute('role', 'alert');
-        text('기존 기록은 그대로 유지됩니다. AI 연결이나 응답 문제는 과제 실패를 뜻하지 않습니다. 필요하면 직접 다시 요청하세요.');
+        failure('AI_REQUEST_UNVERIFIED', '응답을 확인할 수 없습니다.');
       }
       return root;
     },
