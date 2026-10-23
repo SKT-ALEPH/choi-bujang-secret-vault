@@ -428,3 +428,7 @@ TTL900·근거1 및 실제 Jev 응답7건(block1·alert6·record1)을 확인했�
 
 ### 2026-10-14 심사 완료
 XDR-03/04/05/06은각각367eee3/be320c1/e3c3ab3/7b2eb26에서실제완성도100/100,조건4·가점3으로통과했다. 작전점수는120/100/100/100이며기존두종과합쳐승인6/6이다. 판정과검증범위는 docs/XDR_REMAINING_VERIFICATION.json. 전체79시험중78통과,기존최종제품API목록시험1실패는별도범위로보존했다. 모든로컬시험이통과했다고주장하지않는다.
+
+## 케셰브 개인 ChatGPT 실행 모드 · 17단계
+
+`personal-ai/`에서 OpenAI 공식 Sign in with ChatGPT로 개인 계정을 연결할 수 있습니다. Mac에서 `cd personal-ai && npm ci && npm start` 후 http://127.0.0.1:5191/ 을 엽니다. 실제 모델 응답·가상 보안 기록 설명·요청 취소와 수동 복구를 확인했습니다. [실행 안내](personal-ai/README.md)와 [17단계 요구사항 대조](personal-ai/STAGE17.md)를 참고하세요. ALEPH 수업용 승인·운영 SDP 사건 연결·공식17 통과와 구분하며 기존 자료실 배포는 변경하지 않습니다.

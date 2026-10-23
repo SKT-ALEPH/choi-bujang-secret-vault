@@ -1,0 +1,12 @@
+{
+  "name": "keshev-personal-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test server.test.mjs"
+  },
+  "engines": { "node": ">=24.19.0" },
+  "dependencies": { "@siwc/local": "file:vendor/siwc-local" }
+}

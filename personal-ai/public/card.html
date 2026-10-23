@@ -1,0 +1,33 @@
+<section id="view-personal" class="view personal-ai" role="tabpanel" aria-labelledby="tab-personal">
+  <header class="personal-heading">
+    <div><p class="eyebrow">YOUR WORKSPACE / AI</p><h1>보안 기록, 쉽게 이해하기</h1><p class="personal-intro">궁금한 기록을 남기면, 내 ChatGPT가 맥락과 확인할 점을 정리해 줍니다.</p></div>
+    <p id="personal-session" class="personal-session" role="status" aria-live="polite">연결 확인 중</p>
+  </header>
+  <div class="personal-workspace" id="personal-ai-card">
+    <section class="personal-panel personal-compose" aria-labelledby="personal-compose-title">
+      <div class="personal-panel-heading"><div><p class="personal-kicker">ASK</p><h2 id="personal-compose-title">어떤 기록이 궁금한가요?</h2></div><span class="personal-step" aria-hidden="true">01</span></div>
+      <div class="personal-model-field"><label for="personal-model">사용할 모델</label><div class="personal-model-row"><select id="personal-model" disabled aria-describedby="personal-model-hint"><option value="">먼저 모델 목록을 불러오세요</option></select><button class="personal-button personal-secondary" id="personal-models" type="button" disabled>모델 불러오기</button></div><p class="personal-hint" id="personal-model-hint">ChatGPT 연결 후 사용할 모델을 직접 선택합니다.</p></div>
+      <div class="personal-input-heading"><label for="personal-input">설명받을 내용</label><span id="personal-count">0 / 6,000</span></div>
+      <textarea id="personal-input" rows="8" maxlength="6000" placeholder="확인하고 싶은 기록이나 궁금한 내용을 붙여넣으세요." aria-describedby="personal-send-note"></textarea>
+      <button class="personal-example" id="personal-example" type="button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 3h7l3 3v11H5zM11 3v4h4M8 10h4M8 13h4"/></svg>로그인 실패 예시 넣기<span aria-hidden="true">↗</span></button>
+      <p class="personal-hint personal-send-note" id="personal-send-note">입력한 내용만 OpenAI로 전송됩니다. 비밀번호·토큰·개인정보는 제외해 주세요.</p>
+      <div class="personal-submit-row"><button class="personal-button personal-primary" id="personal-explain" type="button" disabled><span>AI 설명받기</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button><button class="personal-button personal-secondary" id="personal-cancel" type="button" hidden disabled>요청 취소</button></div>
+    </section>
+    <section class="personal-panel personal-result" aria-labelledby="personal-result-title">
+      <div class="personal-panel-heading"><div><p class="personal-kicker">UNDERSTAND</p><h2 id="personal-result-title">AI의 설명</h2></div><span class="personal-response-state" id="personal-response-status" role="status" aria-live="polite">대기 중</span></div>
+      <div id="personal-empty" class="personal-empty"><div class="personal-empty-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 7h15l5 5v21H10zM24 7v7h6M15 19h10M15 24h10M15 29h6"/><circle cx="29" cy="29" r="7" fill="var(--surface)"/><path d="m34 34 4 4"/></svg></div><h3>기록을 이해할 준비가 됐어요</h3><p>내용을 입력하고 설명을 요청해 보세요.<br>확인된 사실과 추가로 살펴볼 점을 함께 정리합니다.</p></div>
+      <p id="personal-error" class="personal-error" role="alert" hidden></p>
+      <div id="personal-output" class="personal-output" role="region" aria-label="AI 설명 내용" hidden></div>
+      <p id="personal-response-meta" class="personal-response-meta" hidden></p>
+      <p class="personal-result-note"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m10 2 7 3v5c0 4-5 7-7 8-2-1-7-4-7-8V5zM7 10l2 2 4-4"/></svg>AI는 이해를 돕습니다. 접근 판정과 보안 조치를 실행하지 않습니다.</p>
+    </section>
+  </div>
+  <details class="personal-settings" id="personal-settings">
+    <summary><span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 6h14M3 14h14"/><circle cx="7" cy="6" r="2" fill="var(--surface)"/><circle cx="13" cy="14" r="2" fill="var(--surface)"/></svg>계정 및 연결 설정</span><span class="personal-settings-caption" id="personal-settings-caption">ChatGPT 연결 관리</span></summary>
+    <div class="personal-settings-body">
+      <section aria-labelledby="personal-account-title"><h2 id="personal-account-title">ChatGPT 계정</h2><p id="personal-account-name" class="personal-hint">연결 상태 확인 중</p><label for="personal-profile" class="personal-sr-only">연결된 ChatGPT 계정</label><select id="personal-profile" disabled><option value="">저장된 연결 없음</option></select><div class="personal-settings-actions"><button class="personal-button personal-primary" id="personal-login" type="button">Continue with ChatGPT</button><button class="personal-button personal-secondary" id="personal-add" type="button">다른 계정 추가</button><button class="personal-button personal-quiet" id="personal-signin-cancel" type="button" hidden disabled>로그인 취소</button><button class="personal-button personal-quiet" id="personal-disconnect" type="button" disabled>연결 해제</button></div><a class="personal-button personal-secondary personal-authorize" id="personal-authorize" href="/personal-ai/authorize" target="_blank" rel="noopener noreferrer" hidden>OpenAI 로그인 화면 열기</a><a class="personal-text-link" href="https://chatgpt.com/settings/usage" target="_blank" rel="noopener noreferrer">ChatGPT 사용량 관리 <span aria-hidden="true">↗</span></a></section>
+      <section aria-labelledby="personal-check-title"><h2 id="personal-check-title">연결 점검</h2><p class="personal-hint">선택한 모델에 짧은 문장을 보내 실제 응답을 확인합니다. ChatGPT 사용 한도에 반영됩니다.</p><button class="personal-button personal-secondary" id="personal-check" type="button" disabled>실제 응답 점검</button><p id="personal-check-result" class="personal-hint" role="status">아직 선택한 모델의 응답을 점검하지 않았습니다.</p></section>
+    </div>
+  </details>
+  <p class="personal-scope-note">개인 ChatGPT 연결로 사용 중이며, ALEPH 과제의 승인·통과 상태와는 별개입니다.</p>
+</section>
