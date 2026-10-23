@@ -434,3 +434,5 @@ XDR-03/04/05/06은각각367eee3/be320c1/e3c3ab3/7b2eb26에서실제완성도100/
 `personal-ai/`에서 OpenAI 공식 Sign in with ChatGPT로 개인 계정을 연결할 수 있습니다. Mac에서 `cd personal-ai && npm ci && npm start` 후 http://127.0.0.1:5191/ 을 엽니다. 실제 모델 응답·가상 보안 기록 설명·요청 취소와 수동 복구를 확인했습니다. [실행 안내](personal-ai/README.md)와 [17단계 요구사항 대조](personal-ai/STAGE17.md)를 참고하세요. ALEPH 수업용 승인·운영 SDP 사건 연결·공식17 통과와 구분하며 기존 자료실 배포는 변경하지 않습니다.
 
 직원 앱13~21의 실행·구성·장애 대응·지원 범위는 [케셰브 학생 실행 설명서](on-client/docs/STUDENT_RUNBOOK.md)를 봅니다. 기존 배포 자료실, 공식 로컬 앱, Mac 개인 ChatGPT의 실행 경로를 구분합니다.
+
+22단계의 검증 중 버전·새 폴더 재현·단계별 관측·데이터 보존과 복구 범위는 [학생 재현·버전 기록](on-client/docs/STUDENT_RELEASE.md)을 봅니다. 운영 연결·실집행 미확인과 AI 원문 심사를 구분합니다.
