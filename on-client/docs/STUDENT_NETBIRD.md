@@ -2,6 +2,8 @@
 
 > **현재 통합 실행:** 정확한 Node 24.19.0으로 저장소 루트에서 `node personal-workspace/start.mjs`를 실행한다. Mac과 Windows의 기존 케셰브를 함께 켠다. 현재 정본은 이 문서이며 [실행기 안내](../../personal-workspace/README.md)는 이를 가리킨다. 같은 포트에 다른 실행기를 함께 켜지 않는다.
 
+후속 PC 감시는 [Wazuh 연결 안내](../../pc-security/README.md)와 [실제 검증](../../docs/PC_SECURITY_VERIFICATION.md)을 따른다. 아래 여섯 판단기의 NetBird 관측 경계는 유지한다. 새 Wazuh 시스템 수집·송신 관측·OS 대응을 기존 화면에 별도로 연결했으며, PC 관측을 자료실 계정의 행동으로 위장하지 않는다.
+
 ## 기존 자료실·XDR·Agent 통합 실검증 · 2026-10-26
 
 사용자가 요청한 무료 SDP 대체는 NetBird다. 공식 ALEPH 재연결을 기다리는 작업이 아니다. 이전에 만든 별도 Windows 노트 화면은 기본 실행에서 제거했으며, 원래 Agent 화면과 원래 자료실의 HTML·앱·P256 기기 검증을 재사용한다.

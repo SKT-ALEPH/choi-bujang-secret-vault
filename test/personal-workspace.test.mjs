@@ -55,7 +55,8 @@ test('existing Agent replaces the parallel workspace UI; ChatGPT login alone gra
  const directory=await mkdtemp(join(tmpdir(),'keshev-agent-')),signer=key();
  const {DatabaseSync}=await import('node:sqlite');const databasePath=join(directory,'agent.sqlite');new DatabaseSync(databasePath).close();let calls=0;
  const client={getSession:async()=>({status:'connected',sharing:true,profileId:'test-only-profile'}),listProfiles:async()=>[],cancelSignIn(){},listModels:async()=>[{slug:'fixture-model',displayName:'Fixture'}],streamResponse:async()=>{calls++;return {text:'fixture'};}};
- const server=await createWorkspaceServer(client,{signer,actionDatabasePath:databasePath,readNetwork:async()=>({daemonStatus:'Disconnected',management:{connected:false},peers:{details:[]}})});
+ let pcReads=0;
+ const server=await createWorkspaceServer(client,{signer,actionDatabasePath:databasePath,readPcSecurity:async()=>{pcReads++;return {schema:'keshev.pc-security.v1',status:'measured',endpoints:[],events:[]};},readNetwork:async()=>({daemonStatus:'Disconnected',management:{connected:false},peers:{details:[]}})});
  server.listen(0,'127.0.0.1');await once(server,'listening');const origin=`http://127.0.0.1:${server.address().port}`;
  try{
   const home=await fetch(origin),html=await home.text(),cookie=home.headers.get('set-cookie').split(';')[0];
@@ -64,6 +65,10 @@ test('existing Agent replaces the parallel workspace UI; ChatGPT login alone gra
   assert.equal((await fetch(origin+'/api/me',{headers:{cookie,'sec-fetch-site':'cross-site'}})).status,403);
   const me=await fetch(origin+'/api/me',{headers:{cookie,'sec-fetch-site':'same-origin'}});assert.equal(me.status,503);assert.equal((await me.json()).ok,false);
   assert.equal((await fetch(origin+'/workspace/api/notes',{headers:{cookie,'sec-fetch-site':'same-origin'}})).status,403);
+  assert.equal((await fetch(origin+'/api/pc-security')).status,403);
+  assert.equal((await fetch(origin+'/api/pc-security',{headers:{cookie,'sec-fetch-site':'cross-site'}})).status,403);
+  assert.equal(pcReads,0);
+  const pc=await fetch(origin+'/api/pc-security',{headers:{cookie,'sec-fetch-site':'same-origin'}});assert.equal(pc.status,200);assert.equal((await pc.json()).data.schema,'keshev.pc-security.v1');assert.equal(pcReads,1);
   assert.equal(calls,0);
  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));await rm(directory,{recursive:true,force:true});}
 });

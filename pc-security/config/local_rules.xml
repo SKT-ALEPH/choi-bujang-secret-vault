@@ -1,0 +1,7 @@
+<group name="keshev,">
+  <rule id="100120" level="3"><decoded_as>json</decoded_as><field name="keshev.kind">^egress_candidate$</field><description>Keshev endpoint outbound observation</description></rule>
+  <rule id="100121" level="12"><if_sid>100120</if_sid><field name="keshev.policy_revision">^1$</field><description>Keshev: measured bulk transfer over configured threshold to an unapproved destination with repeated connections</description><mitre><id>T1041</id></mitre><group>keshev_egress,</group></rule>
+  <rule id="100122" level="3"><decoded_as>json</decoded_as><field name="RuleName">^Keshev-Egress-</field><field name="EffectApplied">^true$</field><description>Keshev native response effect verified at execution time</description><group>keshev_native_response,</group></rule>
+  <rule id="100123" level="3"><decoded_as>json</decoded_as><field name="keshev.kind">^endpoint_status$</field><description>Keshev endpoint observation heartbeat</description><group>keshev_endpoint_status,</group></rule>
+  <rule id="100124" level="3"><decoded_as>json</decoded_as><field name="keshev.kind">^native_state$</field><description>Keshev current native firewall rule readback</description><group>keshev_native_state,</group></rule>
+</group>

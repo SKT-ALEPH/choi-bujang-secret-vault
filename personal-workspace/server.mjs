@@ -9,6 +9,7 @@ import {mkdir,chmod} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 import {createNetBirdAgent} from '../on-client/student/netbird-agent.mjs';
 import {createManagedAccount} from '../on-client/student/managed-account.mjs';
+import {readPcSecurity} from '../pc-security/client.mjs';
 export async function createWorkspaceServer(client,options){
  const host=createWorkspaceHost({client,...options});
  const directory=join(homedir(),'Library/Application Support/Keshev'),databasePath=options?.actionDatabasePath??join(directory,'agent.sqlite');
@@ -16,7 +17,16 @@ export async function createWorkspaceServer(client,options){
  const agent=createNetBirdAgent({transport:host.transport,observeNetwork:host.observeNetwork,managedAccount,directRequest:options?.directRequest});
  if(!options?.actionDatabasePath){await mkdir(directory,{recursive:true,mode:0o700});const db=new DatabaseSync(databasePath);db.close();await chmod(databasePath,0o600);}
  const appAssets=new Map([['/student/netbird-layout.mjs',{type:'text/javascript; charset=utf-8',bytes:await readFile(new URL('../on-client/student/netbird-layout.mjs',import.meta.url))}]]);
- const server=await createPersonalServer(client,{applicationId:'netbird-integrated',appAssets,handleBridgeRequest:agent.handle,prepareExplanation:agent.prepareExplanation,incidentRoutes:true,
+ const handleBridgeRequest=async(req,res)=>{
+  if(req.url==='/api/pc-security'){
+   if(req.method!=='GET'){res.writeHead(405);res.end();return true;}
+   const data=await (options?.readPcSecurity??readPcSecurity)();
+   res.writeHead(data.status==='measured'?200:503,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});
+   res.end(JSON.stringify({ok:data.status==='measured',data,error:data.status==='measured'?undefined:{message:'PC 감시 서버를 확인하지 못했습니다. Docker와 Wazuh 실행 상태를 확인하세요.'}}));return true;
+  }
+  return agent.handle(req,res);
+ };
+ const server=await createPersonalServer(client,{applicationId:'netbird-integrated',appAssets,handleBridgeRequest,prepareExplanation:agent.prepareExplanation,incidentRoutes:true,
    onOptions:{engine:agent.engine,scanner:options?.scanner,requestTimeoutMs:30000,readTimeoutMs:15000,
      actionConfiguration:{engine:agent.actionEngine,resolveContext:agent.resolveContext,databasePath,policy:{appId:'aleph-on',audience:'on-client',accessPolicyId:'netbird-vault',allowedActions:['device:revoke','grant:remove'],confirmationTtlMs:60000,timeoutMs:20000}}},
    transformHtml:html=>html.replace('</head>','<script type="module" src="/student/netbird-layout.mjs"></script></head>')

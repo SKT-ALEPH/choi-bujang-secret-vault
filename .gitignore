@@ -22,3 +22,6 @@ public/stage12-live-proof.json
 
 # Personal runtime exports only its non-secret device public key here.
 /personal-workspace/runtime-public/
+/pc-security/windows-sensor/bin/
+/pc-security/windows-sensor/obj/
+/pc-security/__pycache__/
