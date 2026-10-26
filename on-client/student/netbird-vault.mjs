@@ -74,7 +74,7 @@ export function createVaultGateway({privateKey,deviceId,store,origin=config.publ
         source:'NetBird Windows 게이트웨이 → 기존 Vercel 자료실의 실제 HTTP 응답',
         evidence:[{id:'http',text:`${input.method} ${path.split('?')[0]} · HTTP ${result.status}`},...(kind==='xdr'?[{id:'upstream-evidence',text:result.headers['x-xdr-evidence']}]:[])]});
     }
-    return result;
+    return {...result,subjectId:who?.subjectId??null};
   }
   async function control(input){
     if(!exact(input,['authorization','operation','input']))throw fault('VAULT_REQUEST_INVALID',400);

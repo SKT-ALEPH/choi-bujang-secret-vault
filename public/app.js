@@ -7,13 +7,19 @@
     xdr_web_injection:'반복된 웹 입력 공격 신호로 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.',
     xdr_brute_force:'로그인 실패가 반복돼 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.',
     email_not_confirmed:'가입 확인 이메일의 링크를 먼저 눌러 주세요.',
+    netbird_gateway_required:'NetBird로 연결된 케셰브의 기존 자료실 열기로 접속해 주세요.',
     over_email_send_rate_limit:'확인 이메일 요청이 많습니다. 잠시 뒤 다시 시도해 주세요.',
     weak_password:'더 긴 비밀번호를 입력해 주세요.', signup_disabled:'현재 새 계정 가입이 비활성화돼 있습니다.' }[error.code] || '인증 요청에 실패했습니다. 입력 내용과 연결 상태를 확인해 주세요.');
-  let client, signedIn = false, approved = false, signup = false, editingId = null, revision = 0;
+  let client, signedIn = false, approved = false, signup = false, editingId = null, revision = 0, agentSession=null;
+  async function currentSession(){
+    const result=await client.auth.getSession();if(result.data?.session)return result;
+    if(agentSession?.expires_at>Date.now()/1000)return {data:{session:agentSession},error:null};
+    if(agentSession){agentSession=null;updateSession(null);}return result;
+  }
   function clearEditor() { editingId = null; $('#editor').reset(); $('#editor-title').textContent='메모 추가'; $('#save-note').textContent='메모 추가'; $('#cancel-edit').hidden=true; }
   async function api(path = '', options = {}) {
     if(!approved||!navigator.onLine)throw new Error('기기 승인과 인터넷 연결을 먼저 확인해 주세요.');
-    const { data, error } = await client.auth.getSession();
+    const { data, error } = await currentSession();
     if (error || !data.session) throw new Error('로그인이 필요합니다. 다시 로그인해 주세요.');
     const target = path === '' && (options.method ?? 'GET') === 'GET' ? '/api/my/notes' : '/api/notes'+path;
     const response = await fetch(target, { ...options, cache:'no-store',
@@ -30,11 +36,14 @@
   }
   async function loadNotes() {
     const current = revision;
+    $('#notes').replaceChildren();
+    $('#workspace').hidden=true;
     $('#notes').setAttribute('aria-busy','true');
     try {
       const notes = await api();
       if (current !== revision || !signedIn || !approved) return;
       if (!Array.isArray(notes)) throw new Error('자료 형식이 맞지 않습니다.');
+      $('#workspace').hidden=false;$('#device-panel').hidden=true;$('#retry-notes')?.setAttribute('hidden','');
       const items = notes.map(note => {
         const item=document.createElement('li'), title=document.createElement('strong'), body=document.createElement('p'), actions=document.createElement('div');
         title.textContent=note.title; body.textContent=note.body; actions.className='actions';
@@ -52,7 +61,7 @@
       if(!items.length){const item=document.createElement('li'); item.textContent='아직 내 메모가 없습니다. 메모 작성 영역에서 첫 메모를 추가하세요.';items.push(item);}
       $('#notes').replaceChildren(...items);
       status('내 메모를 불러왔습니다.');
-    } catch(error){if(current===revision) status(error.message);}
+    } catch(error){if(current===revision){$('#notes').replaceChildren();$('#workspace').hidden=true;$('#device-panel').hidden=!signedIn;$('#retry-notes')?.removeAttribute('hidden');$('#device-state').textContent='연결 또는 접근을 확인하지 못했습니다. 복구 후 자료를 다시 조회하세요.';status(error.message);}}
     finally { $('#notes').setAttribute('aria-busy','false'); }
   }
   function updateSession(session) {
@@ -81,10 +90,15 @@
       return fetch(proxy,options);
     }}});
     client.auth.onAuthStateChange((event,session)=>{
+      if(session)agentSession=null;
       if(event==='PASSWORD_RECOVERY') {status('비밀번호 재설정 링크가 확인됐습니다. 새 비밀번호를 입력해 주세요.'); $('#auth-panel').hidden=false; $('#workspace').hidden=true; $('#auth-title').textContent='새 비밀번호 설정'; $('#auth-submit').textContent='비밀번호 저장'; $('#email').required=false; $('#auth-form').dataset.recovery='true'; return;}
       setTimeout(()=>updateSession(session),0);
     });
-    const {data,error}=await client.auth.getSession(); if(error)throw error; updateSession(data.session);
+    const {data,error}=await client.auth.getSession(); if(error)throw error;
+    if(!data.session&&location.pathname.startsWith('/vault/')){
+      try{const response=await fetch('/api/netbird/session',{cache:'no-store'}),result=await response.json();if(response.ok&&result.ok)agentSession=result.data;}catch{}
+    }
+    updateSession(data.session??agentSession);
   } catch { status('로그인 설정을 불러오지 못했습니다. 페이지를 새로고침해 주세요.'); return; }
   $('#show-password').addEventListener('click',()=>{const shown=$('#password').type==='password';$('#password').type=shown?'text':'password';$('#show-password').textContent=shown?'숨기기':'표시';$('#show-password').setAttribute('aria-label',shown?'비밀번호 숨기기':'비밀번호 표시');$('#show-password').setAttribute('aria-pressed',String(shown));});
   $('#auth-mode').addEventListener('click',()=>{signup=!signup;$('#auth-title').textContent=signup?'자료실 계정 만들기':'자료실 로그인';$('#auth-submit').textContent=signup?'계정 만들기':'로그인';$('#auth-mode').textContent=signup?'로그인으로 돌아가기':'계정 만들기';$('#password').autocomplete=signup?'new-password':'current-password';$('#auth-help').textContent=signup?'가입 후 이메일로 받은 확인 링크를 눌러 주세요.':'가입한 이메일과 비밀번호로 로그인하세요.';authError('');});
@@ -98,7 +112,7 @@
         :await client.auth.signInWithPassword(credentials);
       if(result.error){authError(authMessage(result.error));return;}
       $('#password').value='';
-      if(recovery){delete $('#auth-form').dataset.recovery;updateSession((await client.auth.getSession()).data.session);}
+      if(recovery){delete $('#auth-form').dataset.recovery;updateSession((await currentSession()).data.session);}
       else if(signup&&!result.data.session) status('확인 이메일을 보냈습니다. 이메일의 링크를 누른 뒤 로그인해 주세요.');
     } catch { authError('인증 서버에 연결하지 못했습니다. 다시 시도해 주세요.'); }
     finally {$('#auth-submit').disabled=false;}
@@ -109,11 +123,11 @@
     try {const {error}=await client.auth.resetPasswordForEmail($('#email').value.trim(),{redirectTo:location.origin+'/'});if(error)authError(authMessage(error));else status('이메일을 확인해 비밀번호 재설정을 진행해 주세요.');}
     catch {authError('요청을 보내지 못했습니다. 다시 시도해 주세요.');}finally{$('#reset-password').disabled=false;}
   });
-  const logout=async()=>{const {data}=await client.auth.getSession();try{if(data.session)await window.alephDevice.revoke(data.session);}catch{}const {error}=await client.auth.signOut();updateSession(null);if(error)status('화면 세션은 비웠지만 서버 로그아웃 확인에 실패했습니다.');};
+  const logout=async()=>{const {data}=await currentSession();try{if(data.session)await window.alephDevice.revoke(data.session);}catch{}let remoteError=false;if(agentSession)try{const r=await fetch('/api/auth?path=logout',{method:'POST',headers:{authorization:'Bearer '+agentSession.access_token,'content-type':'application/json'},body:'{}'});remoteError=!r.ok;}catch{remoteError=true;}const {error}=await client.auth.signOut();agentSession=null;updateSession(null);if(error||remoteError)status('화면 세션은 비웠지만 서버 로그아웃 확인에 실패했습니다.');};
   $('#logout').addEventListener('click',logout);$('#device-logout').addEventListener('click',logout);
   $('#approve-device').addEventListener('click',async()=>{
     const current=revision;$('#approve-device').disabled=true;$('#device-state').textContent='서버가 로그인과 기기 키 소유 증명을 확인하고 있습니다.';
-    try{const {data}=await client.auth.getSession();if(!data.session)throw Error('다시 로그인해 주세요.');
+    try{const {data}=await currentSession();if(!data.session)throw Error('다시 로그인해 주세요.');
       const result=await window.alephDevice.approve(data.session);if(current!==revision)return;
       if(!result)throw Error('서버에서 기기 승인을 확인하지 못했습니다.');
       approved=true;$('#device-panel').hidden=true;$('#workspace').hidden=false;status('서버가 이 화면의 기기 접속을 승인했습니다.');await loadNotes();
@@ -131,7 +145,20 @@
     catch(error){status(error.message);}finally{$('#save-note').disabled=false;}
   });
   $('#cancel-edit').addEventListener('click',clearEditor);
+  $('#retry-notes')?.addEventListener('click',loadNotes);
   if(location.pathname.startsWith('/vault/')){
+    const verifyDirect=document.createElement('button');verifyDirect.type='button';verifyDirect.textContent='직접 우회 차단 확인';
+    verifyDirect.addEventListener('click',async()=>{
+      verifyDirect.disabled=true;
+      try{
+        const {data}=await currentSession();if(!approved||!data.session)throw Error('로그인과 기기 승인을 먼저 완료하세요.');
+        const headers={authorization:'Bearer '+data.session.access_token,...await window.alephDevice.headers(data.session,'/api/my/notes',{})};
+        const r=await fetch('/api/netbird/verify-direct',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({headers})}),d=await r.json();
+        if(!r.ok||!d.ok)throw Error('우회 차단을 확인하지 못했습니다. 연결 상태를 확인하세요.');
+        status(`동일한 로그인·기기 서명: 공개 주소 HTTP ${d.data.directStatus}, NetBird 경로 HTTP ${d.data.privateStatus}. ${d.data.passed?'직접 우회가 차단됐습니다.':'차단 조건을 충족하지 못했습니다.'}`);
+      }catch(e){status(e.message);}finally{verifyDirect.disabled=false;}
+    });
+    $('#refresh').after(verifyDirect);
     const row=document.createElement('div');row.className='actions';
     const tokenLabel=document.createElement('label');tokenLabel.textContent='메일 확인 코드';
     const tokenInput=document.createElement('input');tokenInput.type='password';tokenInput.autocomplete='one-time-code';tokenInput.id='mail-confirm-token';tokenLabel.htmlFor=tokenInput.id;row.append(tokenLabel,tokenInput);

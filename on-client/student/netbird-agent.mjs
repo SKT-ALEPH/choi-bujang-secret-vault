@@ -6,10 +6,11 @@ import {projectVaultEvent,PROJECT,vaultDigest} from './netbird-events.mjs';
 import {engineError} from '../src/engine.mjs';
 import {readPcObservation} from './pc-observation.mjs';
 import {readConnectionObservation} from './connection-observation.mjs';
+import config from '../../aleph.config.json' with {type:'json'};
 
 const root=new URL('../../',import.meta.url);
 const safeError=error=>({code:error.code??'VAULT_UNAVAILABLE',message:({VAULT_SIGN_IN_REQUIRED:'기존 자료실에서 로그인하고 기기를 승인하세요.',DEVICE_REVOKED:'이 기기의 기존 자료실 접근이 철회됐습니다.',GRANT_REMOVED:'이 기기의 기존 자료실 이용 권한이 회수됐습니다.'})[error.code]??'NetBird와 기존 자료실 연결을 확인하세요.'});
-export function createNetBirdAgent({transport,observeNetwork,managedAccount}){
+export function createNetBirdAgent({transport,observeNetwork,managedAccount,directRequest=fetch}){
   let authorization=null,approved=false,approvalExpires=0,epoch=0;
   function clear(){authorization=null;approved=false;approvalExpires=0;epoch++;}
   function captureSession(result){if(result.status<300&&typeof result.data?.access_token==='string'){const next='Bearer '+result.data.access_token;if(authorization!==next){authorization=next;approved=false;approvalExpires=0;epoch++;}}}
@@ -30,7 +31,7 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount}){
     async decideAccess({appId,requestId},scope,{signal}={}){
       if(!['vault','announcements'].includes(appId))throw engineError('APP_NOT_FOUND','등록된 자료실 앱이 아닙니다.',404);
       const m=await control('access',{appId:'private-workspace'},signal);assertScope(scope,m);
-      const decision=m.decision==='allow'&&(!approved||approvalExpires<=Date.now())?'challenge':m.decision;
+      const decision=m.decision==='allow'&&(!approved||approvalExpires>0&&approvalExpires<=Date.now())?'challenge':m.decision;
       return {appId,requestId,subjectId:m.subjectId,projectId:PROJECT,decision,
         reason:decision==='allow'?'NetBird 게이트웨이가 접근을 허용했습니다. 자료 요청마다 기존 서버가 기기 서명과 자료 권한을 다시 검사합니다.':decision==='challenge'?'기존 자료실에서 이 브라우저의 기기 승인을 완료하세요.':decision==='deny'?'NetBird 게이트웨이가 이 기기의 자료실 접근을 차단했습니다.':'현재 원천의 상태를 확인하지 못했습니다.',checkedAt:m.checkedAt};
     },
@@ -45,6 +46,29 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount}){
   };
   async function handle(req,res){
     const path=req.url.split('?')[0];
+    if(path==='/api/netbird/verify-direct'){
+      try{
+        if(req.method!=='POST'||!authorization)throw Error();
+        const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>16000)throw Error();chunks.push(chunk);}
+        const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if(!input||Object.keys(input).length!==1||!input.headers||input.headers.authorization!==authorization)throw Error();
+        const request={method:'GET',path:'/api/my/notes',headers:input.headers,body:''};validateVaultRequest(request);
+        if(!['x-aleph-device','x-aleph-at','x-aleph-nonce','x-aleph-signature'].every(k=>typeof request.headers[k]==='string'&&request.headers[k]))throw Error();
+        const current=authorization,generation=epoch;
+        const direct=await directRequest(config.publicAppUrl+request.path,{headers:request.headers,redirect:'error',signal:AbortSignal.timeout(15000)});
+        await direct.body?.cancel();
+        const privateResult=await transport('/agent/vault/relay',request);
+        if(current!==authorization||generation!==epoch)throw Error();
+        const data={directStatus:direct.status,privateStatus:privateResult.status,sameBrowserProof:true,passed:direct.status===403&&privateResult.status===200,checkedAt:new Date().toISOString()};
+        res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:true,data}));
+      }catch{res.writeHead(409,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:false,error:{code:'VERIFY_UNAVAILABLE'}}));}return true;
+    }
+    if(path==='/api/netbird/session'){
+      try{
+        if(req.method!=='GET')throw Error();const m=await context(),claims=JSON.parse(Buffer.from(authorization.slice(7).split('.')[1],'base64url').toString('utf8'));
+        res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:true,data:{access_token:authorization.slice(7),expires_at:claims.exp,user:{id:m.subjectId}}}));
+      }catch{res.writeHead(401,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:false,error:{code:'VAULT_SIGN_IN_REQUIRED',message:'기존 자료실 계정으로 로그인하세요.'}}));}return true;
+    }
     if(path==='/api/netbird/account'){
       try{
         if(req.method!=='POST'||!managedAccount)throw Object.assign(Error(),{code:'ACCOUNT_SETUP_UNAVAILABLE'});
@@ -93,6 +117,11 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount}){
       const input={method:req.method,path:canonicalTarget(req.url),headers:Object.fromEntries(['authorization','content-type','x-aleph-device','x-aleph-at','x-aleph-nonce','x-aleph-signature'].filter(k=>typeof req.headers[k]==='string').map(k=>[k,req.headers[k]])),body:Buffer.concat(chunks).toString('utf8')};validateVaultRequest(input);
       const generation=epoch,result=await transport('/agent/vault/relay',input);
       const query=new URL(input.path,'https://fixed.invalid');
+      if(authorization===null&&generation===epoch&&typeof result.subjectId==='string'&&/^[a-f0-9-]{36}$/i.test(result.subjectId)
+        &&/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(input.headers.authorization??'')){
+        captureSession({status:200,data:{access_token:input.headers.authorization.slice(7)}});
+        if(result.status<300&&!['/api/auth','/api/device'].includes(query.pathname)){approved=true;approvalExpires=0;}
+      }
       if(query.pathname==='/api/auth'&&query.searchParams.get('path')==='token'&&result.status<300&&typeof result.data?.access_token==='string'){
         captureSession(result);
       }

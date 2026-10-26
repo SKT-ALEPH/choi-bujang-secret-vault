@@ -23,10 +23,15 @@ import {createManagedAccount} from '../on-client/student/managed-account.mjs';
 const userA='00000000-0000-4000-8000-00000000000a',userB='00000000-0000-4000-8000-00000000000b';
 const jwt=user=>'e30.'+Buffer.from(JSON.stringify({sub:user,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
 test('account automation uses normal email OTP; no password generation, admin creation or confirmation bypass',async()=>{
- const calls=[],account=createManagedAccount({transport:async(path,input)=>{calls.push({path,input});return {status:200,data:{}};}});
+ const calls=[],account=createManagedAccount({transport:async(path,input)=>{calls.push({path,input});return {status:200,data:input.path.endsWith('verify')?{user:{email:'fixture@example.invalid'}}:{}};}});
  await account({operation:'signup',email:'fixture@example.invalid'});assert.equal(calls[0].input.path,'/api/auth?path=otp');assert.equal(JSON.parse(calls[0].input.body).create_user,true);assert.equal(Object.hasOwn(JSON.parse(calls[0].input.body),'password'),false);
- await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'a'.repeat(64)});assert.equal(calls[1].input.path,'/api/auth?path=verify');assert.equal(JSON.parse(calls[1].input.body).type,'email');
+ assert.equal((await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'a'.repeat(64)})).status,200);assert.equal(calls[1].input.path,'/api/auth?path=verify');assert.equal(JSON.parse(calls[1].input.body).type,'email');
  await assert.rejects(account({operation:'signup',email:'invalid'}));assert.equal(calls.length,2);
+});
+test('email verification cannot attach a different account',async()=>{
+ const account=createManagedAccount({transport:async()=>({status:200,data:{access_token:'fixture',user:{email:'other@example.invalid'}}})});
+ const result=await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'a'.repeat(64)});
+ assert.equal(result.status,403);assert.equal(result.data.code,'ACCOUNT_IDENTITY_MISMATCH');assert.equal(Object.hasOwn(result.data,'access_token'),false);
 });
 // In-memory Supabase transport fixture only. Production still uses the original SDK and database.
 function databaseFixture(){

@@ -8,7 +8,9 @@ export function createManagedAccount({transport}){
     busy=true;
     try{
       const body=operation==='verify'?{token_hash:tokenHash,type}:{email,create_user:operation==='signup',data:{}};
-      return await transport('/agent/vault/relay',{method:'POST',path:operation==='verify'?'/api/auth?path=verify':'/api/auth?path=otp',headers:{'content-type':'application/json',authorization:'Bearer auth-via-server'},body:JSON.stringify(body)});
+      const result=await transport('/agent/vault/relay',{method:'POST',path:operation==='verify'?'/api/auth?path=verify':'/api/auth?path=otp',headers:{'content-type':'application/json',authorization:'Bearer auth-via-server'},body:JSON.stringify(body)});
+      if(operation==='verify'&&result.status<300&&result.data?.user?.email?.toLowerCase()!==email.toLowerCase())return {status:403,data:{code:'ACCOUNT_IDENTITY_MISMATCH',msg:'요청한 이메일과 확인된 계정이 일치하지 않습니다.'},headers:{}};
+      return result;
     }finally{busy=false;}
   };
 }
