@@ -55,3 +55,5 @@ npm start도 같은 서버를 켭니다. 기본 실행은 실제 회사 시스�
 22단계 이후 기본 포장과 바로가기로 진행하는 [마지막 총공세 작업 기록](docs/STUDENT_FINAL_ASSAULT.md)에 현재 기능 점검표와 핵심 기능3개를 정리합니다. setup.exe 제작은 범위에서 제외합니다.
 
 총공세 PC 조회 개발 화면은 [한 장 실행 안내](docs/STUDENT_DAILY_START.md)를 따른다. `node student/start-daily.mjs`이며 공식 설치형과 별도다.
+
+총공세 결과의 실제 확인 범위와 남은 공식 포장은 [개발 시연 기록](docs/STUDENT_FINAL_DEMO.md)에 정리했다.
