@@ -1,6 +1,6 @@
 # 기존 케셰브 통합 실행기
 
-현재 통합 수정의 정본은 [기존 자료실·XDR·Agent의 NetBird 연결](../on-client/docs/STUDENT_NETBIRD.md)이다. 전체 실제 검증이 아직 끝나지 않았으며, 이전 별도 개인 경로의 완료 보고를 전체 통합 완료로 사용하지 않는다.
+현재 통합 수정의 정본은 [기존 자료실·XDR·Agent의 NetBird 연결](../on-client/docs/STUDENT_NETBIRD.md)이다. 기존 자료실의 실제 차단·복구 검증과 원천별 관측 범위는 정본에 기록했다. 이전 별도 개인 경로의 완료 보고를 이번 통합 검증으로 재사용하지 않는다.
 
 ```sh
 node personal-workspace/start.mjs
