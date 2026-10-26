@@ -104,3 +104,31 @@ node student/start-daily.mjs
 [한 장 실행 안내](STUDENT_DAILY_START.md)를 작성했다. Node24.19.0·추가npm설치불필요·정확한시작파일·127.0.0.1주소·포트충돌회피·조회버튼·정상unknown·오류별다음행동을포함한다. 이전에발견한Node버전불일치와제공/개발실행기혼동,다중사본세션오류를반영했다.
 
 2026-10-26 09:45, 기존폴더를유지하고 새 `rehearsal-source/on-client` 경로에 추적된소스67개와새안내만복사했다. `.local`,환경파일,자격,기존데이터는복사하지않았다. Node24.19.0으로 안내의포트대체5196을사용해 첫화면→PC조회→연결기록조회가브라우저에서재현됐다. 추가의존성설치나계정연결없음. Mac의Windows전용항목확인불가도동일했다. 이는개발소스재현이며공식패키지설치/바로가기성공이아니다.
+
+
+## 6일차 · 공식 포장 준비 미완료
+
+6일차 전체 할 일·요청문·결과/실패/복구 및 설치 방식1 안내를 다시 읽었다. 사용자요청대로setup.exe/Inno/NSIS/MSI는제외하고기본포장만대상이다.1~5일차작업을먼저커밋했다.
+
+**현재 미완료**: 루트와on-client의package.json에 `package-app` 명령이 없다. Node24.19.0의npm으로on-client에서 `npm run package-app`을 실제실행한결과 첫오류는 `Missing script: "package-app"`이다. 승인런타임검사까지실행되지않았으므로 `PROVIDED_RUNTIME_NOT_INSTALLED`가실제로발생했다고쓰지않는다.
+
+공식 [제공 다운로드](https://aleph-workbench-downloads.vercel.app/alekov.html)의0.2.14시작틀·portable-tools0.1.1·Workbench preview85를SHA검증후내용확인했다. 모두요구된package-app/APP_PACKAGE_MANIFEST/PROVIDED_RUNTIME_NOT_INSTALLED계약이없다. 다운로드된시작틀에도scripts는start/demo/check뿐이다. 제공업데이트0.2.14는이미쓰는버전이며학생코드를덮어쓰지않았다. 공개원본starter의package.json도명령없음. 인터넷검색의무관결과는근거로사용하지않았다.
+
+| 공식파일 | 확인한 SHA-256 |
+|---|---|
+| alekov-starter-0.2.14.zip | `88294d21948386e7be2b01cb895e69722a1401e88a51183e55a326bd4700d66b` |
+| keshev-portable-tools-0.1.1.zip | `9fef0746ba2b9a804cb06879b3ee0ea7bb61ffd21dd0951e8cddc005f5834274` |
+| ALEPH-Workbench-GUI-0.6.0-preview.85-win-x64.zip | `5bf9d761cc9af54e9f1750e4250452eda21f469e9c8060201561536b30b2c18d` |
+
+담당자에게필요한준비내용(외부전송하지않은요청초안): **현재on-client0.2.14에는package-app이없습니다.학생폴더를보존하는총공세용제공파일업데이트와appearance契約,승인실행환경/host의공식설치방법을제공해주세요.운영앱승인이필요하면담당자절차도필요합니다.비밀승인키를채팅으로보내달라는요청은아닙니다.**
+
+도구가준비되면학생개발조회경로와꾸밈이승인host에서도허용되는지먼저대조하고,256×256PNG/새출력폴더를확인한뒤제공명령→APP_PACKAGE_MANIFEST.json/INSTALL.md→새경로설치→승인host바로가기→실제조회순서로확인한다. 아직공식manifest/INSTALL.md/설치묶음/바로가기는생성하지않았다.소스사본을설치패키지로부르지않는다.새포장스크립트·구형export·--app-only-v1·승인우회로대체하지않았다. 7일차의시연/기록은이준비대기와독립적으로계속한다.
+
+
+### Windows 기본 정책 재검증과 정정
+
+최종 재검증에서 공유 경로의 `.ps1` 파일 실행은 기본Restricted정책에막혔다. 앞선09:38실측은일반사용자였으나시험진입기의일시적인프로세스정책설정영향을배제하지못했다.이를기본정책에서동작한근거로사용하지않는다.
+
+수집기는정책을바꾸지않고소유한고정조회명령을PowerShell에직접전달하도록수정했다. 외부요청에서명령문을받지않으며selector는network/firewall/events세개만허용한다. API·보안설정·관리자권한·실행정책을변경하지않는다. null네트워크구성은0개로집계하도록정정했다.
+
+2026-10-26 09:51~09:52, Node24.19.0/Windows11 **Restricted·processOverride=null·elevated=false**에서최종수집성공. 학생로컬서버를통한PC/연결조회HTTP200,전용CSS/배치JS200도확인했다. System경고0/오류3,Application경고0/오류2(직전24시간),세방화벽프로필on,네트워크구성1개관측.이는최종시각의값이며앞선시간의오류1건과섞지않는다. null구성회귀는별도시험자료로전부false확인했고실제PC관측과구분했다. Windows브라우저버튼직접조작미검증한계는유지한다.

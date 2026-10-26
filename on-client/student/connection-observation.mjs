@@ -2,7 +2,7 @@
 import {platform,networkInterfaces} from 'node:os';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {fileURLToPath} from 'node:url';
+import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 const run=promisify(execFile);
 const unknown=(source,reason)=>({status:'unavailable',data:null,source,reason,observedAt:new Date().toISOString()});
@@ -10,7 +10,10 @@ export async function readWindowsPart(kind,{execute=run}={}){
   if(!['network','firewall','events'].includes(kind))throw Error('INVALID_READ_KIND');
   const source={network:'Get-NetIPConfiguration -All',firewall:'Get-NetFirewallProfile -PolicyStore ActiveStore',events:'Get-WinEvent · System/Application · Level 2/3 · 최근 24시간'}[kind];
   try{
-    const {stdout}=await execute(join(process.env.SystemRoot??'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'),['-NoLogo','-NoProfile','-NonInteractive','-File',fileURLToPath(new URL('./windows-readonly.ps1',import.meta.url)),'-Kind',kind],{timeout:6000,maxBuffer:65536,windowsHide:true,encoding:'utf8'});
+    const script=await readFile(new URL('./windows-readonly.ps1',import.meta.url),'utf8');
+    // Fixed student-owned commands with an allowlisted selector; never accept command text from HTTP.
+    // Do not change ExecutionPolicy or any OS/network/security setting.
+    const {stdout}=await execute(join(process.env.SystemRoot??'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe'),['-NoLogo','-NoProfile','-NonInteractive','-Command',`& { ${script} } -Kind ${kind}`],{timeout:6000,maxBuffer:65536,windowsHide:true,encoding:'utf8'});
     const result=JSON.parse(stdout.replace(/^\uFEFF/,''));
     if(result.status!=='measured'||!Number.isFinite(Date.parse(result.observedAt)))throw Error('READ_UNAVAILABLE');
     // Return only a validated contract, never raw process output or OS error messages.

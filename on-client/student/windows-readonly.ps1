@@ -9,7 +9,7 @@ try {
       $rows=@(Get-NetIPConfiguration -All | ForEach-Object {
         $state=[string]$_.NetAdapter.Status
         if ($state -notin @('Up','Down','Disconnected','Disabled','Not Present','Unknown','Dormant','LowerLayerDown')) {$state='Unknown'}
-        [pscustomobject]@{state=$state;ipv4Configured=(@($_.IPv4Address).Count -gt 0);ipv6Configured=(@($_.IPv6Address).Count -gt 0);defaultRouteConfigured=(@($_.IPv4DefaultGateway).Count -gt 0 -or @($_.IPv6DefaultGateway).Count -gt 0);dnsConfigured=(@($_.DNSServer.ServerAddresses).Count -gt 0)}
+        [pscustomobject]@{state=$state;ipv4Configured=(@($_.IPv4Address | Where-Object { $null -ne $_ }).Count -gt 0);ipv6Configured=(@($_.IPv6Address | Where-Object { $null -ne $_ }).Count -gt 0);defaultRouteConfigured=(@($_.IPv4DefaultGateway | Where-Object { $null -ne $_ }).Count -gt 0 -or @($_.IPv6DefaultGateway | Where-Object { $null -ne $_ }).Count -gt 0);dnsConfigured=(@($_.DNSServer.ServerAddresses | Where-Object { $null -ne $_ }).Count -gt 0)}
       })
       $data=@{interfaces=$rows}
     }
