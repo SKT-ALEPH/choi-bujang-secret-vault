@@ -1,4 +1,6 @@
 // Development UI only. Provided source files remain unchanged.
+const mode=document.querySelector('#mode-badge');
+if(mode){const label=document.createElement('span');label.className='daily-mode-label';label.textContent='ALEPH';mode.before(label);}
 const status=document.querySelector('#student-status')?.closest('.card');
 const identity=document.querySelector('#student-identity')?.closest('.card');
 const view=document.querySelector('#view-protection');
@@ -9,5 +11,5 @@ if(status&&identity&&view){
   details.className='secondary-tools';summary.textContent='기존 계정·기기 연결 정보';
   identity.before(details);details.append(summary,identity);
   const errors=document.querySelector('#error-message');
-  if(errors){const wrapper=document.createElement('details'),label=document.createElement('summary');wrapper.className='secondary-tools';label.textContent='기존 서버 연결 오류 · PC 실측과 별도';status.after(wrapper);wrapper.append(label,errors);}
+  if(errors){const wrapper=document.createElement('details'),label=document.createElement('summary');wrapper.className='secondary-tools';label.textContent='기존 ALEPH 서버 연결 오류';status.after(wrapper);wrapper.append(label,errors);}
 }

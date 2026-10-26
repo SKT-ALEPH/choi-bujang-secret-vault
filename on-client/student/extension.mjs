@@ -1,6 +1,39 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
 // Student daily-PC panel: manual local reads only, no automatic polling or AI transmission.
+function appendNetBirdPanel(root) {
+  const panel=document.createElement('section');panel.className='student-netbird-panel';
+  const text=(value,tag='p',parent=panel)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
+  text('내 사설 연결 · NetBird','h3');
+  text('Mac에서 Windows의 확인용 자원에 직접 요청합니다. 서버 연결·상대 기기 연결·실제 자원 응답을 각각 확인하세요.');
+  const button=text('NetBird 연결과 자원 확인','button');button.type='button';button.className='btn';
+  const status=text('조회 전 · 버튼을 누를 때만 확인합니다.');status.setAttribute('role','status');
+  const results=document.createElement('div');results.className='student-netbird-results';panel.append(results);
+  const card=(title,value,detail)=>{const c=document.createElement('section');c.className='student-connection-metric';results.append(c);text(title,'h4',c);text(value,'p',c);text(detail,'p',c);};
+  const unknown=(value='확인 전')=>{results.replaceChildren();card('NetBird 서버',value,'로컬 NetBird 서비스에서 읽습니다.');card('상대 기기',value,'기기 연결만으로 자원 접근 성공을 판단하지 않습니다.');card('Windows 확인 자원',value,'TCP 54123 · 사설망 전용');};unknown();
+  const more=document.createElement('details');text('ALEPH 연결과 범위 안내','summary',more);
+  panel.append(more);text('이 기능은 개인 NetBird 사설망과 확인용 자원의 실제 연결입니다. 기존 ALEPH 신원·기기 보안 판정·XDR 탐지나 자료실 이전을 대신하지 않습니다. 원문 주소·기기 공개키·계정 정보는 표시하지 않습니다.','p',more);
+  button.addEventListener('click',async()=>{
+    button.disabled=true;panel.setAttribute('aria-busy','true');status.textContent='NetBird 상태와 사설 자원 응답을 확인하는 중입니다…';results.replaceChildren();
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try{
+      const response=await fetch('/api/student/netbird',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw Error(response.status===403?'SESSION':response.status===429?'BUSY':'FAILED');
+      const {ok,data:d}=await response.json();
+      if(ok!==true||d?.schema!=='keshev.student.netbird.v1'||!['measured','unavailable'].includes(d.status)||!Number.isFinite(Date.parse(d.observedAt))||!['not_configured','not_checked','peer_unavailable','reachable','unreachable'].includes(d.resource?.status))throw Error('INVALID');
+      if(d.status==='measured'&&(!d.connection||typeof d.connection.management!=='boolean'||typeof d.connection.signal!=='boolean'||typeof d.connection.daemon!=='string'||typeof d.connection.version!=='string'||![d.connection.peersConnected,d.connection.peersTotal].every(n=>Number.isSafeInteger(n)&&n>=0)||d.connection.peersConnected>d.connection.peersTotal)||d.resource.status==='reachable'&&!Number.isFinite(Date.parse(d.resource.servedAt)))throw Error('INVALID');
+      if(root.isConnected===false)return;
+      results.replaceChildren();status.textContent=`조회 시각: ${d.observedAt} · NetBird CLI와 실제 HTTP 요청 · 자동 조회 없음`;
+      const c=d.connection;
+      if(d.status==='unavailable'||!c){card('NetBird 서버','확인 불가','NetBird 설치·서비스 상태를 확인하고 다시 조회하세요.');card('상대 기기','확인 불가','로컬 상태를 읽지 못했습니다.');}
+      else{card('NetBird 서버',c.management&&c.daemon==='Connected'?'연결됨':'연결되지 않음',`서비스: ${c.daemon} · 신호 서버 ${c.signal?'연결':'미연결'} · 버전 ${c.version}`);card('상대 기기',`${c.peersConnected} / ${c.peersTotal}대 연결`,`현재 정책에 보이는 기기 기준입니다. 정책으로 숨겨진 기기는 이 수에 포함되지 않습니다.`);}
+      const labels={not_configured:['대상 설정 전','설명서대로 Windows 확인 자원의 사설 주소를 실행 환경에 지정하세요.'],not_checked:['확인하지 못함','먼저 NetBird 서버 연결 상태를 확인하세요.'],peer_unavailable:['상대 기기 확인 불가','대상 설정·기기 등록·접근 정책을 확인하세요. 정책 거부로 단정하지 않습니다.'],reachable:['실제 응답 확인',`Windows 자원 응답 시각: ${d.resource.servedAt} · TCP 54123`],unreachable:['응답 없음 · 원인 미확인','정책·상대 서비스·연결 상태 중 하나일 수 있습니다. 거부 판정으로 단정하지 않습니다.']};
+      card('Windows 확인 자원',...labels[d.resource.status]);
+    }catch(error){if(root.isConnected!==false){unknown('확인 불가');status.textContent=error.message==='SESSION'?'로컬 조회 세션이 만료됐습니다. 앱을 새로고침하고 다시 확인하세요.':error.message==='BUSY'?'다른 조회가 진행 중입니다. 완료된 뒤 다시 확인하세요.':'현재 연결을 확인하지 못했습니다. 개발 실행기와 NetBird 상태를 확인하고 다시 시도하세요.';}}
+    finally{clearTimeout(timer);button.disabled=false;panel.setAttribute('aria-busy','false');}
+  });
+  root.append(panel);
+}
 function appendPcPanel(root, history) {
   const panel=document.createElement('section');panel.className='student-pc-panel';
   const text=(value,tag='p',parent=panel)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
@@ -9,7 +42,7 @@ function appendPcPanel(root, history) {
   const button=text('내 PC 상태 다시 조회','button');button.type='button';button.className='btn';
   const status=text('아직 조회하지 않았습니다. 버튼을 눌러 현재 값을 읽으세요.');status.setAttribute('role','status');
   const results=document.createElement('div');results.className='student-pc-results';panel.append(results);let version=0;
-  const sdpCard=()=>{const c=document.createElement('section');c.className='student-sdp-metric';results.append(c);text('SDP 서버','h4',c);text('확인 불가','p',c);text('승인된 서버 연결 관측이 없습니다. PC 실측 성공과 별도입니다.','p',c);};
+  const sdpCard=()=>{const c=document.createElement('section');c.className='student-sdp-metric';results.append(c);text('과제용 ALEPH 서버','h4',c);text('확인 불가','p',c);text('기존 과제 서버의 연결 관측이 없습니다. NetBird 결과는 위 별도 패널에서 확인하세요.','p',c);};
   const placeholders=message=>{results.replaceChildren();for(const label of ['CPU 사용률','메모리 사용량','디스크 가용 공간']){const c=document.createElement('section');c.className='student-pc-metric';results.append(c);text(label,'h4',c);text(message,'p',c);}sdpCard();};
   placeholders('조회 전');
   button.addEventListener('click',async()=>{
@@ -50,7 +83,7 @@ function appendConnectionPanel(root) {
   const button=text('연결과 기록 다시 조회','button');button.type='button';button.className='btn';
   const status=text('아직 조회하지 않았습니다. 자동 조회와 설정 변경은 없습니다.');status.setAttribute('role','status');
   const results=document.createElement('div');results.className='student-connection-results';panel.append(results);
-  text('SDP 서버 · 확인 불가: 승인된 서버 연결 관측이 없습니다. PC 조회 결과와 별도입니다.');
+  text('과제용 ALEPH 서버 · 확인 불가. 개인 NetBird 연결은 위 별도 패널에서 확인하세요.');
   button.addEventListener('click',async()=>{
     button.disabled=true;panel.setAttribute('aria-busy','true');results.replaceChildren();status.textContent='연결 구성과 Windows 기록을 읽는 중입니다…';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
@@ -303,6 +336,7 @@ export function createStudentView() {
           ? '연결 상태를 확인하세요. 진단 정보 다시 시도는 제공 화면의 도움정보 불러오기 버튼을 직접 누르세요.'
           : '연결 상태를 확인하세요. 다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요. 자동으로 다시 요청하지 않습니다.');
       };
+      appendNetBirdPanel(root);
       appendPcPanel(root, pcHistory);
       appendConnectionPanel(root);
       const legacy=document.createElement('details');legacy.className='student-legacy-details';

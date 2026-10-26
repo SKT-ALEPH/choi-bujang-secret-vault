@@ -163,3 +163,8 @@ node student/start-daily.mjs
 ALEPH운영SDP의종료는확인되지않았다.개발서버disconnected는의도적설정이며운영장애증거가아니다.수료용안내는학원연결의수료후유지를보장하지않고별도서버/어댑터/자격을요구한다.기존ALEPH계약은mTLS/JWT와전용context/apps/decision/본인기록API여서무료제품의연결상태를동일권한판정으로대체할수없다.
 
 [NetBird무료계획](https://netbird.io/pricing)은현재5명/100기기와기본접근제어를지원하며감사로그는Team/통신로그·기기상태통합은Business범위다.공식0.81.4MacARM64.pkg와WindowsARM64.msi를다운로드/공식releaseassetSHA대조했고MacApple서명·공증확인.아직설치·계정/기기등록·정책설정·실연동없음.공개Vercel을보호하려면서버쪽접근경계도구성해야한다.향후Mac↔Windows실습자원보호대상과허용정책을정하고현재본인범위상태/허용/거부/로그검증을연결해야한다.다운로드만으로SDP/XDR완료라고표시하지않는다.
+
+
+## 2026-10-26 · 개인 NetBird 실제 연동 후속
+
+사용자 별도 요청으로 공식 NetBird 0.81.4를 Mac/Windows ARM64에 설치하고 무료 계정의 두 기기를 등록했다. 기본 전체 허용을 끄고 Mac→Windows TCP54123 하나만 허용했다. Windows 비민감 확인 자원에 Mac 케셰브가 실제 요청하며, 정책 비활성화 시 실패·복구 후200을 확인했다. 기존 ALEPH 신원/판정과 자료실 배포는 보존한다. 설치형 자동 실행/공식 포장이나 과제 SDP 대체 완료를 뜻하지 않는다. 실행·경계·근거는 [STUDENT_NETBIRD.md](STUDENT_NETBIRD.md)에 있다. 기존 개인 ZIP은 이 후속 변경 이전 버전으로 보존하며 최신 NetBird 코드가 포함됐다고 쓰지 않는다.

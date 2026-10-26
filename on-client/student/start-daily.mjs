@@ -7,8 +7,9 @@ import {createOnServer} from '../src/server.mjs';
 import {demoEngine} from '../src/engine.mjs';
 import {readPcObservation} from './pc-observation.mjs';
 import {readConnectionObservation} from './connection-observation.mjs';
+import {readNetBirdObservation} from './netbird-observation.mjs';
 
-export async function createDailyServer({demo=false,readPc=readPcObservation,readConnections=readConnectionObservation,readTimeoutMs=3500}={}){
+export async function createDailyServer({demo=false,readPc=readPcObservation,readConnections=readConnectionObservation,readNetBird=readNetBirdObservation,readTimeoutMs=3500}={}){
   if(!Number.isInteger(readTimeoutMs)||readTimeoutMs<10||readTimeoutMs>5000)throw Error('INVALID_PC_TIMEOUT');
   const server=createOnServer({engine:demo?demoEngine():{evidenceMode:'disconnected'},aiEnv:{}});
   const [providedHandler]=server.listeners('request');server.removeListener('request',providedHandler);
@@ -37,13 +38,13 @@ export async function createDailyServer({demo=false,readPc=readPcObservation,rea
         'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",'x-content-type-options':'nosniff'});
       res.end(html);return;
     }
-    const read=req.url==='/api/student/pc'?readPc:req.url==='/api/student/connections'?readConnections:null;
+    const read=req.url==='/api/student/pc'?readPc:req.url==='/api/student/connections'?readConnections:req.url==='/api/student/netbird'?readNetBird:null;
     if(!read){providedHandler(req,res);return;}
     if(req.method!=='GET'){json(res,405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
     if(!authorized(req)||req.headers['sec-fetch-site']!=='same-origin'||req.headers.origin&&req.headers.origin!==origin){json(res,403,{ok:false,code:'PC_ORIGIN_REJECTED'});return;}
     if(busy){json(res,429,{ok:false,code:'PC_READ_BUSY'});return;}
     busy=true;let timer;
-    try{const data=await Promise.race([Promise.resolve().then(read),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('PC_READ_TIMEOUT')),req.url==='/api/student/connections'?8000:readTimeoutMs);})]);if(!res.destroyed)json(res,200,{ok:true,data});}
+    try{const data=await Promise.race([Promise.resolve().then(read),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('PC_READ_TIMEOUT')),req.url!=='/api/student/pc'?8000:readTimeoutMs);})]);if(!res.destroyed)json(res,200,{ok:true,data});}
     catch{if(!res.destroyed)json(res,503,{ok:false,code:'PC_READ_UNAVAILABLE'});}
     finally{clearTimeout(timer);busy=false;}
   });

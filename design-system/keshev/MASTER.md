@@ -92,3 +92,8 @@ ui-ux-pro-max 공식 v2.15.0의 `style: Soft UI Evolution`, `typography: Luxury 
 ## 2026-10-26 · 총공세 학생 개발 대시보드
 
 `on-client/student/daily.css`는 기존 토큰을 재사용하는 개발 화면 전용 보완이다. `student/daily-layout.mjs`와 `student/start-daily.mjs`에서만 적용한다. 제공 `public` 원본의 테마 역할은 유지한다. CPU·메모리·디스크·SDP 네 카드, 아래 연결/기록, 계정/진단 접기를 사용한다. 이 개발 전용 CSS·배치가 승인된 설치형에서 적용됐다고 간주하지 않는다. 공식 appearance 계약이 없어 appearance.json을 발명하지 않았다.
+
+
+## 2026-10-26 · 개인 NetBird 관측
+
+학생 개발 보호 현황의 첫 패널에 서버 연결 / 상대 기기 / Windows 확인 자원을 세 카드로 표시한다. 기존 토큰·44px 버튼·수동 조회·aria-busy/live 상태·900px 이하 한 열을 사용한다. 성공 시 자원 응답 시각, 실패 시 원인 미확인을 표시한다. 상단 ALEPH 연결과 NetBird 개인 연결의 범위를 명시해 혼동을 줄인다. ui-ux-pro-max `loading status feedback` UX 검색의 로딩/성공/실패 피드백을 적용했다.
