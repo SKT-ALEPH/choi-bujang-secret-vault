@@ -154,3 +154,12 @@ node student/start-daily.mjs
 | [메모리얼패키지제출](https://aleph-omega.vercel.app/memorial#package) | GitHub저장소/시연주소/선택설명으로기존접수가능한폼이열림.현재저장소와시연은아직없음,확인표0/8·패키징판정미확인.새총공세화면의다중사진확인과동일한제출이라고간주하지않음 |
 
 이번확인은읽기/공식다운로드만수행했다.메모리얼의저장·제출·기타경험자료를변경하지않았다.공식도구가없어네파일을생성할수없으므로제출하지않았다.담당자에게필요한자료는「package-app을포함한총공세용학생보존업데이트와승인host설치안내」이며,사진최종확인까지하려면해당반의공식운영경로안내도필요하다.도움요청문은로컬기록이며외부전송하지않았다.
+
+
+## 개인용 포장·무료 연결 준비 · 2026-10-26
+
+사용자가자체구성또는확보를요청하여공식수료용도구0.1.1을재사용했다.원본추적파일69개를새사본으로복사하고도구18개만추가한뒤`export-student-package.mjs`로개인소스묶음을생성했다.89개manifest파일검증통과,ZIP재해제후동일검증통과,새압축해제폴더의학생daily실행/PC실측/연결조회Mac브라우저재현성공.원본src/public/student·자격은변경하지않았다.결과는상위artifacts/final-assault-2026-10-26/keshev-personal-source-20261026.zip,설명은같은폴더PERSONAL_DELIVERY.md다.이는개인용on-client소스내보내기이며제출package-app/승인host/finish4파일과별개다.별도personal-ai/OAuth앱·SDK·자격은범위밖으로보존했으며전체OAuth앱통합포장성공이라고쓰지않는다.
+
+ALEPH운영SDP의종료는확인되지않았다.개발서버disconnected는의도적설정이며운영장애증거가아니다.수료용안내는학원연결의수료후유지를보장하지않고별도서버/어댑터/자격을요구한다.기존ALEPH계약은mTLS/JWT와전용context/apps/decision/본인기록API여서무료제품의연결상태를동일권한판정으로대체할수없다.
+
+[NetBird무료계획](https://netbird.io/pricing)은현재5명/100기기와기본접근제어를지원하며감사로그는Team/통신로그·기기상태통합은Business범위다.공식0.81.4MacARM64.pkg와WindowsARM64.msi를다운로드/공식releaseassetSHA대조했고MacApple서명·공증확인.아직설치·계정/기기등록·정책설정·실연동없음.공개Vercel을보호하려면서버쪽접근경계도구성해야한다.향후Mac↔Windows실습자원보호대상과허용정책을정하고현재본인범위상태/허용/거부/로그검증을연결해야한다.다운로드만으로SDP/XDR완료라고표시하지않는다.
