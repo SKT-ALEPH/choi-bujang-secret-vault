@@ -74,3 +74,8 @@
 ## 7. 다음 확인
 
 공식제공도구가준비되면학생조회와꾸밈의승인host계약을먼저대조한다.제공package-app→같은묶음manifest/INSTALL→새경로설치→host바로가기→Windows실제조회순으로검증한다. 그전에는설치형완성이나제출가능으로표시하지않는다. 공격시험·보안설정변경·승인우회는필요하지않다.
+
+
+## 8. 최신 제출 안내 확인 · 2026-10-26 10:01
+
+[총공세제출길잡이](https://aleph-omega.vercel.app/defense)는같은포장결과의네파일(finish.commit.raw/finish.archive.tar.gz/app.zip/APP_PACKAGE_MANIFEST.json)과실제대표화면1장(선택최대6장)을준비하도록안내한다.운영네파일등록과기존평가요청은별개이며사진미연결이다.사진포함새최종확인은현재시험0반전용로컬화면이므로일반학생운영완료로보고하지않는다.기존[메모리얼ZTNA/XDR제출창](https://aleph-omega.vercel.app/memorial#package)은저장소/시연주소를받고있으며현재미등록·P1~P8미확인이다.공식package-app제공본이확보되지않아어느최종제출도이번에수행하지않았다.필요한도구와우리반운영경로안내를받은뒤필수조건대조/실제설치/소스묶음일치검증을완성해야한다.
