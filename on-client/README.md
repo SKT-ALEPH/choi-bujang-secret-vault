@@ -53,3 +53,5 @@ npm start도 같은 서버를 켭니다. 기본 실행은 실제 회사 시스�
 22단계의 검증 중 버전·새 폴더 재현·단계별 관측·데이터 보존과 복구 범위는 [학생 재현·버전 기록](docs/STUDENT_RELEASE.md)을 봅니다. 운영 연결·실집행 미확인과 AI 원문 심사를 구분합니다.
 
 22단계 이후 기본 포장과 바로가기로 진행하는 [마지막 총공세 작업 기록](docs/STUDENT_FINAL_ASSAULT.md)에 현재 기능 점검표와 핵심 기능3개를 정리합니다. setup.exe 제작은 범위에서 제외합니다.
+
+총공세 PC 조회 개발 화면은 [한 장 실행 안내](docs/STUDENT_DAILY_START.md)를 따른다. `node student/start-daily.mjs`이며 공식 설치형과 별도다.
