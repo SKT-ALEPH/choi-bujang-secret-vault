@@ -19,3 +19,6 @@ public/stage10-recovery-proof.json
 public/stage11-device-proof.json
 
 public/stage12-live-proof.json
+
+# Personal runtime exports only its non-secret device public key here.
+/personal-workspace/runtime-public/
