@@ -1,6 +1,44 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
+// Student daily-PC panel: manual local reads only, no automatic polling or AI transmission.
+function appendPcPanel(root, history) {
+  const panel=document.createElement('section');panel.className='student-pc-panel';
+  const text=(value,tag='p',parent=panel)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
+  text('내 PC 실측 · 학생 개발 기능','h3');
+  text('CPU·메모리·디스크는 이 앱이 실행 중인 OS에서 읽습니다. 기기 보안 판정·SDP 연결과 별도이며 외부로 전송하지 않습니다.');
+  const button=text('내 PC 상태 다시 조회','button');button.type='button';button.className='btn';
+  const status=text('아직 조회하지 않았습니다. 버튼을 눌러 현재 값을 읽으세요.');status.setAttribute('role','status');
+  const results=document.createElement('div');results.className='student-pc-results';panel.append(results);let version=0;
+  button.addEventListener('click',async()=>{
+    const current=++version;button.disabled=true;panel.setAttribute('aria-busy','true');results.replaceChildren();status.textContent='내 PC 상태를 읽는 중입니다…';
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+    try {
+      const response=await fetch('/api/student/pc',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw Error(response.status===404?'PC_DEVELOPMENT_ENTRY_REQUIRED':'PC_READ_FAILED');
+      const body=await response.json(),data=body?.data;
+      if(body?.ok!==true||data?.schema!=='keshev.student.pc.v1'||data.mode!=='measured'||!['darwin','win32','linux'].includes(data.platform)||!Number.isFinite(Date.parse(data.observedAt)))throw Error('PC_INVALID_RESPONSE');
+      const rows=[['cpu','CPU 사용률','%'],['memory','메모리 사용량','GiB'],['disk','디스크 가용 공간','GiB']];
+      for(const [key,,unit] of rows){const m=data.metrics?.[key];if(!m||!['measured','unavailable'].includes(m.status)||m.unit!==unit||!Number.isFinite(Date.parse(m.observedAt))||typeof m.source!=='string'||m.status==='measured'&&(!Number.isFinite(m.value)||m.value<0||key==='cpu'&&m.value>100))throw Error('PC_INVALID_RESPONSE');}
+      if(current!==version||root.isConnected===false)return;
+      status.textContent=`실제 조회 · OS: ${data.platform} · 조회 시각: ${data.observedAt} · 자동 조회 없음`;
+      for(const [key,label,unit] of rows){
+        const m=data.metrics[key],card=document.createElement('section');card.className='student-pc-metric';results.append(card);text(label,'h4',card);
+        if(m.status==='measured'){
+          text(`${m.value.toFixed(2)} ${unit}`,'p',card);
+          const before=history[key];if(before)text(`이전 실측(${before.at}) 대비 ${(m.value-before.value)>=0?'+':''}${(m.value-before.value).toFixed(2)} ${key==='cpu'?'%p':unit}`,'p',card);
+          else text('이전 실측이 없어 변화 비교는 아직 없습니다.','p',card);
+          history[key]={value:m.value,at:m.observedAt};
+        }else text('확인 불가 · 일반 권한으로 값을 읽지 못했습니다. 권한을 높이지 않고 다음에 직접 다시 조회하세요.','p',card);
+        text(`측정 시각: ${m.observedAt}`,'p',card);text(`출처: ${m.source}`,'p',card);
+      }
+      text('메모리는 OS 전체−여유 집계입니다. 작업 관리자의 캐시·가용 메모리 분류와 다를 수 있어 같은 시각·단위·집계 범위로 비교하세요.','p',results);
+    } catch(error){if(current===version&&root.isConnected!==false){results.replaceChildren();status.textContent=error.message==='PC_DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. 설명서의 node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`PC 조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 값을 확인할 수 없습니다. 개발 실행기와 OS 상태를 확인한 뒤 직접 다시 조회하세요.`;}}
+    finally{clearTimeout(timer);if(current===version){button.disabled=false;panel.setAttribute('aria-busy','false');}}
+  });
+  root.append(panel);
+}
 export function createStudentView() {
+  const pcHistory = {};
   return {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
@@ -207,6 +245,7 @@ export function createStudentView() {
           ? '연결 상태를 확인하세요. 진단 정보 다시 시도는 제공 화면의 도움정보 불러오기 버튼을 직접 누르세요.'
           : '연결 상태를 확인하세요. 다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요. 자동으로 다시 요청하지 않습니다.');
       };
+      appendPcPanel(root, pcHistory);
       text(root, modeText(mode));
       for (const [key, name, resource] of [['devices', '기기 정보', devices], ['sessions', '세션 정보', sessions]]) {
         const section = document.createElement('section');
