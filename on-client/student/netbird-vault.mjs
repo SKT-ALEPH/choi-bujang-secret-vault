@@ -2,6 +2,9 @@ import {createHash,createPublicKey} from 'node:crypto';
 import {signGatewayRequest} from '../../src/netbird-gateway.mjs';
 import config from '../../aleph.config.json' with {type:'json'};
 import {projectVaultEvent,vaultContext} from './netbird-events.mjs';
+import {readPcObservation} from './pc-observation.mjs';
+import {readConnectionObservation} from './connection-observation.mjs';
+import {readWindowsXdr} from './windows-xdr.mjs';
 
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const fault=(code,status=409)=>Object.assign(Error(code),{code,status});
@@ -32,7 +35,7 @@ function tokenSession(authorization){
   const v=sha(authorization),s=v.slice(0,12)+'4'+v.slice(13,16)+'8'+v.slice(17,32);
   return [s.slice(0,8),s.slice(8,12),s.slice(12,16),s.slice(16,20),s.slice(20)].join('-');
 }
-export function createVaultGateway({privateKey,deviceId,store,origin=config.publicAppUrl,request=fetch}){
+export function createVaultGateway({privateKey,deviceId,store,xdr,origin=config.publicAppUrl,request=fetch}){
   if(new URL(origin).origin!==origin||!origin.startsWith('https://'))throw Error('VAULT_ORIGIN_INVALID');
   const identities=new Map();
   const engineGeneration=parseInt(sha(createPublicKey(privateKey).export({type:'spki',format:'pem'})).slice(0,12),16)||1;
@@ -64,8 +67,14 @@ export function createVaultGateway({privateKey,deviceId,store,origin=config.publ
     if(!auth&&!who)throw fault('VAULT_SIGN_IN_REQUIRED',401);
     const enrollment=path.startsWith('/api/device?');
     if(who&&!enrollment)store.requireAccess(who.actor);
+    const authOperation=new URL(path,'https://fixed.invalid').searchParams.get('path');
+    if(xdr&&!(auth&&['user','logout'].includes(authOperation))){
+      const blocked=await xdr.check()??await xdr.inspect(input,who?.actor);
+      if(blocked)return {status:403,data:{error:blocked.code},headers:{'x-xdr-evidence':blocked.evidenceId,'retry-after':String(blocked.retryAfter)},subjectId:who?.subjectId??null};
+    }
     const headers={...input.headers};
     const result=await fetchVault(path,input.method,headers,input.body);
+    if(xdr)await xdr.response(input,result,who?.actor);
     if(who){
       const kind=result.headers['x-xdr-evidence']?'xdr':'access',blocked=result.status===401||result.status===403||result.status===429;
       const code=typeof result.data?.error==='string'&&/^[A-Z0-9_]{1,80}$/.test(result.data.error)?result.data.error:'VAULT_HTTP_'+result.status;
@@ -79,7 +88,8 @@ export function createVaultGateway({privateKey,deviceId,store,origin=config.publ
   async function control(input){
     if(!exact(input,['authorization','operation','input']))throw fault('VAULT_REQUEST_INVALID',400);
     const who=await principal(input.authorization),{actor,subjectId}=who;
-    const status=store.route('/agent/status',{actor,input:{}}),context=vaultContext(status,subjectId,engineGeneration);
+    const baseStatus=store.route('/agent/status',{actor,input:{}}),blocked=xdr?await xdr.check():null;
+    const status=blocked?{...baseStatus,decision:'deny',reason:blocked.code}:baseStatus,context=vaultContext(status,subjectId,engineGeneration);
     if(input.operation==='context')return {context,status,subjectId};
     if(input.operation==='actionEvents')return store.route('/agent/events',{actor,input:{}}).events.map(e=>projectVaultEvent(e,subjectId,{action:true}));
     if(input.operation==='authorizeCommand'){
@@ -88,9 +98,17 @@ export function createVaultGateway({privateKey,deviceId,store,origin=config.publ
     }
     if(input.operation==='executeCommand')return store.executeCommand(actor,input.input,subjectId,engineGeneration);
     if(input.operation==='readCommand')return store.readCommand(actor,input.input.requestId);
+    if(input.operation==='windows'){
+      store.requireAccess(actor);
+      const [pc,connections,observations]=await Promise.all([readPcObservation(),readConnectionObservation(),readWindowsXdr()]);
+      const xdrStatus=xdr?await xdr.windows(observations,actor):null;
+      return {pc,connections,xdr:xdrStatus};
+    }
+    if(input.operation==='xdr')return xdr?await xdr.status(actor):null;
+    if(input.operation==='access'&&blocked)return {subjectId,projectId:'choi-bujang-secret-vault',appId:input.input.appId,decision:'deny',reason:blocked.code,checkedAt:status.checkedAt};
     const routes={status:'/agent/status',events:'/agent/events',receipts:'/agent/receipts',access:'/agent/access',prepare:'/agent/action/prepare',execute:'/agent/action/execute',result:'/agent/action/result',restore:'/agent/restore',logout:'/agent/logout',pc:'/agent/pc'};
     if(!Object.hasOwn(routes,input.operation))throw fault('VAULT_REQUEST_INVALID',400);
     return {subjectId,projectId:'choi-bujang-secret-vault',...store.route(routes[input.operation],{actor,input:input.input})};
   }
-  return {relay,control,publicKey:createPublicKey(privateKey).export({type:'spki',format:'pem'})};
+  return {relay,control,close:()=>xdr?.close(),publicKey:createPublicKey(privateKey).export({type:'spki',format:'pem'})};
 }

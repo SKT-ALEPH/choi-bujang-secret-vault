@@ -13,7 +13,7 @@ export async function createWorkspaceServer(client,options){
  const host=createWorkspaceHost({client,...options});
  const directory=join(homedir(),'Library/Application Support/Keshev'),databasePath=options?.actionDatabasePath??join(directory,'agent.sqlite');
  const managedAccount=createManagedAccount({transport:host.transport});
- const agent=createNetBirdAgent({transport:host.transport,observeNetwork:host.observeNetwork,managedAccount});
+ const agent=createNetBirdAgent({transport:host.transport,observeNetwork:host.observeNetwork,managedAccount,directRequest:options?.directRequest});
  if(!options?.actionDatabasePath){await mkdir(directory,{recursive:true,mode:0o700});const db=new DatabaseSync(databasePath);db.close();await chmod(databasePath,0o600);}
  const appAssets=new Map([['/student/netbird-layout.mjs',{type:'text/javascript; charset=utf-8',bytes:await readFile(new URL('../on-client/student/netbird-layout.mjs',import.meta.url))}]]);
  const server=await createPersonalServer(client,{applicationId:'netbird-integrated',appAssets,handleBridgeRequest:agent.handle,prepareExplanation:agent.prepareExplanation,incidentRoutes:true,

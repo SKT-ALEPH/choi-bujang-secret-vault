@@ -5,14 +5,14 @@ function appendNetBirdPanel(root) {
   const panel=document.createElement('section');panel.className='student-netbird-panel';
   const text=(value,tag='p',parent=panel)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
   text('내 사설 연결 · NetBird','h3');
-  text('Mac에서 Windows의 확인용 자원에 직접 요청합니다. 서버 연결·상대 기기 연결·실제 자원 응답을 각각 확인하세요.');
+  text('Mac에서 Windows의 게이트웨이에 요청합니다. 서버 연결·상대 기기 연결·실제 자원 응답을 각각 확인하세요.');
   const button=text('NetBird 연결과 자원 확인','button');button.type='button';button.className='btn';
   const status=text('조회 전 · 버튼을 누를 때만 확인합니다.');status.setAttribute('role','status');
   const results=document.createElement('div');results.className='student-netbird-results';panel.append(results);
   const card=(title,value,detail)=>{const c=document.createElement('section');c.className='student-connection-metric';results.append(c);text(title,'h4',c);text(value,'p',c);text(detail,'p',c);};
   const unknown=(value='확인 전')=>{results.replaceChildren();card('NetBird 서버',value,'로컬 NetBird 서비스에서 읽습니다.');card('상대 기기',value,'기기 연결만으로 자원 접근 성공을 판단하지 않습니다.');card('Windows 확인 자원',value,'TCP 54123 · 사설망 전용');};unknown();
   const more=document.createElement('details');text('ALEPH 연결과 범위 안내','summary',more);
-  panel.append(more);text('이 기능은 개인 NetBird 사설망과 확인용 자원의 실제 연결입니다. 기존 ALEPH 신원·기기 보안 판정·XDR 탐지나 자료실 이전을 대신하지 않습니다. 원문 주소·기기 공개키·계정 정보는 표시하지 않습니다.','p',more);
+  panel.append(more);text('이 패널은 NetBird 연결과 Windows 게이트웨이 응답을 관측합니다. 자료 권한·XDR·PC 보안 여부는 이 연결 상태만으로 판단하지 않습니다. 기존 자료실의 인증과 소유자 검사는 원래 서버에서 계속 수행합니다. 원문 주소·키·계정 정보는 표시하지 않습니다.','p',more);
   button.addEventListener('click',async()=>{
     button.disabled=true;panel.setAttribute('aria-busy','true');status.textContent='NetBird 상태와 사설 자원 응답을 확인하는 중입니다…';results.replaceChildren();
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);

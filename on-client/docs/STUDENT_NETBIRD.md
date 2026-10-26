@@ -1,6 +1,6 @@
 # 케셰브 · 개인 NetBird 실제 연동
 
-> **현재 개인 통합 앱 실행:** 저장소 루트에서 `node personal-workspace/start.mjs`로 Mac과 Windows 업무 서버를 함께 켠다. ChatGPT 계정·자료·접근 판정·기록·조치의 최신 안내는 [개인 운영 설명서](../../personal-workspace/README.md)다. 아래 내용은 앞서 검증한 PC/NetBird 단독 개발 실행 기록이며, 같은 포트에 두 실행기를 함께 켜지 않는다.
+> **현재 통합 실행:** 정확한 Node 24.19.0으로 저장소 루트에서 `node personal-workspace/start.mjs`를 실행한다. Mac과 Windows의 기존 케셰브를 함께 켠다. 현재 정본은 이 문서이며 [실행기 안내](../../personal-workspace/README.md)는 이를 가리킨다. 같은 포트에 다른 실행기를 함께 켜지 않는다.
 
 ## 기존 자료실·XDR·Agent 통합 수정 중 · 2026-10-26
 
@@ -10,9 +10,41 @@
 - 기존 로그인, owner 조건, 브라우저 비추출 P256 키, 원래 기기 승인/nonce, 기존 live XDR를 유지한다. Windows 게이트웨이는 추가 Ed25519 증명을 붙이고 Vercel은 공개키와 영속 nonce를 검사한다. 개인키는 Windows 사용자 DPAPI로만 보관하며 서버 비밀키를 PC에 옮기지 않는다.
 - 원래 Agent의 engine·조치 service/원장을 그대로 사용한다. 실제 게이트웨이 권한과 영수증의 조회를 연결한다. 별도 Windows 노트 CRUD의 성공을 기존 자료실 성공으로 세지 않는다.
 - 사용자 요청에 따라 계정은 정상 Supabase 이메일 OTP로 준비/연결할 수 있다. 기존 이메일 계정은 같은 사용자로 로그인한다. 비밀번호를 생성/복사/저장하거나 관리자 API로 이메일 확인을 우회하지 않는다. ChatGPT 연결은 AI에만 사용하고 기존 자료실 사용자 ID로 가장하지 않는다.
-- **현재는 구현·실검증 중이다.** 게이트웨이 추가 서명 강제는 아직 `config/netbird-gateway.json`의 `required:false`다. 새 인증 경로의 배포, 본인 계정, 공개 주소 우회 거부, XDR 실제 기록과 차단·복구 전체를 확인하기 전 완료가 아니다.
+- `config/netbird-gateway.json`은 **required:true**다. 실제 배포 6eaa9fc에서 동일한 정상 로그인·P256 기기 서명·nonce로 직접 Vercel403, NetBird 경로200을 확인했다. 공개 주소의 자료실 화면이 열리는 것과 자료 API에 접근하는 것은 별개다. 현재 진입점은 케셰브의 **기존 자료실 열기**다.
 - 재전송 방지 테이블 `netbird_gateway_nonces`는 실제 기존 Supabase에 추가했다. RLS=true, anon 읽기=false, authenticated 삽입=false, service_role 삽입=true를 확인했다. 기존 메모·사용자·정책을 변경하지 않았다.
 - 관련 격리 시험은 원래 HTTP handler와 암호학적 기기/게이트웨이 검증, Windows 권한, 기존 Agent 조치 원장, 같은 요청의 차단/복구까지 대조한다. 실제 사용자·실제 배포 확인과 구분한다.
+
+### 현재 사용 순서와 복구 범위
+1. Parallels Windows에 로그인하고 두 NetBird 기기가 연결된 상태에서 통합 명령을 실행한다. 원래 Agent가 http://127.0.0.1:5189/ 에 열린다.
+2. **기존 자료실 열기**에서 기존 자료실 계정으로 로그인하고 **기기 승인 요청**을 누른다. 이메일 OTP는 같은 Supabase 계정을 이용하며 비밀번호를 새로 생성/저장하지 않는다. 로그인된 동일 로컬 앱 세션에서는 유효한 실제 토큰만 재사용할 수 있으며 새 브라우저 키는 다시 승인한다.
+3. 원래 Supabase 메모를 조회·추가·수정한다. 메모 내용은 AI나 XDR 기록에 보내지 않는다. **직접 우회 차단 확인**은 같은 정상 기기 증명으로 공개403/사설200을 비교하며 자료 본문은 결과에 담지 않는다.
+4. Agent **보안 기록 → 원본 기록과 AI·대응 도구**에서 사건 근거를 보고 조치를 준비한다. 별도의 사람 확인 후 Windows가 실제 중계 권한을 변경한다. **원천 결과만 재조회**가 관측한 효과만 succeeded다. Windows와 Mac의 소폭 시차는 수신 측 관측 시각으로 구분하고 원본 감사 시각은 보존한다.
+5. 본인 권한/기기 철회는 **보호 현황 → 본인 접근 복구 확인 → 기존 자료실 접근 복구**로 되돌린다. 이 기능은 NetBird 클라우드 정책·Windows 방화벽·Supabase 자료 소유권·XDR 자동 차단 규칙을 풀지 않는다. 자료실의 **연결 복구 후 자료 다시 조회**로 원래 자료를 다시 읽는다.
+6. **Windows 상태와 XDR 확인**은 승인된 동일 NetBird 경로에서 실제 Windows CPU·메모리·디스크, 읽을 수 있는 서비스/보안 이벤트를 조회한다. OS 계정·이벤트 본문·경로를 반환하지 않는다. 관측0/읽기 실패를 안전 판정으로 바꾸지 않는다.
+
+### 기존 여섯 XDR와 실제 연결 경계
+| 기존 모듈 | 현재 실제 입력 | 집행 범위 |
+|---|---|---|
+| brute-force | 기존 Auth의 실제 잘못된 비밀번호 응답 수치 | 신뢰된 NetBird 출발 기기의 추가 거부, 15분 |
+| web-injection | 실제 비밀값 제외 쿼리 구문, 기존 Vercel 본문 검사 유지 | 같은 출발 기기의 반복 근거에만 추가 거부, 15분 |
+| known-cve | 실제 HTTP 쿼리의 완전한 악용 형태 | 신뢰된 출발 기기의 추가 거부, 15분 |
+| persistence | Windows System7045, 실제 임시 경로/미서명 확인 여부만 | Windows PC와 앱 사용자 대상 결속이 없으면 기록/경보만; 다른 기기 차단으로 바꾸지 않음 |
+| privilege | 읽을 수 있는 Security4732/4672 최소 메타데이터 | OS 계정을 Supabase 사용자로 추정하지 않음; 대상 결속 전 자동 집행 금지 |
+| exfiltration | 승인된 고정 자료실의 실제 응답 바이트 | 임의 외부 목적지·PC 전체 전송은 관측하지 않음; 목적지 결속 없는 전역 차단 금지 |
+
+판단기·과제 결과·원래 18필드/5필드 계약은 보존한다. 운영 어댑터의 추가 규칙은 기존 저장/guard를 재사용하며 비공개 저장소에 보관한다. 원래 Vercel의 두 XDR DB 보호도 유지한다. 이 연결은 Wazuh의 PC 전체 센서나 모든 외부 유출 감시를 설치한 결과가 아니다. 해당 기능을 근거 없이 6종 전체 실공격 차단 성공으로 표현하지 않는다.
+
+### 실제 검증 현황
+- 이메일 확인 로그인·원래 기기 승인·기존 메모 POST201/GET200, 직접 우회403/동일 사설 요청200 확인.
+- 기존 Agent의 grant:remove와 device:revoke 모두 원천 영수증 succeeded/effectApplied=true, 실제 메모 요청 거부·화면 비움, 본인 복구 후 같은 메모 재조회 확인.
+- 지정 NetBird TCP54123 정책 Disable → 요청 실패/메모 비움, Enable → 같은 요청200 복구 확인. Default 전체 허용은 계속 꺼짐.
+- Windows 실측과 실제 서비스 기록 2건, 보안 로그 조회 성공을 확인했다. 침해 확정이나 정상 판정으로 바꾸지 않는다.
+- 실제 known-cve 검증 문자열은 DNS 조회/명령 실행 없이 판단기로 분류되어 HTTP403과 일반 자료 요청 차단으로 이어졌다. 실제 GPT-6-Luna가 해당 사건 근거를 설명했고 자동 조치는 실행하지 않았다.
+- **실제 15분 만료 후 복구와 차단 중 재시작 검증은 진행 중이다.** 아직 전체 완료 기록으로 사용하지 않는다.
+- 관련 회귀28개 통과. 전체112개 중110통과 시점의 실패2는 기존 패키징 API 기준과 미커밋 상태의 clean 검사다. 패키징 기준은 제외 범위이며 느슨하게 바꾸지 않는다. clean/배포 대조는 저장점 이후 다시 검증한다.
+- 비밀값 없는 실제 증빙은 상위 artifacts/netbird-existing-vault/에 있다. 과거 공식 과제 심판 점수와 별도의 이번 통합 검증이다. setup.exe나 새 심판 제출은 수행하지 않는다.
+
+<details><summary>이전 NetBird 단독 연결의 설치·정책·실험 기록 (현재 업무 자료 경로가 아님)</summary>
 
 기존 명령 `node personal-workspace/start.mjs`는 경로명만 유지한 통합 실행기다. 기본 화면은 원래 `on-client` Agent다. 아래는 이전 NetBird 단독 연결의 설치·정책 기록으로 보존한다.
 
@@ -78,3 +110,5 @@ Windows PC 대시보드는 별도 터미널에서 기존 `node student/start-dai
 - `node --test test/final-assault-netbird.test.mjs test/final-assault-pc.test.mjs test/final-assault-connections.test.mjs test/on-client-stages13-16.test.mjs test/on-client-stage17.test.mjs test/on-client-stage18.test.mjs test/on-client-stage19.test.mjs test/on-client-stage20.test.mjs`를 저장소 루트에서 실행한다. 자동 시험과 실제 연결 확인은 별개다.
 
 공식 참조: [CLI](https://docs.netbird.io/get-started/cli), [그룹·접근 정책](https://docs.netbird.io/manage/access-control), [macOS 설치](https://docs.netbird.io/get-started/install/macos), [Windows 설치](https://docs.netbird.io/get-started/install/windows).
+
+</details>

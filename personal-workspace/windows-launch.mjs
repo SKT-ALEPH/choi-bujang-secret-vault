@@ -17,7 +17,11 @@ mkdirSync(join(root,'personal-workspace'),{recursive:true});mkdirSync(join(root,
 for(const directory of ['src','config','public'])mkdirSync(join(root,directory),{recursive:true});
 const copy=(from,to)=>{if(existsSync(to))chmodSync(to,0o600);copyFileSync(from,to);};
 for(const name of ['wire.mjs','store.mjs','resource.mjs'])copy(join(config.sourceRoot,'personal-workspace',name),join(root,'personal-workspace',name));
-for(const name of ['netbird-observation.mjs','pc-observation.mjs','connection-observation.mjs','windows-readonly.ps1','windows-gateway-key.mjs','netbird-vault.mjs','netbird-events.mjs'])copy(join(config.sourceRoot,'on-client','student',name),join(root,'on-client','student',name));
+for(const name of ['netbird-observation.mjs','pc-observation.mjs','connection-observation.mjs','windows-readonly.ps1','windows-gateway-key.mjs','netbird-vault.mjs','netbird-events.mjs','netbird-xdr.mjs','windows-xdr.mjs'])copy(join(config.sourceRoot,'on-client','student',name),join(root,'on-client','student',name));
+for(const key of ['brute-force','web-injection','known-cve','persistence','privilege','exfiltration']){
+ mkdirSync(join(root,'xdr',key),{recursive:true});
+ for(const name of ['decide.mjs',...(key==='brute-force'?['rule-store.mjs','guard.mjs','patterns.json']:key==='web-injection'?['signals.mjs']:[])])copy(join(config.sourceRoot,'xdr',key,name),join(root,'xdr',key,name));
+}
 for(const name of ['src/netbird-gateway.mjs','public/device-message.mjs','config/netbird-gateway.json','aleph.config.json'])copy(join(config.sourceRoot,...name.split('/')),join(root,...name.split('/')));
 copy(config.publicKeyPath,join(data,'agent-public.pem'));
 const child=spawn(process.execPath,['personal-workspace/resource.mjs'],{cwd:root,env:{...process.env,KESHEV_NETBIRD_CLIENT_IP:config.macAddress,KESHEV_AGENT_PUBLIC_KEY_PATH:join(data,'agent-public.pem')},detached:true,stdio:'ignore',windowsHide:true});child.unref();
