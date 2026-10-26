@@ -1,6 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import {sha,fault,uuid,opaque,exact} from './wire.mjs';
+import {projectVaultEvent,vaultDigest,vaultContext} from '../on-client/student/netbird-events.mjs';
 const now=()=>new Date().toISOString();
 const ACTIONS=['device:revoke','grant:remove'];
 const safeText=(v,max)=>typeof v==='string'&&v.trim().length>0&&v.length<=max&&!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v);
@@ -13,14 +14,17 @@ export function createWorkspaceStore(path,{deviceId}){
  CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY,owner TEXT NOT NULL,device TEXT NOT NULL,kind TEXT NOT NULL,at TEXT NOT NULL,data TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS actions(id TEXT PRIMARY KEY,owner TEXT NOT NULL,session TEXT NOT NULL,event TEXT NOT NULL,action TEXT NOT NULL,generation INTEGER NOT NULL,digest TEXT NOT NULL,confirmation TEXT NOT NULL,expires INTEGER NOT NULL,status TEXT NOT NULL,effect INTEGER NOT NULL DEFAULT 0,observed TEXT);
  CREATE TABLE IF NOT EXISTS nonces(id TEXT PRIMARY KEY,at INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS vault_commands(id TEXT PRIMARY KEY,owner TEXT NOT NULL,command TEXT NOT NULL,effect INTEGER NOT NULL,observed TEXT NOT NULL);
+ CREATE TRIGGER IF NOT EXISTS vault_commands_no_update BEFORE UPDATE ON vault_commands BEGIN SELECT RAISE(ABORT,'IMMUTABLE_COMMAND'); END;
+ CREATE TRIGGER IF NOT EXISTS vault_commands_no_delete BEFORE DELETE ON vault_commands BEGIN SELECT RAISE(ABORT,'IMMUTABLE_COMMAND'); END;
  CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events BEGIN SELECT RAISE(ABORT,'IMMUTABLE_EVENT'); END;
  CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events BEGIN SELECT RAISE(ABORT,'IMMUTABLE_EVENT'); END;`);
  const statement=sql=>db.prepare(sql);
  const device=owner=>statement('SELECT * FROM devices WHERE owner=? AND id=?').get(owner,deviceId);
  function actor(raw){if(!exact(raw,['owner','device','session'])||!opaque(raw.owner)||raw.device!==deviceId||!uuid(raw.session))throw fault('ACTOR_INVALID',403);return raw;}
- function event(a,{kind='access',appId='private-workspace',summary,access='unknown',rule='OWN_WORKSPACE_ACCESS',actions=[],evidence=[]}){
+ function event(a,{kind='access',appId='private-workspace',summary,access='unknown',rule='OWN_WORKSPACE_ACCESS',actions=[],evidence=[],source='Windows 개인 업무 서버의 실제 요청·정책 관측'}){
   const id=randomUUID(),at=now(),d=device(a.owner),s=statement('SELECT state FROM sessions WHERE id=? AND owner=? AND device=?').get(a.session,a.owner,deviceId);
-  const value={id,kind,at,appId,summary,evidence:[{id:'source',text:'Windows 개인 업무 서버의 실제 요청·정책 관측'},{id:'rule',text:rule},...evidence],rules:[{id:rule,text:rule}],state:{access,session:s?.state??'unknown',device:d?.revoked?'revoked':'registered'},supportedActions:actions,target:{id:deviceId,generation:d?.revision??1},source:'windows-personal-workspace'};
+  const value={id,kind,at,appId,summary,evidence:[{id:'source',text:source},{id:'rule',text:rule},...evidence],rules:[{id:rule,text:rule}],state:{access,session:s?.state??'unknown',device:d?.revoked?'revoked':'registered'},supportedActions:actions,target:{id:deviceId,generation:d?.revision??1},source:'windows-personal-workspace'};
   statement('INSERT INTO events VALUES(?,?,?,?,?,?)').run(id,a.owner,deviceId,kind,at,JSON.stringify(value));return value;
  }
  function allowed(a,{audit=true,appId='private-workspace'}={}){
@@ -110,5 +114,31 @@ export function createWorkspaceStore(path,{deviceId}){
   }
   throw fault('NOT_FOUND',404);
  }
- return {route,acceptNonce(nonce){try{statement('INSERT INTO nonces VALUES(?,?)').run(nonce,Date.now());}catch{throw fault('REPLAY_REJECTED',403);}},close:()=>db.close()};
+ function authorizeCommand(a,command,subjectId,generation){
+  actor(a);const current=vaultContext(status(a),subjectId,generation),found=rows(a.owner).find(e=>e.id===command?.eventId);
+  return !!found&&exact(command,['requestId','fingerprint','scope','eventId','actionId','target','snapshotDigest'])&&uuid(command.requestId)
+    &&vaultDigest(command.scope)===vaultDigest(current)&&ACTIONS.includes(command.actionId)&&found.supportedActions.includes(command.actionId)
+    &&device(a.owner)?.revision===found.target.generation&&vaultDigest(command.target)===vaultDigest({id:'device:'+deviceId,generation:found.target.generation})
+    &&command.snapshotDigest===vaultDigest(projectVaultEvent(found,subjectId,{action:true}))
+    &&command.fingerprint===vaultDigest({schema:'alekov.action.intent.v1',requestId:command.requestId,scope:command.scope,eventId:command.eventId,actionId:command.actionId,target:command.target,snapshotDigest:command.snapshotDigest});
+ }
+ function executeCommand(a,command,subjectId,generation){
+  actor(a);db.exec('BEGIN IMMEDIATE');
+  try{
+    const previous=statement('SELECT * FROM vault_commands WHERE id=?').get(command.requestId);
+    if(previous){if(previous.owner!==a.owner||previous.command!==JSON.stringify(command))throw fault('ACTION_SCOPE_CHANGED',403);db.exec('COMMIT');return {status:'accepted'};}
+    if(!authorizeCommand(a,command,subjectId,generation))throw fault('ACTION_DENIED',403);
+    const at=now();statement('INSERT INTO vault_commands VALUES(?,?,?,?,?)').run(command.requestId,a.owner,JSON.stringify(command),1,at);
+    if(command.actionId==='device:revoke'){statement('UPDATE devices SET revoked=1,revision=revision+1 WHERE owner=? AND id=?').run(a.owner,deviceId);statement("UPDATE sessions SET state='revoked' WHERE owner=? AND device=?").run(a.owner,deviceId);}
+    else statement('UPDATE devices SET granted=0,revision=revision+1 WHERE owner=? AND id=?').run(a.owner,deviceId);
+    event(a,{appId:'vault',summary:command.actionId==='device:revoke'?'기존 자료실로 중계하는 이 기기의 접근을 철회했습니다.':'기존 자료실로 중계하는 이 기기의 이용 권한을 회수했습니다.',access:'denied',rule:'HUMAN_CONFIRMED_GATEWAY_ACTION',source:'기존 에이전트 조치 원장 → NetBird 게이트웨이의 실제 권한 변경'});
+    db.exec('COMMIT');return {status:'accepted'};
+  }catch(error){db.exec('ROLLBACK');throw error;}
+ }
+ function readCommand(a,id){
+   actor(a);const row=statement('SELECT * FROM vault_commands WHERE id=? AND owner=?').get(id,a.owner);if(!row)throw fault('ACTION_NOT_FOUND',404);
+   const command=JSON.parse(row.command),d=device(a.owner),effect=(command.actionId==='device:revoke'?d.revoked:!d.granted)&&d.revision===command.target.generation+1;
+   return {...command,status:effect?'succeeded':'unknown',observedAt:now(),effect:{applied:!!effect,operationId:command.requestId,target:command.target,snapshotDigest:command.snapshotDigest}};
+ }
+ return {route,authorizeCommand,executeCommand,readCommand,audit(a,input){actor(a);return event(a,input);},requireAccess(a){actor(a);requireAccess(a);},acceptNonce(nonce){try{statement('INSERT INTO nonces VALUES(?,?)').run(nonce,Date.now());}catch{throw fault('REPLAY_REJECTED',403);}},close:()=>db.close()};
 }

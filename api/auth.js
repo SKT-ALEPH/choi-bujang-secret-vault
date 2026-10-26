@@ -1,11 +1,12 @@
 import settings from '../config/supabase-public.json' with { type: 'json' };
 import config from '../aleph.config.json' with { type: 'json' };
 import { getLiveXdr } from '../xdr/live.mjs';
+import {productionRuntime} from './notes.js';
 
-const routes = { token: ['POST'], signup: ['POST'], recover: ['POST'], user: ['GET', 'PUT'], logout: ['POST'] };
+const routes = { token: ['POST'], signup: ['POST'], recover: ['POST'], otp:['POST'], verify:['POST'], user: ['GET', 'PUT'], logout: ['POST'] };
 
 // Only Auth is proxied. The public credential never enters the browser bundle.
-export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null } = {}) {
+export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, getGateway = () => null } = {}) {
   return async function handler(request, response) {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
@@ -13,6 +14,8 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null }
     if (typeof path !== 'string' || !routes[path]?.includes(request.method)) {
       return response.status(404).json({ error: 'AUTH_ROUTE_NOT_FOUND' });
     }
+    try{const gateway=getGateway();if(gateway&&!await gateway(request))return response.status(403).json({code:'netbird_gateway_required',error_code:'netbird_gateway_required',msg:'NetBird로 연결된 케셰브에서 자료실을 여세요.'});}
+    catch{return response.status(503).json({code:'gateway_unavailable',msg:'사설 연결 확인에 실패했습니다.'});}
     const target = new URL('/auth/v1/' + path, settings.url);
     if (target.origin !== new URL(config.identityProvider.issuer).origin) {
       return response.status(503).json({ error: 'AUTH_NOT_CONFIGURED' });
@@ -23,7 +26,7 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null }
       target.searchParams.set('grant_type', grant);
     }
     // Redirects may only return to this app, never an arbitrary destination.
-    if (['signup', 'recover'].includes(path)) target.searchParams.set('redirect_to', config.publicAppUrl + '/');
+    if (['signup', 'recover','otp'].includes(path)) target.searchParams.set('redirect_to', config.publicAppUrl + '/');
     if (path === 'logout') target.searchParams.set('scope', 'global');
     const authorization = request.headers?.authorization;
     const headers = { apikey: settings.publishableKey, 'Content-Type': 'application/json' };
@@ -72,4 +75,4 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null }
   };
 }
 
-export default createAuthHandler(fetch,{getXdr:getLiveXdr});
+export default createAuthHandler(fetch,{getXdr:getLiveXdr,getGateway:()=>productionRuntime().authorizeGateway});

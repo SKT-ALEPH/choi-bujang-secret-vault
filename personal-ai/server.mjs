@@ -79,9 +79,10 @@ async function jsonBody(req, keys) {
   return value;
 }
 
-export async function createPersonalServer(client, {requestTimeoutMs = 180_000, appHtml, appAssets = new Map(), handleAppRequest, prepareExplanation} = {}) {
+export async function createPersonalServer(client, {requestTimeoutMs = 180_000, appHtml, appAssets = new Map(), handleAppRequest, prepareExplanation,
+  onOptions={},transformHtml=value=>value,handleBridgeRequest,applicationId,incidentRoutes=false} = {}) {
   // Reuse the provided app without changing its files, API, identity or decisions.
-  const server = createOnServer({aiEnv: {}});
+  const server = createOnServer({...onOptions,aiEnv: {}});
   const [providedHandler] = server.listeners('request');
   server.removeAllListeners('request');
   const html = appHtml ?? (await readFile(resolve(root, '../on-client/public/index.html'), 'utf8'))
@@ -93,7 +94,7 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
     .replace('<div class="topbar-status">', '<div class="topbar-status"><span class="personal-security-label">보안 서버</span>')
     .replace('<main id="main" tabindex="-1">', '<main id="main" tabindex="-1">' + await readFile(join(root, 'public/card.html'), 'utf8'));
   const cookie = randomBytes(32).toString('hex');
-  let authorizationURL, pendingSignIn, ready, loginError, generation = 0, active, models = [], modelProfile;
+  let authorizationURL, pendingSignIn, ready, loginError, generation = 0, active, models = [], modelProfile, selectedModel;
   const json = (res, status, data) => {
     if (!res.destroyed && !res.writableEnded) {
       res.writeHead(status, {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff'});
@@ -101,7 +102,7 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
     }
   };
   const cancelRequest = () => { generation++; active?.abort(fault('cancelled')); };
-  const clearContext = () => { cancelRequest(); models = []; modelProfile = undefined; };
+  const clearContext = () => { cancelRequest(); models = []; modelProfile = undefined; selectedModel=undefined; };
   const requireConnection = async () => {
     const session = publicSession(await client.getSession());
     if (session.status !== 'connected') throw fault('sign_in_required');
@@ -127,17 +128,28 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
       if (req.headers.host !== `127.0.0.1:${port}`) { json(res, 403, {ok: false, error: safeError(fault('origin_rejected'))}); return; }
       if (req.url === '/' || req.url === '/index.html') {
         if (req.method !== 'GET') { json(res, 405, {ok: false}); return; }
-        res.writeHead(200, {...headers, 'x-keshev-application':appHtml?'personal-workspace':'personal-ai', 'content-type': 'text/html; charset=utf-8', 'set-cookie': `keshev_personal_${port}=${cookie}; HttpOnly; SameSite=Strict; Path=/`});
-        res.end(html); return;
+        res.writeHead(200, {...headers, 'x-keshev-application':applicationId??(appHtml?'personal-workspace':'personal-ai'), 'content-type': 'text/html; charset=utf-8', 'set-cookie': `keshev_personal_${port}=${cookie}; HttpOnly; SameSite=Strict; Path=/`});
+        res.end(transformHtml(html)); return;
       }
       if (req.method === 'GET' && appAssets.has(req.url)) {
         const asset=appAssets.get(req.url);res.writeHead(200,{...headers,'content-type':asset.type});res.end(asset.bytes);return;
+      }
+      if(handleBridgeRequest){
+        if(req.url.startsWith('/api/')){
+          if(!authorized(req)||req.headers['sec-fetch-site']!=='same-origin'||req.method==='POST'&&req.headers.origin!==expectedOrigin)throw fault('origin_rejected');
+        }
+        if(req.method==='GET'&&req.url.startsWith('/vault/')){
+          res.setHeader('set-cookie',`keshev_personal_${port}=${cookie}; HttpOnly; SameSite=Strict; Path=/`);
+          res.setHeader('content-security-policy',headers['content-security-policy']);
+        }
+        if(await handleBridgeRequest(req,res))return;
       }
       if (req.url?.startsWith('/workspace/api/')) {
         if (!handleAppRequest || !authorized(req) || req.headers['sec-fetch-site']!=='same-origin' || req.method==='POST'&&req.headers.origin!==expectedOrigin) throw fault('origin_rejected');
         await handleAppRequest(req,res);return;
       }
-      if (!req.url?.startsWith('/personal-ai/')) { providedHandler(req, res); return; }
+      const incident=incidentRoutes&&req.url==='/api/ai/explain';
+      if (!req.url?.startsWith('/personal-ai/')&&!incident) { providedHandler(req, res); return; }
       if (req.headers['sec-fetch-site'] === 'cross-site') throw fault('origin_rejected');
       const assets = {'/personal-ai/personal.js': 'text/javascript', '/personal-ai/readable.mjs': 'text/javascript', '/personal-ai/personal.css': 'text/css'};
       if (req.method === 'GET' && assets[req.url]) {
@@ -155,6 +167,11 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
         json(res, 200, {ok: true, session, profiles, loginPending: !!pendingSignIn, authorizationReady: !!authorizationURL, error: loginError ?? null}); return;
       }
       if (req.method !== 'POST' || req.headers.origin !== expectedOrigin) throw fault('origin_rejected');
+      if(req.url==='/personal-ai/selected-model'){
+        const input=await jsonBody(req,['model']),session=await requireConnection();
+        if(modelProfile!==session.profileId||!models.some(m=>m.slug===input.model))throw fault('model_not_found');
+        cancelRequest();selectedModel=input.model;json(res,200,{ok:true});return;
+      }
       if (req.url === '/personal-ai/login') {
         const input = await jsonBody(req, ['newProfile']);
         if (input.newProfile !== undefined && typeof input.newProfile !== 'boolean') throw fault('invalid_request');
@@ -181,8 +198,9 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
       if (req.url === '/personal-ai/cancel') {
         await jsonBody(req, []); cancelRequest(); json(res, 200, {ok: true}); return;
       }
-      if (!['/personal-ai/models', '/personal-ai/check', '/personal-ai/explain'].includes(req.url)) { json(res, 404, {ok: false}); return; }
-      const input = await jsonBody(req, req.url.endsWith('/models') ? [] : req.url.endsWith('/check') ? ['model'] : prepareExplanation ? ['model', 'text', 'eventId', 'sendEvidence', 'evidenceDigest'] : ['model', 'text']);
+      if (!incident&&!['/personal-ai/models', '/personal-ai/check', '/personal-ai/explain'].includes(req.url)) { json(res, 404, {ok: false}); return; }
+      const input = await jsonBody(req, incident?['eventId']:req.url.endsWith('/models') ? [] : req.url.endsWith('/check') ? ['model'] : prepareExplanation ? ['model', 'text', 'eventId', 'sendEvidence', 'evidenceDigest'] : ['model', 'text']);
+      if(incident){input.model=selectedModel;input.sendEvidence=true;}
       if (active || pendingSignIn) throw fault('connection_busy');
       const currentGeneration = generation;
       const controller = new AbortController(); active = controller;
@@ -208,7 +226,7 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
             if(!check && input.eventId!==undefined){
               if(!prepareExplanation||input.sendEvidence!==true||input.text!==undefined)throw fault('invalid_request');
               prepared=await prepareExplanation(input.eventId,{signal:controller.signal});
-              if(typeof input.evidenceDigest!=='string'||input.evidenceDigest!==prepared.evidenceDigest)throw fault('response_unverified');
+              if(!incident&&(typeof input.evidenceDigest!=='string'||input.evidenceDigest!==prepared.evidenceDigest))throw fault('response_unverified');
             }
             const response = await client.streamResponse({model: input.model, signal: controller.signal,
               input: check ? '한국어로 정확히 다음 문장만 답하세요: 개인 AI 연결을 확인했습니다.' : prepared?.text ?? input.text,
@@ -224,7 +242,8 @@ export async function createPersonalServer(client, {requestTimeoutMs = 180_000, 
           if (result.models) { models = result.models; modelProfile = session.profileId; }
           return result;
         });
-        json(res, 200, {ok: true, ...result, checkedAt: new Date().toISOString(), provider: 'personal-chatgpt', alephApproved: false});
+        const checkedAt=new Date().toISOString();
+        json(res, 200, incident?{ok:true,data:{explanation:result.explanation},meta:{mode:'connected',checkedAt},provider:'personal-chatgpt',alephApproved:false}:{ok: true, ...result, checkedAt, provider: 'personal-chatgpt', alephApproved: false});
       } catch (error) {
         if (currentGeneration === generation) { models = []; modelProfile = undefined; }
         throw controller.signal.aborted ? controller.signal.reason ?? fault('cancelled') : error;

@@ -29,7 +29,7 @@ try{
  const result=JSON.parse(deployed.stdout.trim());if(result.started!==true||!overlayIp(result.address)||!n.peers.details?.some(p=>p.netbirdIp?.split('/')[0]===result.address))throw Error('WINDOWS_PEER_UNVERIFIED');
  // Wait only for the newly launched, fixed private health endpoint; never retry model calls or writes.
  let ready=false;for(let i=0;i<10;i++){try{const r=await fetch(`http://${result.address}:54123/keshev-health`,{signal:AbortSignal.timeout(1000),redirect:'error'});if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,500));}if(!ready)throw Error('WINDOWS_RESOURCE_NOT_READY');
- try{const existing=await fetch('http://127.0.0.1:'+String(process.env.ON_PORT??5189)+'/',{signal:AbortSignal.timeout(1500)});const isCurrent=existing.headers.get('x-keshev-application')==='personal-workspace';await existing.body?.cancel();if(isCurrent){console.log('Windows 서버 준비 완료. 케셰브가 이미 실행 중입니다. http://127.0.0.1:'+String(process.env.ON_PORT??5189)+'/');process.exit(0);}}catch{}
+ try{const existing=await fetch('http://127.0.0.1:'+String(process.env.ON_PORT??5189)+'/',{signal:AbortSignal.timeout(1500)});const isCurrent=existing.headers.get('x-keshev-application')==='netbird-integrated';await existing.body?.cancel();if(isCurrent){console.log('Windows 서버 준비 완료. 케셰브가 이미 실행 중입니다. http://127.0.0.1:'+String(process.env.ON_PORT??5189)+'/');process.exit(0);}}catch{}
  console.log('Windows 서버 준비 완료. 케셰브를 실행합니다.');
  const child=spawn(process.execPath,['personal-workspace/server.mjs'],{cwd:root,env:{...process.env,KESHEV_NETBIRD_TARGET_IP:result.address},stdio:'inherit'});
  for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>child.kill(signal));child.on('exit',code=>{process.exitCode=code??0;});

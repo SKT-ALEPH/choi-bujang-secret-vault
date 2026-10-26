@@ -9,15 +9,16 @@ const messages={ARCHIVE_CONFIRMATION_REQUIRED:'보관함을 열기 전에 추가
 export function createWorkspaceHost({client,signer,target=process.env.KESHEV_NETBIRD_TARGET_IP,request=fetch,readNetwork=readNetBirdStatus,scanner=createProjectScanner({projectDirectory:fileURLToPath(new URL('../',import.meta.url)),approvedPublicPackages:['@supabase/supabase-js','jose','@noble/hashes','esbuild']})}){
  const sessions=new Map();
  async function current(){const s=await client.getSession();if(s.status!=='connected'||typeof s.profileId!=='string'||!s.profileId)throw fault('sign_in_required',401);return {profileId:s.profileId,owner:'owner-'+sha(s.profileId).slice(0,48)};}
- async function send(path,actor,input={},signal){
+ async function transmit(path,envelope,signal){
   const n=await readNetwork();if(n.daemonStatus!=='Connected'||!n.management.connected||!overlayIp(target)||!Array.isArray(n.peers?.details)||!n.peers.details.some(p=>typeof p?.netbirdIp==='string'&&p.netbirdIp.split('/')[0]===target))throw fault('PEER_UNAVAILABLE',503);
-  const bytes=Buffer.from(JSON.stringify({actor,input}));let response;
+  const bytes=Buffer.from(JSON.stringify(envelope));let response;
   try{response=await request(`http://${target}:54123${path}`,{method:'POST',headers:{'content-type':'application/json',...signer.headers(path,bytes)},body:bytes,redirect:'error',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(10000)]):AbortSignal.timeout(10000)});}catch{throw fault('REMOTE_UNAVAILABLE',503);}
   const chunks=[];let length=0;const reader=response.body.getReader();try{while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>8*1024*1024)throw fault('response_unverified',503);chunks.push(part.value);}}finally{await reader.cancel();}
   let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw fault('response_unverified',503);}
   if(!response.ok||value.ok!==true)throw fault(Object.hasOwn(messages,value.error?.code)?value.error.code:'REMOTE_UNAVAILABLE',response.status===403?403:response.status===404?404:409);
   if(value.source!=='windows-personal-workspace'||!Number.isFinite(Date.parse(value.checkedAt)))throw fault('response_unverified',503);return value.data;
  }
+ const send=(path,actor,input={},signal)=>transmit(path,{actor,input},signal);
  async function context(signal){
   const identity=await current();let item=sessions.get(identity.owner);
   if(!item){item={actor:{owner:identity.owner,device:signer.deviceId,session:randomUUID()},ready:false};sessions.set(identity.owner,item);}
@@ -64,6 +65,6 @@ export function createWorkspaceHost({client,signer,target=process.env.KESHEV_NET
      if(!exact(d,['summary','evidenceIds','proposals','requiresHumanConfirmation','executed'])||typeof d.summary!=='string'||!d.summary.trim()||d.summary.length>3000||secret(d.summary)||!refs(d.evidenceIds)||d.evidenceIds.length!==ids.length||d.requiresHumanConfirmation!==true||d.executed!==false||!Array.isArray(d.proposals)||d.proposals.length>2||d.proposals.some(p=>!exact(p,['action','evidenceIds','reason'])||!safe.supportedActions.includes(p.action)||!refs(p.evidenceIds)||typeof p.reason!=='string'||p.reason.length>800||secret(p.reason)))throw fault('response_unverified');
      return {eventId,eventDigest:digest,explanation:d};
     }};
-  },status,remote
+  },status,remote,transport:(path,input={},signal)=>transmit(path,{input},signal),observeNetwork:()=>readNetBirdObservation({target})
  };return api;
 }

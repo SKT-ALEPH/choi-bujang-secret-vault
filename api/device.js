@@ -10,6 +10,8 @@ export function createDeviceHandler(getRuntime=productionRuntime){return async f
   try{services=getRuntime();identity=await services.verifyLoginAuthorization(request.headers.authorization);}
   catch{return response.status(503).json({error:'AUTH_NOT_CONFIGURED'});}
   if(!identity)return response.status(401).json({error:'INVALID_LOGIN'});
+  try{if(services.authorizeGateway&&!await services.authorizeGateway(request))return response.status(403).json({error:'NETBIRD_GATEWAY_REQUIRED'});}
+  catch{return response.status(503).json({error:'GATEWAY_SERVICE_UNAVAILABLE'});}
   const operation=request.query?.operation;
   if(Object.keys(request.query??{}).some(k=>k!=='operation')||!['status','request','approve','revoke'].includes(operation))return response.status(400).json({error:'INVALID_DEVICE_OPERATION'});
   if(request.method!==(operation==='status'?'GET':'POST'))return response.status(405).json({error:'METHOD_NOT_ALLOWED'});

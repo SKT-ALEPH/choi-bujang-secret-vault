@@ -2,6 +2,20 @@
 
 > **현재 개인 통합 앱 실행:** 저장소 루트에서 `node personal-workspace/start.mjs`로 Mac과 Windows 업무 서버를 함께 켠다. ChatGPT 계정·자료·접근 판정·기록·조치의 최신 안내는 [개인 운영 설명서](../../personal-workspace/README.md)다. 아래 내용은 앞서 검증한 PC/NetBird 단독 개발 실행 기록이며, 같은 포트에 두 실행기를 함께 켜지 않는다.
 
+## 기존 자료실·XDR·Agent 통합 수정 중 · 2026-10-26
+
+사용자가 요청한 무료 SDP 대체는 NetBird다. 공식 ALEPH 재연결을 기다리는 작업이 아니다. 이전에 만든 별도 Windows 노트 화면은 기본 실행에서 제거했으며, 원래 Agent 화면과 원래 자료실의 HTML·앱·P256 기기 검증을 재사용한다.
+
+- 현재 경로: 기존 Agent(`5189`) → `/vault/`의 원래 자료실 → 서명된 Mac 요청 → NetBird 단방향 TCP54123 → Windows 게이트웨이 → 기존 Vercel Auth/자료 API → 기존 Supabase. 메모를 새 SQLite로 복사하지 않는다.
+- 기존 로그인, owner 조건, 브라우저 비추출 P256 키, 원래 기기 승인/nonce, 기존 live XDR를 유지한다. Windows 게이트웨이는 추가 Ed25519 증명을 붙이고 Vercel은 공개키와 영속 nonce를 검사한다. 개인키는 Windows 사용자 DPAPI로만 보관하며 서버 비밀키를 PC에 옮기지 않는다.
+- 원래 Agent의 engine·조치 service/원장을 그대로 사용한다. 실제 게이트웨이 권한과 영수증의 조회를 연결한다. 별도 Windows 노트 CRUD의 성공을 기존 자료실 성공으로 세지 않는다.
+- 사용자 요청에 따라 계정은 정상 Supabase 이메일 OTP로 준비/연결할 수 있다. 기존 이메일 계정은 같은 사용자로 로그인한다. 비밀번호를 생성/복사/저장하거나 관리자 API로 이메일 확인을 우회하지 않는다. ChatGPT 연결은 AI에만 사용하고 기존 자료실 사용자 ID로 가장하지 않는다.
+- **현재는 구현·실검증 중이다.** 게이트웨이 추가 서명 강제는 아직 `config/netbird-gateway.json`의 `required:false`다. 새 인증 경로의 배포, 본인 계정, 공개 주소 우회 거부, XDR 실제 기록과 차단·복구 전체를 확인하기 전 완료가 아니다.
+- 재전송 방지 테이블 `netbird_gateway_nonces`는 실제 기존 Supabase에 추가했다. RLS=true, anon 읽기=false, authenticated 삽입=false, service_role 삽입=true를 확인했다. 기존 메모·사용자·정책을 변경하지 않았다.
+- 관련 격리 시험은 원래 HTTP handler와 암호학적 기기/게이트웨이 검증, Windows 권한, 기존 Agent 조치 원장, 같은 요청의 차단/복구까지 대조한다. 실제 사용자·실제 배포 확인과 구분한다.
+
+기존 명령 `node personal-workspace/start.mjs`는 경로명만 유지한 통합 실행기다. 기본 화면은 원래 `on-client` Agent다. 아래는 이전 NetBird 단독 연결의 설치·정책 기록으로 보존한다.
+
 ## 왜 만들었나
 
 인터넷에 공개한 자료실의 로그인 검사와 별도로, 허용된 두 기기 사이에만 통신하는 사설 경로를 만든다. Mac의 케셰브가 Windows의 확인용 자원에 실제로 요청하고, 정책을 끄면 요청이 실패하며 다시 켜면 복구되는 것을 확인한다. 이를 통해 **기기 등록 → 접근 정책 → 암호화된 기기 간 통신 → 실제 자원 응답**의 차이를 관찰한다.

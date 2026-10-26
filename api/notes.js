@@ -4,6 +4,7 @@ import { createLoginVerifier } from '../src/verify-login.mjs';
 import config from '../aleph.config.json' with { type: 'json' };
 import { getLiveXdr } from '../xdr/live.mjs';
 import {authorizeDevice} from '../src/device-session.mjs';
+import {authorizeGateway} from '../src/netbird-gateway.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const fields = 'id,title,content';
@@ -21,7 +22,8 @@ export function productionRuntime() {
     global: { fetch: (target, options) => fetch(target, { ...options, redirect: 'error' }) },
   });
   runtime = { database, xdr:getLiveXdr(), verifyLoginAuthorization: createLoginVerifier({ config, supabaseSecretKey: secretKey }),
-    authorizeDevice:(request,identity)=>authorizeDevice(database,request,identity) };
+    authorizeGateway:request=>authorizeGateway(database,request),
+    authorizeDevice:async(request,identity)=>await authorizeGateway(database,request)&&await authorizeDevice(database,request,identity) };
   return runtime;
 }
 

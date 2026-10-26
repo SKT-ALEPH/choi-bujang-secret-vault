@@ -1,0 +1,108 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
+import {generateKeyPairSync,randomUUID,sign} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {createNotesHandler} from '../api/notes.js';
+import {createDeviceHandler} from '../api/device.js';
+import {createAuthHandler} from '../api/auth.js';
+import {authorizeDevice} from '../src/device-session.mjs';
+import {authorizeGateway,signGatewayRequest,verifyGatewayRequest} from '../src/netbird-gateway.mjs';
+import {enrollmentMessage,requestMessage} from '../public/device-message.mjs';
+import {sha,createSigner} from '../personal-workspace/wire.mjs';
+import {createResourceServer} from '../personal-workspace/resource.mjs';
+import {createWorkspaceStore} from '../personal-workspace/store.mjs';
+import {createWorkspaceServer} from '../personal-workspace/server.mjs';
+import {createVaultGateway} from '../on-client/student/netbird-vault.mjs';
+import {createManagedAccount} from '../on-client/student/managed-account.mjs';
+
+const userA='00000000-0000-4000-8000-00000000000a',userB='00000000-0000-4000-8000-00000000000b';
+const jwt=user=>'e30.'+Buffer.from(JSON.stringify({sub:user,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
+test('account automation uses normal email OTP; no password generation, admin creation or confirmation bypass',async()=>{
+ const calls=[],account=createManagedAccount({transport:async(path,input)=>{calls.push({path,input});return {status:200,data:{}};}});
+ await account({operation:'signup',email:'fixture@example.invalid'});assert.equal(calls[0].input.path,'/api/auth?path=otp');assert.equal(JSON.parse(calls[0].input.body).create_user,true);assert.equal(Object.hasOwn(JSON.parse(calls[0].input.body),'password'),false);
+ await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'a'.repeat(64)});assert.equal(calls[1].input.path,'/api/auth?path=verify');assert.equal(JSON.parse(calls[1].input.body).type,'email');
+ await assert.rejects(account({operation:'signup',email:'invalid'}));assert.equal(calls.length,2);
+});
+// In-memory Supabase transport fixture only. Production still uses the original SDK and database.
+function databaseFixture(){
+ const tables={notes:[{id:randomUUID(),owner_id:userA,title:'Owned fixture A',content:'original fixture A'},{id:randomUUID(),owner_id:userB,title:'Owned fixture B',content:'original fixture B'}],aleph_device_sessions:[],aleph_device_nonces:[],netbird_gateway_nonces:[]};
+ return {tables,from(table){let op='read',values,filters=[],single=false,count=false;const query={
+   select(_fields,options){count=options?.count==='exact';return query;},eq(k,v){filters.push(r=>r[k]===v);return query;},gt(k,v){filters.push(r=>r[k]>v);return query;},order(){return query;},limit(){return query;},
+   insert(v){op='insert';values=v;return query;},update(v){op='update';values=v;return query;},delete(){op='delete';return query;},maybeSingle(){single=true;return query;},single(){single=true;return query;},
+   abortSignal(){return Promise.resolve(run());},then(resolve,reject){return Promise.resolve().then(run).then(resolve,reject);}};
+   function run(){const rows=tables[table];if(!rows)throw Error('fixture table missing');let found=rows.filter(r=>filters.every(f=>f(r)));
+    if(op==='insert'){
+      if(table.endsWith('nonces')&&rows.some(r=>table==='netbird_gateway_nonces'?r.nonce===values.nonce:r.nonce===values.nonce&&r.device_id===values.device_id))return {data:null,error:{code:'23505'}};
+      const row={...values};if(table==='aleph_device_sessions')row.approved??=false;rows.push(row);found=[row];
+    }else if(op==='update')for(const row of found)Object.assign(row,values);
+    else if(op==='delete')tables[table]=rows.filter(r=>!found.includes(r));
+    return {data:count?null:single?found[0]??null:found,error:null,...(count?{count:found.length}:{})};
+   }return query;
+ }};
+}
+test('gateway proofs bind the original device proof, body and route; durable replay rejection stays separate',async()=>{
+ const pair=generateKeyPairSync('ed25519'),publicKey=pair.publicKey.export({type:'spki',format:'pem'}),db=databaseFixture();
+ const req={method:'PUT',url:'/notes/'+randomUUID(),body:{title:'fixture',body:'body'},headers:{authorization:'Bearer fixture','x-aleph-device':randomUUID(),'x-aleph-nonce':randomUUID(),'x-aleph-at':String(Date.now()),'x-aleph-signature':'fixture-proof'}};
+ const options={required:true,publicKey};assert.equal(verifyGatewayRequest(req,options),false);
+ req.headers={...req.headers,...signGatewayRequest(pair.privateKey,req)};assert.equal(verifyGatewayRequest(req,options),true);
+ assert.equal(verifyGatewayRequest({...req,body:{...req.body,body:'changed'}},options),false);
+ assert.equal(verifyGatewayRequest({...req,headers:{...req.headers,'x-aleph-signature':'changed'}},options),false);
+ assert.equal(await authorizeGateway(db,req,options),true);assert.equal(await authorizeGateway(db,req,options),false);
+});
+
+test('existing Vault handlers, Agent and signed Windows gateway share original notes and real denial/recovery effects',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'keshev-existing-vault-')),signer=createSigner(generateKeyPairSync('ed25519').privateKey.export({type:'pkcs8',format:'pem'})),gatewayKeys=generateKeyPairSync('ed25519');
+ const publicKey=gatewayKeys.publicKey.export({type:'spki',format:'pem'}),database=databaseFixture(),tokens=new Map([[jwt(userA),userA],[jwt(userB),userB]]);
+ const gate=request=>authorizeGateway(database,request,{required:true,publicKey});let xdrChecks=0;
+ const services={database,authorizeGateway:gate,verifyLoginAuthorization:async authorization=>tokens.has(authorization?.slice(7))?{kind:'student',userId:tokens.get(authorization.slice(7))}:null,
+   authorizeDevice:async(request,identity)=>await gate(request)&&await authorizeDevice(database,request,identity),xdr:{check:async()=>{xdrChecks++;return null;}}};
+ const notes=createNotesHandler(()=>services),devices=createDeviceHandler(()=>services),auth=createAuthHandler(async(url,options)=>{
+   if(url.pathname.endsWith('/user')){const id=tokens.get(options.headers.Authorization?.slice(7));return Response.json(id?{id}:{error:'bad'},{status:id?200:401});}
+   if(url.pathname.endsWith('/token')){const input=JSON.parse(options.body),user=input.email==='fixture-b'?userB:userA;return Response.json({access_token:jwt(user),user:{id:user},expires_in:3600,refresh_token:'fixture-only',token_type:'bearer'});}
+   return Response.json({});
+ },{getGateway:()=>gate});
+ const upstream=createServer(async(req,res)=>{
+   const bytes=[];for await(const c of req)bytes.push(c);req.body=bytes.length?Buffer.concat(bytes).toString('utf8'):undefined;
+   const url=new URL(req.url,'http://fixture.invalid');req.query=Object.fromEntries(url.searchParams);
+   res.status=n=>{res.statusCode=n;return res;};res.json=value=>{res.setHeader('content-type','application/json');res.end(JSON.stringify(value));};
+   await (url.pathname==='/api/auth'?auth:url.pathname==='/api/device'?devices:notes)(req,res);
+ });upstream.listen(0,'127.0.0.1');await once(upstream,'listening');const upstreamOrigin=`http://127.0.0.1:${upstream.address().port}`;
+ const store=createWorkspaceStore(join(directory,'windows.sqlite'),{deviceId:signer.deviceId});
+ const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,request:(url,options)=>fetch(upstreamOrigin+new URL(url).pathname+new URL(url).search,options)});
+ const resource=createResourceServer({client:'127.0.0.1',publicKey:signer.publicKey,store,vault});resource.listen(0,'127.0.0.1');await once(resource,'listening');const resourceOrigin=`http://127.0.0.1:${resource.address().port}`;
+ const appDb=join(directory,'agent.sqlite');new DatabaseSync(appDb).close();
+ const client={getSession:async()=>({status:'connected',sharing:true,profileId:'unrelated-chatgpt-fixture'}),listProfiles:async()=>[],cancelSignIn(){}};
+ const app=await createWorkspaceServer(client,{signer,actionDatabasePath:appDb,target:'100.100.10.2',readNetwork:async()=>({daemonStatus:'Connected',management:{connected:true},peers:{details:[{netbirdIp:'100.100.10.2'}]}}),request:(url,options)=>fetch(resourceOrigin+new URL(url).pathname,options)});
+ app.listen(0,'127.0.0.1');await once(app,'listening');const origin=`http://127.0.0.1:${app.address().port}`,home=await fetch(origin),cookie=home.headers.get('set-cookie').split(';')[0];await home.body.cancel();
+ const headers={cookie,'sec-fetch-site':'same-origin',origin,'content-type':'application/json'};
+ const call=async(path,input,extra={})=>{const r=await fetch(origin+path,{headers:{...headers,...extra},...(input===undefined?{}:{method:'POST',body:JSON.stringify(input)})});return {status:r.status,body:await r.json()};};
+ let authorization,device;
+ async function browserHeaders(path,method='GET',body){const at=String(Date.now()),nonce=randomUUID(),h={authorization,'x-aleph-device':device.id,'x-aleph-at':at,'x-aleph-nonce':nonce};return {...h,'x-aleph-signature':sign('sha256',Buffer.from(requestMessage({id:device.id,at,nonce,method,path,bodyHash:sha(body===undefined?'':JSON.stringify(body)),tokenHash:sha(authorization)})),{key:device.key,dsaEncoding:'ieee-p1363'}).toString('base64url')};}
+ try{
+   assert.equal((await call('/api/me')).status,503);
+   const login=await call('/api/auth?path=token&grant_type=password',{email:'fixture-a',password:'fixture-only'});assert.equal(login.status,200);authorization='Bearer '+login.body.access_token;
+   const pair=generateKeyPairSync('ec',{namedCurve:'prime256v1'}),jwk=pair.publicKey.export({format:'jwk'});
+   const pending=await call('/api/device?operation=request',{publicKey:jwk},{authorization});assert.equal(pending.status,201,JSON.stringify(pending.body));
+   device={id:pending.body.id,key:pair.privateKey};
+   const signature=sign('sha256',Buffer.from(enrollmentMessage(device.id,pending.body.challenge,sha(authorization))),{key:device.key,dsaEncoding:'ieee-p1363'}).toString('base64url');
+   assert.equal((await call('/api/device?operation=approve',{id:device.id,signature},{authorization})).body.approved,true);
+   const path='/api/my/notes',first=await call(path,undefined,await browserHeaders(path));assert.equal(first.status,200,JSON.stringify(first.body));assert.deepEqual(first.body.map(n=>n.title),['Owned fixture A']);assert.ok(xdrChecks>0);
+   const direct=await fetch(upstreamOrigin+path,{headers:await browserHeaders(path)});assert.equal(direct.status,403);
+   const me=await call('/api/me');assert.equal(me.body.data.user.id,userA);assert.notEqual(me.body.data.user.id,'unrelated-chatgpt-fixture');
+   const events=(await call('/api/events')).body.data,event=events.find(e=>e.supportedActions.includes('grant:remove'));
+   const prepared=await call('/api/actions/prepare',{eventId:event.id,actionId:'grant:remove'});assert.equal(prepared.body.ok,true,JSON.stringify(prepared.body));
+   await call('/api/actions/execute',{requestId:prepared.body.data.requestId,confirmationId:prepared.body.data.confirmationId});
+   const effect=await call('/api/actions/result',{requestId:prepared.body.data.requestId});assert.equal(effect.body.ok,true,JSON.stringify(effect.body));assert.equal(effect.body.data.status,'succeeded');assert.equal(effect.body.data.observation.effectApplied,true);
+   const blocked=await call(path,undefined,await browserHeaders(path));assert.equal(blocked.status,403);assert.equal(blocked.body.error,'GRANT_REMOVED');
+   assert.equal((await fetch(upstreamOrigin+path,{headers:await browserHeaders(path)})).status,403);
+   assert.equal((await call('/api/netbird/restore',{humanConfirmed:true})).body.ok,true);
+   assert.equal((await call(path,undefined,await browserHeaders(path))).status,200);
+   const after=await call('/api/actions/result',{requestId:prepared.body.data.requestId});assert.equal(after.body.data.status,'unknown');assert.equal(after.body.data.observation.effectApplied,false);
+   assert.equal(database.tables.notes.length,2);assert.equal(database.tables.notes[1].content,'original fixture B');
+ }finally{for(const server of [app,resource,upstream]){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}await rm(directory,{recursive:true,force:true});}
+});

@@ -391,7 +391,7 @@ function renderMode() {
   const badge = $('mode-badge');
   const mode = currentMode();
   badge.dataset.mode = mode;
-  badge.textContent = MODE_LABELS[mode];
+  badge.textContent = mode==='connected'&&state.me.status!=='ok'?'기존 자료실 로그인 확인 필요':mode==='connected'&&state.me.data?.session.status!=='active'?'세션 접근 제한':MODE_LABELS[mode];
   $('checked-at').textContent = state.checkedAt ? `확인 시각 ${formatTime(state.checkedAt)}` : '';
   renderStudent('status');
 }
@@ -964,15 +964,16 @@ function renderEventItem(event, meta) {
         el('button', {
           type: 'button',
           className: 'btn',
-          disabled: true,
-          'aria-disabled': 'true',
-          title: '현재 사건의 AI 제안에서 준비한 뒤 원천 권한과 실제 대상을 확인하세요.',
-          text: `${action} · AI 제안에서 준비`,
+          disabled: state.events.meta?.mode!=='connected',
+          'aria-disabled': String(state.events.meta?.mode!=='connected'),
+          title: '현재 원천이 지원하는 조치만 준비합니다. 집행 전 별도 사람 확인이 필요합니다.',
+          text: `${action} · 조치 준비`,
+          onclick:()=>prepareAction(event,action,{manual:true}),
         }),
       ),
     ]),
     actions.length > 0
-      ? el('p', { className: 'muted', text: '이 목록의 버튼은 집행 요청을 보내지 않습니다. AI 제안에서 조치를 직접 준비하고 원천 권한과 대상을 확인해야 하며, 기본 원천 연결은 미지원입니다.' })
+      ? el('p', { className: 'muted', text: '준비 버튼은 집행하지 않습니다. 서버가 현재 권한과 대상을 다시 확인하며, 실제 집행은 별도의 사람 확인을 거칩니다.' })
       : el('p', { className: 'muted', testid: `no-supported-actions-${event.id}`, text: '이 기록에는 원천이 지원하는 조치가 없습니다. AI 설명은 볼 수 있지만 조치 제안과 집행 버튼은 나오지 않으며, 이것이 정상입니다.' }),
     slot,
   ]);
@@ -1132,9 +1133,12 @@ function actionFailure(result,afterDispatch) {
   actionState={...actionState,status:uncertain?'unknown':code==='ACTION_CONFIRMATION_EXPIRED'?'expired':'error',observation:null,error:{code,message:ACTION_MESSAGES[code]}};
   actionTicket=null;
 }
-async function prepareAction(event,actionId) {
-  const current=state.selectedExplanation;
-  if(current.event?.id!==event.id||current.resource.status!=='ok'||!current.resource.data.proposals.some(p=>p.action===actionId)||!event.supportedActions.includes(actionId))return;
+async function prepareAction(event,actionId,{manual=false}={}) {
+  let current=state.selectedExplanation;
+  if(manual){
+    if(state.events.status!=='ok'||state.events.meta?.mode!=='connected'||!state.events.data.some(row=>row.id===event.id)||!event.supportedActions.includes(actionId))return;
+    current={event,resource:{status:'idle'}};
+  }else if(current.event?.id!==event.id||current.resource.status!=='ok'||!current.resource.data.proposals.some(p=>p.action===actionId)||!event.supportedActions.includes(actionId))return;
   clearAction();const gen=actionGeneration,refreshGen=generation,controller=new AbortController();actionController=controller;
   actionState={status:'loading',event:structuredClone(current.event),actionId,target:null,receipt:null,observation:null,message:'조치 준비 중 · 미실행'};renderAction();
   const result=await aiRequest('/api/actions/prepare',{body:{eventId:event.id,actionId},signal:controller.signal});

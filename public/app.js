@@ -124,13 +124,33 @@
   let installPrompt;
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('#install-app').hidden=false;});
   $('#install-app').addEventListener('click',async()=>{if(installPrompt){await installPrompt.prompt();installPrompt=null;$('#install-app').hidden=true;}});
-  if('serviceWorker' in navigator)void navigator.serviceWorker.register('/sw.js').catch(()=>status('오프라인 안내를 준비하지 못했습니다. 온라인 접속은 계속 사용할 수 있습니다.'));
+  if('serviceWorker' in navigator)void navigator.serviceWorker.register(location.pathname.startsWith('/vault/')?'/vault/sw.js':'/sw.js').catch(()=>status('오프라인 안내를 준비하지 못했습니다. 온라인 접속은 계속 사용할 수 있습니다.'));
   $('#editor').addEventListener('submit',async event=>{
     event.preventDefault(); $('#save-note').disabled=true;
     try {await api(editingId?'/'+editingId:'',{method:editingId?'PUT':'POST',body:JSON.stringify({title:$('#note-title').value,body:$('#note-body').value})});clearEditor();await loadNotes();status('메모를 저장했습니다.');}
     catch(error){status(error.message);}finally{$('#save-note').disabled=false;}
   });
   $('#cancel-edit').addEventListener('click',clearEditor);
+  if(location.pathname.startsWith('/vault/')){
+    const row=document.createElement('div');row.className='actions';
+    const tokenLabel=document.createElement('label');tokenLabel.textContent='메일 확인 코드';
+    const tokenInput=document.createElement('input');tokenInput.type='password';tokenInput.autocomplete='one-time-code';tokenInput.id='mail-confirm-token';tokenLabel.htmlFor=tokenInput.id;row.append(tokenLabel,tokenInput);
+    for(const [operation,label] of [['signup','확인 메일로 계정 준비'],['login','확인 메일로 로그인'],['verify','메일 인증 완료']]){
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.addEventListener('click',async()=>{
+        if(!$('#email').reportValidity())return;button.disabled=true;authError('');
+        try{
+          const input={operation,email:$('#email').value.trim(),...(operation==='verify'?{tokenHash:tokenInput.value,type:tokenInput.dataset.type??'email'}:{})};
+          const response=await fetch('/api/netbird/account',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)}),result=await response.json();
+          if(!response.ok){authError(authMessage({code:result.error_code??result.code}));return;}
+          if(result.access_token&&result.refresh_token){tokenInput.value='';const {error}=await client.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});if(error)throw error;status('이메일 확인으로 로그인했습니다. 기기 승인을 요청해 주세요.');}
+          else status('확인 메일을 보냈습니다. 해당 메일의 인증으로 계정 연결을 완료하세요.');
+        }catch{authError('이메일 인증을 완료하지 못했습니다. 연결 상태를 확인하세요.');}
+        finally{button.disabled=false;}
+      });row.append(button);
+    }
+    $('#auth-form').after(row);
+  }
   $('#refresh').addEventListener('click',loadNotes);
   $('#note-body').addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter')$('#editor').requestSubmit();});
   window.addEventListener('beforeunload', event => {
