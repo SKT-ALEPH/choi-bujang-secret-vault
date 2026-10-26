@@ -87,3 +87,8 @@ ui-ux-pro-max 공식 v2.15.0의 `style: Soft UI Evolution`, `typography: Luxury 
 ## 검증 기록
 
 현재 변경의 실행 결과는 저장소 밖 `artifacts/ui-refresh/verification.json`과 화면 캡처에 기록한다. 기존 공식13~16 통과 결과는 `artifacts/stages13-16/official-final-results.json`에 보존되며 이번 디자인 변경의 재심사로 표현하지 않는다.
+
+
+## 2026-10-26 · 총공세 학생 개발 대시보드
+
+`on-client/student/daily.css`는 기존 토큰을 재사용하는 개발 화면 전용 보완이다. `student/daily-layout.mjs`와 `student/start-daily.mjs`에서만 적용한다. 제공 `public` 원본의 테마 역할은 유지한다. CPU·메모리·디스크·SDP 네 카드, 아래 연결/기록, 계정/진단 접기를 사용한다. 이 개발 전용 CSS·배치가 승인된 설치형에서 적용됐다고 간주하지 않는다. 공식 appearance 계약이 없어 appearance.json을 발명하지 않았다.

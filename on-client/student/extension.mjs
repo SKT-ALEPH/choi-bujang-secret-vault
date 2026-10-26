@@ -9,17 +9,21 @@ function appendPcPanel(root, history) {
   const button=text('내 PC 상태 다시 조회','button');button.type='button';button.className='btn';
   const status=text('아직 조회하지 않았습니다. 버튼을 눌러 현재 값을 읽으세요.');status.setAttribute('role','status');
   const results=document.createElement('div');results.className='student-pc-results';panel.append(results);let version=0;
+  const sdpCard=()=>{const c=document.createElement('section');c.className='student-sdp-metric';results.append(c);text('SDP 서버','h4',c);text('확인 불가','p',c);text('승인된 서버 연결 관측이 없습니다. PC 실측 성공과 별도입니다.','p',c);};
+  const placeholders=message=>{results.replaceChildren();for(const label of ['CPU 사용률','메모리 사용량','디스크 가용 공간']){const c=document.createElement('section');c.className='student-pc-metric';results.append(c);text(label,'h4',c);text(message,'p',c);}sdpCard();};
+  placeholders('조회 전');
   button.addEventListener('click',async()=>{
-    const current=++version;button.disabled=true;panel.setAttribute('aria-busy','true');results.replaceChildren();status.textContent='내 PC 상태를 읽는 중입니다…';
+    const current=++version;button.disabled=true;panel.setAttribute('aria-busy','true');placeholders('읽는 중…');status.textContent='내 PC 상태를 읽는 중입니다…';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
     try {
       const response=await fetch('/api/student/pc',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
-      if(!response.ok)throw Error(response.status===404?'PC_DEVELOPMENT_ENTRY_REQUIRED':'PC_READ_FAILED');
+      if(!response.ok)throw Error(response.status===404?'PC_DEVELOPMENT_ENTRY_REQUIRED':response.status===403?'PC_SESSION_EXPIRED':response.status===429?'READ_BUSY':'PC_READ_FAILED');
       const body=await response.json(),data=body?.data;
       if(body?.ok!==true||data?.schema!=='keshev.student.pc.v1'||data.mode!=='measured'||!['darwin','win32','linux'].includes(data.platform)||!Number.isFinite(Date.parse(data.observedAt)))throw Error('PC_INVALID_RESPONSE');
       const rows=[['cpu','CPU 사용률','%'],['memory','메모리 사용량','GiB'],['disk','디스크 가용 공간','GiB']];
       for(const [key,,unit] of rows){const m=data.metrics?.[key];if(!m||!['measured','unavailable'].includes(m.status)||m.unit!==unit||!Number.isFinite(Date.parse(m.observedAt))||typeof m.source!=='string'||m.status==='measured'&&(!Number.isFinite(m.value)||m.value<0||key==='cpu'&&m.value>100))throw Error('PC_INVALID_RESPONSE');}
       if(current!==version||root.isConnected===false)return;
+      results.replaceChildren();
       status.textContent=`실제 조회 · OS: ${data.platform} · 조회 시각: ${data.observedAt} · 자동 조회 없음`;
       for(const [key,label,unit] of rows){
         const m=data.metrics[key],card=document.createElement('section');card.className='student-pc-metric';results.append(card);text(label,'h4',card);
@@ -31,8 +35,9 @@ function appendPcPanel(root, history) {
         }else text('확인 불가 · 일반 권한으로 값을 읽지 못했습니다. 권한을 높이지 않고 다음에 직접 다시 조회하세요.','p',card);
         text(`측정 시각: ${m.observedAt}`,'p',card);text(`출처: ${m.source}`,'p',card);
       }
-      text('메모리는 OS 전체−여유 집계입니다. 작업 관리자의 캐시·가용 메모리 분류와 다를 수 있어 같은 시각·단위·집계 범위로 비교하세요.','p',results);
-    } catch(error){if(current===version&&root.isConnected!==false){results.replaceChildren();status.textContent=error.message==='PC_DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. 설명서의 node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`PC 조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 값을 확인할 수 없습니다. 개발 실행기와 OS 상태를 확인한 뒤 직접 다시 조회하세요.`;}}
+      sdpCard();
+      text('메모리는 OS 전체−여유 집계입니다. 작업 관리자의 캐시·가용 메모리 분류와 다를 수 있어 같은 시각·단위·집계 범위로 비교하세요.','p',results).className='student-pc-note';
+    } catch(error){if(current===version&&root.isConnected!==false){placeholders('확인 불가');status.textContent=error.message==='PC_SESSION_EXPIRED'?'앱의 로컬 조회 세션을 확인할 수 없습니다. 이 앱 주소를 새로고침한 뒤 다시 조회하세요.':error.message==='READ_BUSY'?'다른 조회가 진행 중입니다. 완료된 뒤 이 버튼으로 다시 조회하세요.':error.message==='PC_DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. 설명서의 node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`PC 조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 값을 확인할 수 없습니다. 개발 실행기와 OS 상태를 확인한 뒤 직접 다시 조회하세요.`;}}
     finally{clearTimeout(timer);if(current===version){button.disabled=false;panel.setAttribute('aria-busy','false');}}
   });
   root.append(panel);
@@ -51,7 +56,7 @@ function appendConnectionPanel(root) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try{
       const response=await fetch('/api/student/connections',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
-      if(!response.ok)throw Error(response.status===404?'DEVELOPMENT_ENTRY_REQUIRED':'READ_FAILED');
+      if(!response.ok)throw Error(response.status===404?'DEVELOPMENT_ENTRY_REQUIRED':response.status===403?'PC_SESSION_EXPIRED':response.status===429?'READ_BUSY':'READ_FAILED');
       const body=await response.json(),d=body?.data;
       if(body?.ok!==true||d?.schema!=='keshev.student.connections.v1'||d.mode!=='measured'||d.readOnly!==true||!['darwin','win32','linux'].includes(d.platform)||!Number.isFinite(Date.parse(d.observedAt))||d.sdp?.status!=='unavailable')throw Error('INVALID_RESPONSE');
       for(const key of ['network','firewall','events']){const r=d[key];if(!r||!['measured','unavailable'].includes(r.status)||typeof r.source!=='string'||!Number.isFinite(Date.parse(r.observedAt)))throw Error('INVALID_RESPONSE');}
@@ -85,7 +90,7 @@ function appendConnectionPanel(root) {
         }
         text(`조회 시각: ${r.observedAt} · 출처: ${r.source}`,'p',card);
       }
-    }catch(error){if(root.isConnected!==false){results.replaceChildren();status.textContent=error.message==='DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 결과는 확인 불가입니다. 개발 실행기와 OS를 확인한 뒤 다시 조회하세요. 관리자 권한이나 보안 설정 변경은 필요하지 않습니다.`;}}
+    }catch(error){if(root.isConnected!==false){results.replaceChildren();status.textContent=error.message==='PC_SESSION_EXPIRED'?'앱의 로컬 조회 세션을 확인할 수 없습니다. 이 앱 주소를 새로고침한 뒤 다시 조회하세요.':error.message==='READ_BUSY'?'다른 조회가 진행 중입니다. 완료된 뒤 이 버튼으로 다시 조회하세요.':error.message==='DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 결과는 확인 불가입니다. 개발 실행기와 OS를 확인한 뒤 다시 조회하세요. 관리자 권한이나 보안 설정 변경은 필요하지 않습니다.`;}}
     finally{clearTimeout(timer);button.disabled=false;panel.setAttribute('aria-busy','false');}
   });
   root.append(panel);
@@ -300,10 +305,12 @@ export function createStudentView() {
       };
       appendPcPanel(root, pcHistory);
       appendConnectionPanel(root);
-      text(root, modeText(mode));
+      const legacy=document.createElement('details');legacy.className='student-legacy-details';
+      const summary=document.createElement('summary');summary.textContent='기존 기기·세션·알림·도움정보';legacy.append(summary);root.append(legacy);
+      text(legacy, modeText(mode));
       for (const [key, name, resource] of [['devices', '기기 정보', devices], ['sessions', '세션 정보', sessions]]) {
         const section = document.createElement('section');
-        root.append(section);
+        legacy.append(section);
         text(section, name, 'h3');
         text(section, modeText(resource?.mode ?? mode));
         if (resource?.status === 'loading') text(section, `${name}를 불러오는 중입니다.`);
@@ -318,22 +325,22 @@ export function createStudentView() {
           }
         } else text(section, `${name}를 확인할 수 없습니다.`);
       }
-      text(root, '세션 조회는 현재 검증된 연결 1건을 대상으로 합니다. 과거 세션 전체 목록이 아닙니다.');
-      text(root, '알림', 'h3');
-      if (!Array.isArray(notifications)) text(root, '알림 상태를 확인할 수 없습니다.');
-      else if (!notifications.length) text(root, '주의할 알림이 없습니다.');
+      text(legacy, '세션 조회는 현재 검증된 연결 1건을 대상으로 합니다. 과거 세션 전체 목록이 아닙니다.');
+      text(legacy, '알림', 'h3');
+      if (!Array.isArray(notifications)) text(legacy, '알림 상태를 확인할 수 없습니다.');
+      else if (!notifications.length) text(legacy, '주의할 알림이 없습니다.');
       else for (const notification of notifications) {
-        text(root, `자료: ${notification.resource} · 코드: ${notification.code} · ${notification.message}`);
+        text(legacy, `자료: ${notification.resource} · 코드: ${notification.code} · ${notification.message}`);
       }
-      text(root, '도움 요청용 진단 정보', 'h3');
-      const copy = text(root, '도움정보 복사', 'button');
+      text(legacy, '도움 요청용 진단 정보', 'h3');
+      const copy = text(legacy, '도움정보 복사', 'button');
       copy.type = 'button';
       copy.className = 'btn';
       copy.disabled = true;
-      const copyStatus = text(root, '도움 요청에 필요한 정보만 직접 확인한 뒤 복사합니다. 자동으로 복사하거나 전송하지 않습니다.');
+      const copyStatus = text(legacy, '도움 요청에 필요한 정보만 직접 확인한 뒤 복사합니다. 자동으로 복사하거나 전송하지 않습니다.');
       copyStatus.setAttribute('aria-live', 'polite');
-      if (diagnostics?.status === 'loading') text(root, '진단 정보를 불러오는 중입니다.');
-      else if (diagnostics?.status === 'error') failure(root, '진단 정보', diagnostics);
+      if (diagnostics?.status === 'loading') text(legacy, '진단 정보를 불러오는 중입니다.');
+      else if (diagnostics?.status === 'error') failure(legacy, '진단 정보', diagnostics);
       else if (diagnostics?.status === 'ok' && diagnostics.data) {
         const info = diagnostics.data;
         // Copy only this explicit allowlist, never the complete diagnostics object.
@@ -341,10 +348,10 @@ export function createStudentView() {
         const safe = { requestId: safeValue(info.requestId), component: safeValue(info.component), version: safeValue(info.version),
           checkedAt: safeValue(info.checkedAt), engine: { mode: safeValue(info.engine?.mode), code: safeValue(info.engine?.code) } };
         for (const [key, value] of Object.entries(safe)) {
-          if (key !== 'engine') text(root, `${key}: ${value ?? '확인 불가'}`);
+          if (key !== 'engine') text(legacy, `${key}: ${value ?? '확인 불가'}`);
         }
-        text(root, `engine.mode: ${safe.engine.mode ?? '확인 불가'}`);
-        text(root, `engine.code: ${safe.engine.code ?? '확인 불가'}`);
+        text(legacy, `engine.mode: ${safe.engine.mode ?? '확인 불가'}`);
+        text(legacy, `engine.code: ${safe.engine.code ?? '확인 불가'}`);
         copy.disabled = false;
         copy.addEventListener('click', async () => {
           copy.disabled = true;
@@ -355,7 +362,7 @@ export function createStudentView() {
             copyStatus.textContent = '복사하지 못했습니다. 화면의 도움정보를 직접 확인해 복사하세요.';
           } finally { copy.disabled = false; }
         });
-      } else text(root, '진단 정보 확인 전입니다. 제공 화면의 도움정보 불러오기 버튼을 직접 누르세요.');
+      } else text(legacy, '진단 정보 확인 전입니다. 제공 화면의 도움정보 불러오기 버튼을 직접 누르세요.');
       return root;
     },
     renderVulnerabilities({ status, mode, data, error }) {

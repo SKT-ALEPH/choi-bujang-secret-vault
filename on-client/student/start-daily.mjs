@@ -12,19 +12,28 @@ export async function createDailyServer({demo=false,readPc=readPcObservation,rea
   if(!Number.isInteger(readTimeoutMs)||readTimeoutMs<10||readTimeoutMs>5000)throw Error('INVALID_PC_TIMEOUT');
   const server=createOnServer({engine:demo?demoEngine():{evidenceMode:'disconnected'},aiEnv:{}});
   const [providedHandler]=server.listeners('request');server.removeListener('request',providedHandler);
-  const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+  const html=(await readFile(new URL('../public/index.html',import.meta.url),'utf8'))
+    .replace('</head>','<link rel="stylesheet" href="/student/daily.css"><script type="module" src="/student/daily-layout.mjs"></script></head>')
+    .replace('class="client-app"','class="client-app daily-app"');
+  const assets=new Map(['/student/daily.css','/student/daily-layout.mjs'].map(path=>[path,new URL('.'+path.slice(8),import.meta.url)]));
   const session=randomBytes(32).toString('hex');let busy=false;
   const json=(res,status,body)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(body));};
   const authorized=req=>{
-    const value=req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('keshev_daily='))?.slice(13);
+    const name=`keshev_daily_${server.address()?.port}=`;
+    const value=req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith(name))?.slice(name.length);
     return typeof value==='string'&&/^[0-9a-f]{64}$/.test(value)&&timingSafeEqual(Buffer.from(value),Buffer.from(session));
   };
   server.on('request',async(req,res)=>{
     const origin=`http://127.0.0.1:${server.address()?.port}`;
     if(req.headers.host!==origin.slice(7)){json(res,403,{ok:false,code:'PC_ORIGIN_REJECTED'});return;}
+    if(assets.has(req.url)){
+      if(req.method!=='GET'){json(res,405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
+      try{const data=await readFile(assets.get(req.url));res.writeHead(200,{'content-type':req.url.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(data);}
+      catch{json(res,404,{ok:false,code:'ASSET_UNAVAILABLE'});}return;
+    }
     if(req.url==='/'||req.url==='/index.html'){
       if(req.method!=='GET'){json(res,405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
-      res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','set-cookie':`keshev_daily=${session}; HttpOnly; SameSite=Strict; Path=/`,
+      res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store','set-cookie':`keshev_daily_${server.address()?.port}=${session}; HttpOnly; SameSite=Strict; Path=/`,
         'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",'x-content-type-options':'nosniff'});
       res.end(html);return;
     }

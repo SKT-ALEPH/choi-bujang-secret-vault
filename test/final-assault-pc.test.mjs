@@ -10,7 +10,7 @@ async function using(options,run){
   const origin=`http://127.0.0.1:${server.address().port}`;
   try{
     const home=await fetch(origin),cookie=home.headers.get('set-cookie').split(';')[0];
-    assert.match(cookie,/^keshev_daily=/);
+    assert.match(cookie,/^keshev_daily_\d+=/);
     await run(origin,{cookie,'sec-fetch-site':'same-origin'});
   }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 }
@@ -45,4 +45,14 @@ test('overlap is refused and a stuck reader is bounded, releases busy state and 
     const failed=await pending;assert.equal(failed.status,503);assert.deepEqual(await failed.json(),{ok:false,code:'PC_READ_UNAVAILABLE'});
     assert.equal((await fetch(origin+'/api/student/pc',{headers})).status,200);
   });
+});
+
+test('two local app copies keep independent port-specific sessions',async()=>{
+  await using({},async(first,a)=>using({},async(second,b)=>{
+    assert.notEqual(a.cookie.split('=')[0],b.cookie.split('=')[0]);
+    const headers={...a,cookie:a.cookie+'; '+b.cookie};
+    assert.equal((await fetch(first+'/api/student/pc',{headers})).status,200);
+    assert.equal((await fetch(second+'/api/student/pc',{headers})).status,200);
+    assert.equal((await fetch(first+'/api/student/pc',{headers:b})).status,403);
+  }));
 });

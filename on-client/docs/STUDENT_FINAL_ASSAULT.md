@@ -83,3 +83,15 @@ node student/start-daily.mjs
 - 일반권한 실패/시간초과는권한상승없이unknown. 이벤트10000건상한초과는완전한건수로표시하지않음. 부분로그실패는해당로그만unknown. 관련15검증통과(Windows정상/부분실패/민감필드제거 계약시험 포함).
 
 수집 명령의 의미는 Microsoft 공식 문서 [네트워크 구성](https://learn.microsoft.com/en-us/powershell/module/nettcpip/get-netipconfiguration), [방화벽 프로필](https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile), [이벤트 조회](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-winevent?view=powershell-5.1)에서 확인했다.
+
+
+## 4일차 · 첫 화면·재조회·실패·키보드
+
+전체 할 일3개·요청문·결과/복구 안내를 다시 읽었다. 기존 `student/extension.mjs`를 확인했고 선택 `student/appearance.json`은 제공 규격과 파일이 없어 임의 생성하지 않았다. `public/app.js`, `public/style.css`, `public/index.html` 원본은 바꾸지 않았다.
+
+학생 개발 실행기에서만 `student/daily.css`와 `student/daily-layout.mjs`를 더한다. 기존 Soft UI의 서체·색 토큰을 재사용한다. 첫 화면은 CPU/메모리/디스크/SDP 네 카드, 아래 연결 구성·방화벽·Windows 기록이다. 계정·도움정보·연결 오류는 펼치기로 보존한다. DOM 순서도 시각 순서와 같으며 native 버튼과 details를 사용한다. 승인 설치형에 이 개발 레이아웃이 그대로 반영된다고 주장하지 않는다.
+
+- 버튼은 조회 중 비활성·대기 안내, 시각/단위/출처, 성공/실패/조회 전을 구분한다. 이전 실측은 최신 값으로 재표시하지 않고 변화 비교에만 쓴다.
+- Mac 실제 브라우저에서 디스크 수집기만 실패시키는 **시험 전용 실행**으로 CPU·메모리 실측은 유지, 디스크는확인불가/재조회안내임을확인했다. OS권한·보안설정은변경하지않았다. 시험값을제품정상값으로쓰기않았다.
+- Tab으로 PC조회→연결기록조회, Enter로조회 실행을실제확인했다. 포커스표시/44px버튼/줄바꿈/좁은폭1열/reduced-motion규칙을추가했다. 데스크톱브라우저검증이며375px실기기·화면낭독기검증은미실행이다.
+- 두포트사본을함께열어세션충돌을발견했다.포트별세션쿠키로수정하고브라우저에서두사본조회복구확인,독립세션회귀4항목통과(기존PC검증포함)했다. 세션실패는주소새로고침,조회중복은완료후재조회로구체화했다.
