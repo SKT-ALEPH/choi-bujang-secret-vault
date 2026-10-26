@@ -6,8 +6,9 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {createOnServer} from '../src/server.mjs';
 import {demoEngine} from '../src/engine.mjs';
 import {readPcObservation} from './pc-observation.mjs';
+import {readConnectionObservation} from './connection-observation.mjs';
 
-export async function createDailyServer({demo=false,readPc=readPcObservation,readTimeoutMs=3500}={}){
+export async function createDailyServer({demo=false,readPc=readPcObservation,readConnections=readConnectionObservation,readTimeoutMs=3500}={}){
   if(!Number.isInteger(readTimeoutMs)||readTimeoutMs<10||readTimeoutMs>5000)throw Error('INVALID_PC_TIMEOUT');
   const server=createOnServer({engine:demo?demoEngine():{evidenceMode:'disconnected'},aiEnv:{}});
   const [providedHandler]=server.listeners('request');server.removeListener('request',providedHandler);
@@ -16,7 +17,7 @@ export async function createDailyServer({demo=false,readPc=readPcObservation,rea
   const json=(res,status,body)=>{res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(body));};
   const authorized=req=>{
     const value=req.headers.cookie?.split(';').map(x=>x.trim()).find(x=>x.startsWith('keshev_daily='))?.slice(13);
-    return typeof value==='string'&&value.length===session.length&&timingSafeEqual(Buffer.from(value),Buffer.from(session));
+    return typeof value==='string'&&/^[0-9a-f]{64}$/.test(value)&&timingSafeEqual(Buffer.from(value),Buffer.from(session));
   };
   server.on('request',async(req,res)=>{
     const origin=`http://127.0.0.1:${server.address()?.port}`;
@@ -27,12 +28,13 @@ export async function createDailyServer({demo=false,readPc=readPcObservation,rea
         'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",'x-content-type-options':'nosniff'});
       res.end(html);return;
     }
-    if(req.url!=='/api/student/pc'){providedHandler(req,res);return;}
+    const read=req.url==='/api/student/pc'?readPc:req.url==='/api/student/connections'?readConnections:null;
+    if(!read){providedHandler(req,res);return;}
     if(req.method!=='GET'){json(res,405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
     if(!authorized(req)||req.headers['sec-fetch-site']!=='same-origin'||req.headers.origin&&req.headers.origin!==origin){json(res,403,{ok:false,code:'PC_ORIGIN_REJECTED'});return;}
     if(busy){json(res,429,{ok:false,code:'PC_READ_BUSY'});return;}
     busy=true;let timer;
-    try{const data=await Promise.race([Promise.resolve().then(readPc),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('PC_READ_TIMEOUT')),readTimeoutMs);})]);if(!res.destroyed)json(res,200,{ok:true,data});}
+    try{const data=await Promise.race([Promise.resolve().then(read),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('PC_READ_TIMEOUT')),req.url==='/api/student/connections'?8000:readTimeoutMs);})]);if(!res.destroyed)json(res,200,{ok:true,data});}
     catch{if(!res.destroyed)json(res,503,{ok:false,code:'PC_READ_UNAVAILABLE'});}
     finally{clearTimeout(timer);busy=false;}
   });

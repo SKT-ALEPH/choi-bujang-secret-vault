@@ -37,6 +37,59 @@ function appendPcPanel(root, history) {
   });
   root.append(panel);
 }
+function appendConnectionPanel(root) {
+  const panel=document.createElement('section');panel.className='student-connection-panel';
+  const text=(value,tag='p',parent=panel)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
+  text('연결과 Windows 기록 · 읽기 전용','h3');
+  text('네트워크 구성·방화벽 설정·최근 24시간 경고/오류를 조회합니다. 이 건수는 침해나 공격 탐지 결과가 아닙니다.');
+  const button=text('연결과 기록 다시 조회','button');button.type='button';button.className='btn';
+  const status=text('아직 조회하지 않았습니다. 자동 조회와 설정 변경은 없습니다.');status.setAttribute('role','status');
+  const results=document.createElement('div');results.className='student-connection-results';panel.append(results);
+  text('SDP 서버 · 확인 불가: 승인된 서버 연결 관측이 없습니다. PC 조회 결과와 별도입니다.');
+  button.addEventListener('click',async()=>{
+    button.disabled=true;panel.setAttribute('aria-busy','true');results.replaceChildren();status.textContent='연결 구성과 Windows 기록을 읽는 중입니다…';
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try{
+      const response=await fetch('/api/student/connections',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw Error(response.status===404?'DEVELOPMENT_ENTRY_REQUIRED':'READ_FAILED');
+      const body=await response.json(),d=body?.data;
+      if(body?.ok!==true||d?.schema!=='keshev.student.connections.v1'||d.mode!=='measured'||d.readOnly!==true||!['darwin','win32','linux'].includes(d.platform)||!Number.isFinite(Date.parse(d.observedAt))||d.sdp?.status!=='unavailable')throw Error('INVALID_RESPONSE');
+      for(const key of ['network','firewall','events']){const r=d[key];if(!r||!['measured','unavailable'].includes(r.status)||typeof r.source!=='string'||!Number.isFinite(Date.parse(r.observedAt)))throw Error('INVALID_RESPONSE');}
+      if(root.isConnected===false)return;
+      status.textContent=`실제 조회 · OS: ${d.platform} · 조회 시각: ${d.observedAt}`;
+      for(const [key,label] of [['network','네트워크 구성'],['firewall','방화벽 프로필 설정'],['events','Windows 경고·오류']]){
+        const r=d[key],card=document.createElement('section');card.className='student-connection-metric';results.append(card);text(label,'h4',card);
+        if(r.status==='unavailable')text(`확인 불가 · ${r.reason??'일반 권한으로 읽지 못했습니다.'}`,'p',card);
+        else if(key==='network'){
+          if(d.platform==='win32'){
+            if(!Array.isArray(r.data?.interfaces))throw Error('INVALID_RESPONSE');
+            if(!r.data.interfaces.length)text('조회된 네트워크 인터페이스가 없습니다. 인터넷 연결 여부는 확인 불가입니다.','p',card);
+            r.data.interfaces.forEach((row,i)=>text(`구성 ${i+1}: ${row.state} · IPv4 ${row.ipv4Configured?'있음':'없음'} · IPv6 ${row.ipv6Configured?'있음':'없음'} · 기본 경로 ${row.defaultRouteConfigured?'있음':'없음'} · DNS ${row.dnsConfigured?'있음':'없음'}`,'p',card));
+          }else{
+            if(!Number.isSafeInteger(r.data?.ipv4Count)||!Number.isSafeInteger(r.data?.ipv6Count))throw Error('INVALID_RESPONSE');
+            text(`비루프백 IPv4 구성 ${r.data.ipv4Count}개 · IPv6 구성 ${r.data.ipv6Count}개`,'p',card);
+          }
+          text('주소 원문은 표시하지 않습니다. 구성 존재나 Up 상태만으로 인터넷·SDP 연결 성공을 판단하지 않습니다.','p',card);
+        }else if(key==='firewall'){
+          if(!Array.isArray(r.data?.profiles))throw Error('INVALID_RESPONSE');
+          for(const row of r.data.profiles)text(`${row.profile}: ${{on:'켜짐',off:'꺼짐',unknown:'확인 불가'}[row.enabled]??'확인 불가'}`,'p',card);
+          text('ActiveStore의 프로필별 설정입니다. 현재 연결에 적용된 프로필이나 PC의 안전 판정이 아닙니다.','p',card);
+        }else{
+          if(!Array.isArray(r.data?.logs)||!Number.isFinite(Date.parse(r.data.startAt))||!Number.isFinite(Date.parse(r.data.endAt)))throw Error('INVALID_RESPONSE');
+          text(`기간: ${r.data.startAt} ~ ${r.data.endAt} · Level 3 경고 / Level 2 오류`,'p',card);
+          for(const row of r.data.logs){
+            if(row.status==='measured'&&[row.warnings,row.errors].every(v=>Number.isSafeInteger(v)&&v>=0))text(`${row.log}: 경고 ${row.warnings}건 · 오류 ${row.errors}건`,'p',card);
+            else text(`${row.log}: 확인 불가 · 일반 권한 읽기 실패 또는 조회 상한 초과. 0건으로 판단하지 않습니다.`,'p',card);
+          }
+          text('이 건수는 침해나 공격 탐지 결과가 아닙니다. 사건 본문과 Security 로그는 수집하지 않습니다.','p',card);
+        }
+        text(`조회 시각: ${r.observedAt} · 출처: ${r.source}`,'p',card);
+      }
+    }catch(error){if(root.isConnected!==false){results.replaceChildren();status.textContent=error.message==='DEVELOPMENT_ENTRY_REQUIRED'?'학생 개발 실행기가 필요합니다. node student/start-daily.mjs로 실행한 뒤 다시 조회하세요.':`조회 ${error.name==='AbortError'?'시간 초과':'실패'} · 현재 결과는 확인 불가입니다. 개발 실행기와 OS를 확인한 뒤 다시 조회하세요. 관리자 권한이나 보안 설정 변경은 필요하지 않습니다.`;}}
+    finally{clearTimeout(timer);button.disabled=false;panel.setAttribute('aria-busy','false');}
+  });
+  root.append(panel);
+}
 export function createStudentView() {
   const pcHistory = {};
   return {
@@ -246,6 +299,7 @@ export function createStudentView() {
           : '연결 상태를 확인하세요. 다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요. 자동으로 다시 요청하지 않습니다.');
       };
       appendPcPanel(root, pcHistory);
+      appendConnectionPanel(root);
       text(root, modeText(mode));
       for (const [key, name, resource] of [['devices', '기기 정보', devices], ['sessions', '세션 정보', sessions]]) {
         const section = document.createElement('section');

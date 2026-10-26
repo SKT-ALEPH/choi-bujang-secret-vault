@@ -69,3 +69,17 @@ node student/start-daily.mjs
 - Windows11 Node24.19.0, **일반 사용자(elevated=false)** 실제 수집09:35:59: CPU3.01%, 메모리3.7053GiB, 디스크223.5499GiB. 별도 CIM 확인09:36:00에서 같은 전체−여유 집계 메모리3.7270GiB, 시스템 볼륨 여유223.5496GiB. 시간차 변동과 단위/집계를 구분했다. 작업 관리자와 동시 CPU 비교를 했다고 주장하지 않는다.
 - Windows 기존 학생 파일은 쓰기 거부되어 원본을 보존했다. 새 `KeshevDailyDevelopment-20261026/on-client` 개발 사본의 소스/UI/학생3파일만 사용했다. 자격·기존 데이터는 복사하지 않았다.
 - 관련12개 검증 통과. 실패null, 세션·Host·동일출처 검사, 중복429, 읽기 시간 상한과 복구, 기존13~20/개인AI 회귀를 포함한다. 개인AI의 실제 외부 모델 호출은 재실행하지 않았다.
+
+
+## 3일차 · 연결 구성·설정·Windows 기록
+
+3일차 전체 할 일·요청문·결과/실패 안내를 다시 읽고 `student/connection-observation.mjs`, 고정된 읽기 전용 `student/windows-readonly.ps1`, 개발 실행기의 조회 경로와 학생 표시만 추가했다. 제공src/public, 보안 설정과 계정은 바꾸지 않았다.
+
+실행은2일차와 같다. 보호 현황에서 「연결과 기록 다시 조회」를 누른다. Windows에서는 인터페이스 상태와 IPv4/IPv6/기본 경로/DNS 구성 존재 여부, ActiveStore의 Domain/Private/Public 프로필 설정, 최근24시간 System/Application Level3 경고·Level2 오류 건수를 읽는다. 주소·사용자 이름·사건 본문·Security 로그는 수집/표시하지 않는다. 구성이나Up만으로 인터넷 연결, 방화벽설정만으로안전, 기록건수만으로침해를판정하지않는다. SDP는 승인 서버 관측이 없으므로 별도 확인 불가다.
+
+- Windows11 일반권한09:38: 네트워크 구성1개 Up/IPv4·IPv6·기본경로·DNS 구성 있음; 방화벽Domain/Private/Public 모두on; 10/25 09:38:21~10/26 09:38:21 System 경고0/오류3, Application 경고0/오류1. 당시 관측이며 실시간값으로 재사용하지 않는다.
+- Mac 실제 브라우저09:38: 비루프백IPv4구성4개/IPv6구성13개. Windows방화벽/기록은 OS미지원 확인불가. 조회실패·OS미지원은0건과구분한다.
+- Windows새개발사본의Edge첫화면은실제로열림. Parallels입력이전달되지않아그화면의조회버튼직접조작은미검증이다. Windows CLI의 실제 수집 성공과 Mac의 직접 UI검증을 구분한다.
+- 일반권한 실패/시간초과는권한상승없이unknown. 이벤트10000건상한초과는완전한건수로표시하지않음. 부분로그실패는해당로그만unknown. 관련15검증통과(Windows정상/부분실패/민감필드제거 계약시험 포함).
+
+수집 명령의 의미는 Microsoft 공식 문서 [네트워크 구성](https://learn.microsoft.com/en-us/powershell/module/nettcpip/get-netipconfiguration), [방화벽 프로필](https://learn.microsoft.com/en-us/powershell/module/netsecurity/get-netfirewallprofile), [이벤트 조회](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.diagnostics/get-winevent?view=powershell-5.1)에서 확인했다.
