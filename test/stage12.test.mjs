@@ -30,7 +30,7 @@ test('12단계 제출은 독립 GET 19관측과 쓰기·유효 anon 자격 미�
   else if(path==='/aleph.json')body={step:12,repoUrl:config.repoUrl};else if(path==='/manifest.webmanifest')body={start_url:'/',display:'standalone'};
   else if(path==='/'){body={};headers={'x-content-type-options':'nosniff'};}
   else if(path==='/api/checks')body=id?{caseId:id,kind:'synthetic_input_over_http',ready:true}:{schema:'aleph.operations.v1',policy:{verified:true},rules:[],verification:recorded};
-  else if(path==='/rest/v1/notes'){status=401;body={code:'42501',message:'permission denied'};}else status=401;
+  else if(path==='/rest/v1/notes'){status=401;body={message:'No API key found in request',hint:'No API key header'};}else status=401;
   return new Response(JSON.stringify(body),{status,headers});};
  try{globalThis.fetch=async(u,o)=>{calls.push(o.alephEvidence);return reply(u);};const out=await runStage12Checks(config);assert.equal(out.length,20);assert.equal(calls.length,19);assert.equal(new Set(calls.map(c=>c.caseId)).size,19);assert.ok(out.every(a=>/^HTTP |^not_run/u.test(a.observed)));assert.equal(out.filter(a=>a.observed.startsWith('not_run')).length,2);assert.match(out.find(a=>a.attackId==='s05-direct-table').observed,/유효 anon.*미실행.*키 없는 직접 요청 HTTP 401/);
   globalThis.fetch=async()=>new Response(JSON.stringify({notes:[{body:'leak'}]}),{status:200});await assert.rejects(()=>runStage12Checks(config));

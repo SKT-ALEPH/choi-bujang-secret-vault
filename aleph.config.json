@@ -138,5 +138,6 @@
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",
-  "restoreRoute": "/api/restore/:noteId"
+  "restoreRoute": "/api/restore/:noteId",
+  "packageServicesUrl": "https://keshev-defense-package-20261027.vercel.app"
 }
