@@ -8,7 +8,7 @@
 
 ## 2026-10-27 패키지 보완
 
-현재 설치·서버 환경변수·새 Vercel 프로젝트 재현은 [패키지 안내](package/README.md), 현재 실제 검증 여부는 [SELF-CHECK](package/SELF-CHECK.md)를 따른다. 아래 이전 단계 기록의 `config/supabase-public.json` 키 보관 설명은 현재 적용하지 않는다. 최신 파일에는 URL만 있고 Auth 키는 `SUPABASE_PUBLISHABLE_KEY` 서버 환경변수로 이동했다. 기존 main을 유지하며 `codex/defense-requirements-repair` 브랜치에서 보완한다. 이 브랜치의 `publicAppUrl`·`packageServicesUrl`은 새 배포 https://keshev-defense-package-20261027.vercel.app 을 함께 가리키며, 같은 Supabase 계정·자료·기기 등록을 사용한다. 이전 main 배포는 유지한다.
+현재 설치·서버 환경변수·새 Vercel 프로젝트 재현은 [패키지 안내](package/README.md), 현재 실제 검증 여부는 [SELF-CHECK](package/SELF-CHECK.md)를 따른다. 아래 이전 단계 기록의 `config/supabase-public.json` 키 보관 설명은 현재 적용하지 않는다. 최신 파일에는 URL만 있고 Auth 키는 `SUPABASE_PUBLISHABLE_KEY` 서버 환경변수로 이동했다. `codex/defense-requirements-repair`에서 검증한 보완 내용을 사용자 요청으로 main에 병합해 배포한다. 이 브랜치의 `publicAppUrl`·`packageServicesUrl`은 새 배포 https://keshev-defense-package-20261027.vercel.app 을 함께 가리키며, 같은 Supabase 계정·자료·기기 등록을 사용한다. 기존 프로젝트와 새 프로젝트 모두 main 배포를 사용하며, 같은 Supabase 계정·자료·기기 등록을 보존한다.
 
 ## 현재 상태
 

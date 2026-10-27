@@ -5,7 +5,7 @@
 ## 준비물과 실행 경계
 
 - 저장소: https://github.com/SKT-ALEPH/choi-bujang-secret-vault
-- 보완 브랜치: `codex/defense-requirements-repair`. 병합 전까지 기존 main과 기존 Vercel 프로젝트를 유지한다. 기본 브랜치 승격 시 기존 Auth에도 SUPABASE_PUBLISHABLE_KEY 서버 설정을 먼저 적용해야 원래 로그인이 유지된다.
+- 배포 브랜치: `main`. 보완 브랜치 `codex/defense-requirements-repair`의 검증 내용을 병합한다. 두 Vercel 프로젝트의 Production은 main을 추적한다. 기존 Auth도 SUPABASE_PUBLISHABLE_KEY 서버 설정이 있어야 로그인이 유지된다.
 - 웹: GitHub·Vercel·Supabase 계정. 기존 Supabase 프로젝트의 Auth와 스키마를 재사용한다. 새 빈 DB를 쓰려면 루트 README의 2~12단계 스키마와 기기/게이트웨이 nonce 스키마를 먼저 적용하고 실제 계정·기기를 등록해야 한다. 이 문서의 P7은 새 Vercel 프로젝트 재현이며 빈 DB 이관 시험이 아니다.
 - 통합 앱: Apple Silicon Mac, Parallels Windows 11 ARM64 일반 사용자 로그인, 두 기기에 Node **24.19.0**, Mac 홈 공유, 공식 NetBird 설치·등록. Mac→Windows TCP **54123** 한정 정책을 사용한다. 전체망 허용·SSH·RDP가 필요하지 않다.
 - PC 감시: Docker Desktop의 전용 Wazuh manager와 두 OS의 공식 에이전트·송신량 센서. 관리자 설치는 [PC 감시 안내](../pc-security/README.md)를 따른다. 이 구성 없이도 자료실·NetBird·개인 AI를 쓸 수 있으나 PC 경보·새 OS 자동 대응은 제공되지 않는다.
@@ -32,7 +32,7 @@
 3. 위 환경변수를 새 프로젝트의 Production에 설정한다. 이전 프로젝트에서 자동 복사됐다고 가정하지 않는다. 키가 없으면 Auth/AI는 정상처럼 응답하지 않으며 AI의 알려진 미설정 상태는 상류 전송·사용량 예약 전에503으로 거부한다. 값이 보이지 않는 환경변수 이름 화면을 `self-check/P7-1.png`로 남긴다.
 4. 저장소 `vercel.json`의 빌드 `npm run build`, 출력 `public`을 사용한다. **Vercel이 제공하는 저장소·커밋·배포 URL 정보**가 자동 입력돼야 한다. 시스템 변수를 손으로 위조하거나 로컬 빌드로 배포 신원을 대신하지 않는다. 로컬 정적 확인만 `npm run build -- --local`을 쓴다.
 5. 배포 완료 화면과 실제 새 주소의 첫 화면을 `self-check/P7-2.png`, `self-check/P7-3.png`로 저장한다. `/aleph.json`의40자리 commit을 GitHub 원격과 비교한다. 비로그인 두 API401, 가짜 토큰401, 직접 우회403, 정상 NetBird API200은 각각 따로 확인한다.
-6. 새 주소가 확인되면 `aleph.config.json`의 `publicAppUrl`과 `packageServicesUrl`을 **같은 새 HTTPS origin**으로 지정한다. 제출본의 로그인·자료·두 패키지 API가 같은 배포 코드를 사용하게 한다. 같은 Supabase 프로젝트·기존 기기 서명 키를 재사용하므로 계정·메모를 복제하지 않는다. 기존 main/이전 프로젝트는 그대로 보존한다. Windows 실행본의 공개 설정도 갱신한 뒤 앱을 재시작해 현재 승인된 자료실 계정·기기로 검증한다.
+6. 새 주소가 확인되면 `aleph.config.json`의 `publicAppUrl`과 `packageServicesUrl`을 **같은 새 HTTPS origin**으로 지정한다. 제출본의 로그인·자료·두 패키지 API가 같은 배포 코드를 사용하게 한다. 같은 Supabase 프로젝트·기존 기기 서명 키를 재사용하므로 계정·메모를 복제하지 않는다. 기존 프로젝트도 병합된 main으로 갱신하되 계정·자료·키·접근 정책을 보존한다. Windows 실행본의 공개 설정도 갱신한 뒤 앱을 재시작해 현재 승인된 자료실 계정·기기로 검증한다.
 
 검증 프로젝트의 할당 도메인: https://keshev-defense-package-20261027.vercel.app/ (실제 첫 화면·DB 연동 확인, 최종 수정본 재검증 중). 첫 화면과 실제 커밋 확인: [SELF-CHECK](SELF-CHECK.md)의 P7 기록을 따른다. 아직 확인하지 않은 주소를 기입하지 않는다.
 
