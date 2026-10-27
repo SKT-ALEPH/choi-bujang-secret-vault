@@ -112,7 +112,10 @@ export function createVaultGateway({privateKey,deviceId,store,xdr,origin=config.
     if(input.operation==='readCommand')return store.readCommand(actor,input.input.requestId);
     if(input.operation==='windows'){
       store.requireAccess(actor);
-      const [pc,connections,observations]=await Promise.all([readPcObservation(),readConnectionObservation(),readWindowsXdr()]);
+      // Measure CPU before spawning the heavier PowerShell observers. Otherwise the
+      // 250ms sample mostly measures this refresh's own concurrent query startup.
+      const pc=await readPcObservation();
+      const [connections,observations]=await Promise.all([readConnectionObservation(),readWindowsXdr()]);
       const xdrStatus=xdr?await xdr.windows(observations,actor):null;
       return {pc,connections,xdr:xdrStatus};
     }

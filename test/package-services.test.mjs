@@ -22,7 +22,9 @@ test('server AI rejects anonymous and forged scope, reserves per verified user b
       return {data:{allowed,used:allowed?used+1:used,remaining:Math.max(0,args.p_limit-(allowed?used+1:used)),limit:args.p_limit,resetsAt:'2030-01-02T00:00:00Z'}};
     }};}},
   };
-  const make=()=>createAiHandler({getRuntime:()=>services,dailyLimit:2,ask:async()=>{calls++;return enabled?0.7:null;}});
+  const make=()=>createAiHandler({getRuntime:()=>services,isProviderConfigured:()=>true,dailyLimit:2,ask:async()=>{calls++;return enabled?0.7:null;}});
+  const unconfigured=createAiHandler({getRuntime:()=>services,isProviderConfigured:()=>false,ask:async()=>{throw Error('must not transmit');}});
+  assert.equal((await call(unconfigured)).body.error,'AI_NOT_CONFIGURED');assert.equal(counts.size,0);
   let api=make();assert.equal((await call(api,{headers:{}})).status,401);
   assert.equal((await call(api,{headers:{authorization:'Bearer unknown.user.token'}})).status,401);
   assert.equal((await call(api,{body:{...input,userId:'victim'}})).status,400);assert.equal(calls,0);
@@ -31,7 +33,7 @@ test('server AI rejects anonymous and forged scope, reserves per verified user b
   assert.equal((await call(api)).status,502);api=make();
   const limited=await call(api);assert.equal(limited.status,429);assert.equal(limited.body.error,'AI_DAILY_LIMIT');assert.equal(calls,2);
   enabled=true;assert.equal((await call(api,{headers:{authorization:'Bearer fixture.user.b','content-type':'application/json'}})).status,200);
-  const stuck=createAiHandler({getRuntime:()=>services,dailyLimit:2,providerTimeoutMs:20,ask:()=>new Promise(()=>{})});
+  const stuck=createAiHandler({getRuntime:()=>services,isProviderConfigured:()=>true,dailyLimit:2,providerTimeoutMs:20,ask:()=>new Promise(()=>{})});
   assert.equal((await call(stuck,{headers:{authorization:'Bearer fixture.user.b','content-type':'application/json'}})).status,502);
   dbAvailable=false;assert.equal((await call(api)).status,503);assert.equal(calls,3);
 });

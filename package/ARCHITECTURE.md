@@ -28,7 +28,7 @@ flowchart TD
 
 `src/netbird-gateway.mjs`는 메서드·경로·본문·기기 증명·시각·nonce가 결속된 Windows 서명과 서비스 전용 nonce 저장소를 확인한다. `on-client/student/netbird-vault.mjs`는 현재 사용자 세션/Agent 권한과 XDR 거부를 확인한 뒤 고정 API만 호출한다. `packageServicesUrl`은 두 패키지 경로에만 쓰는 HTTPS Vercel origin이다. 임의 URL 프록시는 없다. 원래 로그인·자료는 기존 origin을 유지한다.
 
-`src/package-services.mjs`는 두 패키지 API에서 원본 JWT 검증·XDR 거부·게이트웨이 서명을 재사용한다. `api/ai.js`는 본문에 userId를 받지 않고 확인된 ID만 한도 키로 쓴다. SQL의 UTC 일자/원자적 예약이 서버 재시작·동시 호출·브라우저 새로고침의 한도 우회를 막는다. 상류 실패도 예약한 횟수에 남긴다. `api/threat-intel.js`는 고정 구성요소와0~39페이지 외 쿼리를 거부한다.
+`src/package-services.mjs`는 두 패키지 API에서 원본 JWT 검증·XDR 거부·게이트웨이 서명을 재사용한다. `api/ai.js`는 본문에 userId를 받지 않고 확인된 ID만 한도 키로 쓴다. SQL의 UTC 일자/원자적 예약이 서버 재시작·동시 호출·브라우저 새로고침의 한도 우회를 막는다. 상류 전송을 시도한 실패도 예약한 횟수에 남긴다. 알려진 서버 키 미설정은 전송·예약 전에503으로 거부한다. `api/threat-intel.js`는 고정 구성요소와0~39페이지 외 쿼리를 거부한다.
 
 ## AI 두 연결
 

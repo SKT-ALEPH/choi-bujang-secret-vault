@@ -2,7 +2,7 @@ import {createJevClient} from '../xdr/brute-force/jev.mjs';
 import {packageIdentity,productionRuntime} from '../src/package-services.mjs';
 
 const keys=['level','failureCount','accountCount','multiAccount','samePassword'];
-export function createAiHandler({getRuntime=productionRuntime,ask=createJevClient({enabled:true}),dailyLimit=Number(process.env.PACKAGE_AI_DAILY_LIMIT??30),providerTimeoutMs=15000}={}){
+export function createAiHandler({getRuntime=productionRuntime,ask=createJevClient({enabled:true}),dailyLimit=Number(process.env.PACKAGE_AI_DAILY_LIMIT??30),providerTimeoutMs=15000,isProviderConfigured=()=>Boolean(process.env.TYPESAFE_API_KEY?.trim())}={}){
   if(!Number.isInteger(dailyLimit)||dailyLimit<1||dailyLimit>1000)throw Error('INVALID_DAILY_LIMIT');
   if(!Number.isInteger(providerTimeoutMs)||providerTimeoutMs<1||providerTimeoutMs>15000)throw Error('INVALID_PROVIDER_TIMEOUT');
   return async function handler(request,response){
@@ -17,6 +17,8 @@ export function createAiHandler({getRuntime=productionRuntime,ask=createJevClien
       ||!Number.isInteger(input.failureCount)||input.failureCount<0||input.failureCount>1000000
       ||!Number.isInteger(input.accountCount)||input.accountCount<0||input.accountCount>10000
       ||typeof input.multiAccount!=='boolean'||typeof input.samePassword!=='boolean')return response.status(400).json({error:'INVALID_AI_REQUEST'});
+    let configured=false;try{configured=isProviderConfigured()===true;}catch{}
+    if(!configured)return response.status(503).json({error:'AI_NOT_CONFIGURED'});
     let quota;
     try{
       const {data,error}=await auth.services.database.rpc('package_reserve_ai_call',{p_user:auth.identity.userId,p_limit:dailyLimit}).abortSignal(AbortSignal.timeout(5000));

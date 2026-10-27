@@ -68,7 +68,7 @@ export function createNetBirdAgent({transport,observeNetwork,managedAccount,dire
           input={component:query.get('component'),page:Number(query.get('page'))};operation='package-intel';
         }
         const result=await control(operation,input),success=result.status>=200&&result.status<300;
-        const message=({AI_DAILY_LIMIT:'서버 AI의 오늘 사용자별 호출 상한에 도달했습니다. 다음 UTC 날짜에 다시 요청하세요.',AI_PROVIDER_UNAVAILABLE:'서버 AI 응답을 확인하지 못했습니다. 한도는 호출 시도 기준으로 사용됩니다.',AI_QUOTA_UNAVAILABLE:'서버 호출 한도 저장소를 확인하지 못했습니다. 관리자의 DB 설정을 확인하세요.',THREAT_SOURCE_RATE_LIMITED:'공식 침해 정보 원천의 요청 한도에 도달했습니다. 30초 후 직접 다시 조회하세요.'})[result.data?.error]??'공식 원천 또는 서버 설정을 확인하지 못했습니다. 연결·설정 상태를 확인한 뒤 다시 요청하세요.';
+        const message=({AI_NOT_CONFIGURED:'서버 AI 제공자 설정이 아직 준비되지 않았습니다. 호출 횟수는 사용하지 않았습니다.',AI_DAILY_LIMIT:'서버 AI의 오늘 사용자별 호출 상한에 도달했습니다. 다음 UTC 날짜에 다시 요청하세요.',AI_PROVIDER_UNAVAILABLE:'서버 AI 응답을 확인하지 못했습니다. 한도는 호출 시도 기준으로 사용됩니다.',AI_QUOTA_UNAVAILABLE:'서버 호출 한도 저장소를 확인하지 못했습니다. 관리자의 DB 설정을 확인하세요.',THREAT_SOURCE_RATE_LIMITED:'공식 침해 정보 원천의 요청 한도에 도달했습니다. 30초 후 직접 다시 조회하세요.'})[result.data?.error]??'공식 원천 또는 서버 설정을 확인하지 못했습니다. 연결·설정 상태를 확인한 뒤 다시 요청하세요.';
         res.writeHead(result.status,{'content-type':'application/json','cache-control':'no-store',...(result.headers?.['retry-after']?{'retry-after':result.headers['retry-after']}: {})});
         res.end(JSON.stringify(success?{ok:true,data:operation==='package-intel'?result.data.data:result.data}:{ok:false,error:{code:result.data?.error??'PACKAGE_UNAVAILABLE',message}}));
       }catch(error){res.writeHead(error.code==='VAULT_SIGN_IN_REQUIRED'?401:409,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify({ok:false,error:safeError(error)}));}
