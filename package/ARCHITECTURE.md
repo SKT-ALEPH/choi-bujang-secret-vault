@@ -5,7 +5,7 @@ flowchart TD
   B[Mac 브라우저 / 케셰브] --> L[Mac loopback 서버와 기존 Agent]
   L -->|기존 P256 요청 서명| N[NetBird: Mac → Windows TCP54123]
   N --> G[Windows 게이트웨이 / 기존 Agent 저장소]
-  G -->|검증된 JWT + Ed25519 게이트웨이 서명| V[기존 Vercel 자료 API]
+  G -->|검증된 JWT + Ed25519 게이트웨이 서명| V[새 Vercel: 기존 자료 API]
   V --> S[기존 Supabase Auth / 자료와 권한 / nonce]
   G -->|같은 인증·망 경계| A[새 Vercel: api/ai]
   G -->|같은 인증·망 경계| T[새 Vercel: api/threat-intel]
@@ -24,9 +24,9 @@ flowchart TD
 
 ## 인증과 권한
 
-`public/device-client.mjs`의 기존 기기 증명과 Supabase Auth 세션은 Mac→Windows→기존 Vercel로 전달된다. Windows는 서명을 추가하지만 원래 사용자로 가장하는 헤더를 만들지 않는다. `src/verify-login.mjs`와 judgeIssuer는 보존했다. 서버 자료 API가 검증된 userId와 DB의 owner_id/편집권한을 비교한다. 브라우저 버튼 숨김은 권한 판정이 아니다.
+`public/device-client.mjs`의 기존 기기 증명과 Supabase Auth 세션은 Mac→Windows→새 Vercel의 기존 자료 API로 전달된다. Windows는 서명을 추가하지만 원래 사용자로 가장하는 헤더를 만들지 않는다. `src/verify-login.mjs`와 judgeIssuer는 보존했다. 서버 자료 API가 검증된 userId와 DB의 owner_id/편집권한을 비교한다. 브라우저 버튼 숨김은 권한 판정이 아니다.
 
-`src/netbird-gateway.mjs`는 메서드·경로·본문·기기 증명·시각·nonce가 결속된 Windows 서명과 서비스 전용 nonce 저장소를 확인한다. `on-client/student/netbird-vault.mjs`는 현재 사용자 세션/Agent 권한과 XDR 거부를 확인한 뒤 고정 API만 호출한다. `packageServicesUrl`은 두 패키지 경로에만 쓰는 HTTPS Vercel origin이다. 임의 URL 프록시는 없다. 원래 로그인·자료는 기존 origin을 유지한다.
+`src/netbird-gateway.mjs`는 메서드·경로·본문·기기 증명·시각·nonce가 결속된 Windows 서명과 서비스 전용 nonce 저장소를 확인한다. `on-client/student/netbird-vault.mjs`는 현재 사용자 세션/Agent 권한과 XDR 거부를 확인한 뒤 고정 API만 호출한다. `packageServicesUrl`은 두 패키지 경로에만 쓰는 HTTPS Vercel origin이다. 임의 URL 프록시는 없다. 제출본은 `publicAppUrl`과 `packageServicesUrl`을 같은 새 origin으로 맞춰 로그인·자료·패키지 API를 같은 배포에서 처리한다. 기존 Supabase 계정·자료와 등록된 게이트웨이 키를 재사용하며 이전 main 배포는 보존한다.
 
 `src/package-services.mjs`는 두 패키지 API에서 원본 JWT 검증·XDR 거부·게이트웨이 서명을 재사용한다. `api/ai.js`는 본문에 userId를 받지 않고 확인된 ID만 한도 키로 쓴다. SQL의 UTC 일자/원자적 예약이 서버 재시작·동시 호출·브라우저 새로고침의 한도 우회를 막는다. 상류 전송을 시도한 실패도 예약한 횟수에 남긴다. 알려진 서버 키 미설정은 전송·예약 전에503으로 거부한다. `api/threat-intel.js`는 고정 구성요소와0~39페이지 외 쿼리를 거부한다.
 

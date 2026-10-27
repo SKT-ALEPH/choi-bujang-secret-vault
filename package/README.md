@@ -32,7 +32,7 @@
 3. 위 환경변수를 새 프로젝트의 Production에 설정한다. 이전 프로젝트에서 자동 복사됐다고 가정하지 않는다. 키가 없으면 Auth/AI는 정상처럼 응답하지 않으며 AI의 알려진 미설정 상태는 상류 전송·사용량 예약 전에503으로 거부한다. 값이 보이지 않는 환경변수 이름 화면을 `self-check/P7-1.png`로 남긴다.
 4. 저장소 `vercel.json`의 빌드 `npm run build`, 출력 `public`을 사용한다. **Vercel이 제공하는 저장소·커밋·배포 URL 정보**가 자동 입력돼야 한다. 시스템 변수를 손으로 위조하거나 로컬 빌드로 배포 신원을 대신하지 않는다. 로컬 정적 확인만 `npm run build -- --local`을 쓴다.
 5. 배포 완료 화면과 실제 새 주소의 첫 화면을 `self-check/P7-2.png`, `self-check/P7-3.png`로 저장한다. `/aleph.json`의40자리 commit을 GitHub 원격과 비교한다. 비로그인 두 API401, 가짜 토큰401, 직접 우회403, 정상 NetBird API200은 각각 따로 확인한다.
-6. 새 주소가 확인되면 `aleph.config.json`의 선택적 `packageServicesUrl`에 **그 HTTPS origin만** 지정한다. Windows 게이트웨이의 두 패키지 API에만 적용되고 원래 자료실의 `publicAppUrl`과 로그인·메모 경로는 유지된다. 앱을 재시작해 현재 승인된 자료실 계정·기기로 검증한다.
+6. 새 주소가 확인되면 `aleph.config.json`의 `publicAppUrl`과 `packageServicesUrl`을 **같은 새 HTTPS origin**으로 지정한다. 제출본의 로그인·자료·두 패키지 API가 같은 배포 코드를 사용하게 한다. 같은 Supabase 프로젝트·기존 기기 서명 키를 재사용하므로 계정·메모를 복제하지 않는다. 기존 main/이전 프로젝트는 그대로 보존한다. Windows 실행본의 공개 설정도 갱신한 뒤 앱을 재시작해 현재 승인된 자료실 계정·기기로 검증한다.
 
 검증 프로젝트의 할당 도메인: https://keshev-defense-package-20261027.vercel.app/ (실제 첫 화면·DB 연동 확인, 최종 수정본 재검증 중). 첫 화면과 실제 커밋 확인: [SELF-CHECK](SELF-CHECK.md)의 P7 기록을 따른다. 아직 확인하지 않은 주소를 기입하지 않는다.
 

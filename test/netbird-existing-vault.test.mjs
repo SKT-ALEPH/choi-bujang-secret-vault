@@ -86,7 +86,7 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
  // The actual Windows VM is a few hundred milliseconds ahead of the Mac.
  // The observer timestamps its receipt read locally without changing source effect.
  const readCommand=store.readCommand;store.readCommand=(...args)=>({...readCommand(...args),observedAt:new Date(Date.now()+750).toISOString()});
- const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,packageOrigin:'https://fixture-package.vercel.app',request:(url,options)=>{const path=new URL(url).pathname;assert.equal(new URL(url).origin,['/api/ai','/api/threat-intel'].includes(path)?'https://fixture-package.vercel.app':'https://choi-bujang-secret-vault-ecru.vercel.app');return fetch(upstreamOrigin+path+new URL(url).search,options);}});
+ const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,origin:'https://fixture-vault.vercel.app',packageOrigin:'https://fixture-package.vercel.app',request:(url,options)=>{const path=new URL(url).pathname;assert.equal(new URL(url).origin,['/api/ai','/api/threat-intel'].includes(path)?'https://fixture-package.vercel.app':'https://fixture-vault.vercel.app');return fetch(upstreamOrigin+path+new URL(url).search,options);}});
  const resource=createResourceServer({client:'127.0.0.1',publicKey:signer.publicKey,store,vault});resource.listen(0,'127.0.0.1');await once(resource,'listening');const resourceOrigin=`http://127.0.0.1:${resource.address().port}`;
  const appDb=join(directory,'agent.sqlite');new DatabaseSync(appDb).close();
  const client={getSession:async()=>({status:'connected',sharing:true,profileId:'unrelated-chatgpt-fixture'}),listProfiles:async()=>[],cancelSignIn(){}};
