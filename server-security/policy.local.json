@@ -1,0 +1,20 @@
+{
+  "environment":"local-validation",
+  "version":"local-risk-v1",
+  "assessmentTtlMs":10000,
+  "assessmentTimeoutMs":15000,
+  "auditReplayWindowMs":86400000,
+  "restrictionMs":60000,
+  "windowMs":60000,
+  "maxRequests":30,
+  "maxConcurrent":2,
+  "maxRecords":5,
+  "maxResponseBytes":65536,
+  "maxWindowBytes":524288,
+  "failedLoginLimit":8,
+  "webInputRepeatLimit":8,
+  "integrityLevel":7,
+  "requireAssessment":true,
+  "aiRequired":false,
+  "aiForAmbiguousInput":true
+}

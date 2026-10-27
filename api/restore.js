@@ -1,5 +1,6 @@
 import {productionRuntime} from './notes.js';
 import {loadSafePolicy,SAFE_POLICY_HASH} from '../src/recovery-policy.mjs';
+import {withWebEvent} from '../src/server-events.mjs';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu;
 export function createRestoreHandler(getRuntime = productionRuntime, getPolicy = loadSafePolicy) {
@@ -13,6 +14,7 @@ export function createRestoreHandler(getRuntime = productionRuntime, getPolicy =
     if (!identity) return response.status(401).json({error:'INVALID_LOGIN'});
     try {if(services.authorizeDevice&&!await services.authorizeDevice(request,identity))return response.status(403).json({error:'DEVICE_NOT_APPROVED'});}
     catch{return response.status(503).json({error:'DEVICE_SERVICE_UNAVAILABLE'});}
+    request.keshevIdentity=identity;
     if (request.method !== 'POST') {
       response.setHeader('Allow','POST');
       return response.status(405).json({error:'METHOD_NOT_ALLOWED'});
@@ -54,4 +56,4 @@ export function createRestoreHandler(getRuntime = productionRuntime, getPolicy =
     } catch {return response.status(502).json({error:'DATABASE_REQUEST_FAILED'});}
   };
 }
-export default createRestoreHandler();
+export default withWebEvent(createRestoreHandler());

@@ -1,0 +1,4 @@
+{
+  "purpose":"Server-centered gateway context and verifiable web audit added after the original P1-P8 package",
+  "functions":["api/gateway-context.js","api/security-key.js"]
+}

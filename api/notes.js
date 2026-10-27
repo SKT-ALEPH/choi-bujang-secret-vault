@@ -4,7 +4,8 @@ import { createLoginVerifier } from '../src/verify-login.mjs';
 import config from '../aleph.config.json' with { type: 'json' };
 import { getLiveXdr } from '../xdr/live.mjs';
 import {authorizeDevice} from '../src/device-session.mjs';
-import {authorizeGateway} from '../src/netbird-gateway.mjs';
+import {authorizeGateway,gatewayRecordLimit,legacyXdrForGateway} from '../src/netbird-gateway.mjs';
+import {withWebEvent} from '../src/server-events.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const fields = 'id,title,content';
@@ -21,7 +22,7 @@ export function productionRuntime() {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: (target, options) => fetch(target, { ...options, redirect: 'error' }) },
   });
-  runtime = { database, xdr:getLiveXdr(), verifyLoginAuthorization: createLoginVerifier({ config, supabaseSecretKey: secretKey }),
+  runtime = { database, xdr:legacyXdrForGateway(getLiveXdr()), verifyLoginAuthorization: createLoginVerifier({ config, supabaseSecretKey: secretKey }),
     authorizeGateway:request=>authorizeGateway(database,request),
     authorizeDevice:async(request,identity)=>await authorizeGateway(database,request)&&await authorizeDevice(database,request,identity) };
   return runtime;
@@ -46,6 +47,8 @@ export function createNotesHandler(getRuntime = productionRuntime) {
     if (!identity) return response.status(401).json({ error: 'INVALID_LOGIN' });
     try {if(deviceCheck&&!await deviceCheck(request,identity))return response.status(403).json({error:'DEVICE_NOT_APPROVED'});}
     catch{return response.status(503).json({error:'DEVICE_SERVICE_UNAVAILABLE'});}
+    request.keshevIdentity=identity;
+    let recordLimit;try{recordLimit=gatewayRecordLimit(request);}catch{return response.status(403).json({error:'GATEWAY_POLICY_REJECTED'});}
     const method = request.method;
     if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) {
       response.setHeader('Allow', 'GET, POST, PUT, DELETE');
@@ -95,7 +98,7 @@ export function createNotesHandler(getRuntime = productionRuntime) {
       if (method === 'GET') {
         query = database.from('notes').select(fields);
         query = id ? query.eq('id', id).eq('owner_id', identity.userId).maybeSingle()
-          : query.eq('owner_id', identity.userId).order('id').limit(100);
+          : query.eq('owner_id', identity.userId).order('id').limit(recordLimit);
       } else if (method === 'POST') {
         query = database.from('notes').insert({ id: input.id ?? randomUUID(),
           title: input.title.trim(), content: input.body, owner_id: identity.userId }).select('id').single();
@@ -124,4 +127,4 @@ export function createNotesHandler(getRuntime = productionRuntime) {
   };
 }
 
-export default createNotesHandler();
+export default withWebEvent(createNotesHandler());

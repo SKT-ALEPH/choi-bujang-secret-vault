@@ -24,7 +24,9 @@ import {createVaultGateway} from '../on-client/student/netbird-vault.mjs';
 import {createManagedAccount} from '../on-client/student/managed-account.mjs';
 
 const userA='00000000-0000-4000-8000-00000000000a',userB='00000000-0000-4000-8000-00000000000b';
-const jwt=user=>'e30.'+Buffer.from(JSON.stringify({sub:user,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
+// The token fixture must not change when setup crosses a wall-clock second.
+const fixtureExpiresAt=Math.floor(Date.now()/1000)+3600;
+const jwt=user=>'e30.'+Buffer.from(JSON.stringify({sub:user,exp:fixtureExpiresAt})).toString('base64url')+'.fixture';
 test('account automation uses normal email OTP; no password generation, admin creation or confirmation bypass',async()=>{
  const calls=[],account=createManagedAccount({transport:async(path,input)=>{calls.push({path,input});return {status:200,data:input.path.endsWith('verify')?{user:{email:'fixture@example.invalid'}}:{}};}});
  await account({operation:'signup',email:'fixture@example.invalid'});assert.equal(calls[0].input.path,'/api/auth?path=otp');assert.equal(JSON.parse(calls[0].input.body).create_user,true);assert.equal(Object.hasOwn(JSON.parse(calls[0].input.body),'password'),false);

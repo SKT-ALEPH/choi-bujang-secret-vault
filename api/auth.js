@@ -78,4 +78,4 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, 
   };
 }
 
-export default createAuthHandler(fetch,{getXdr:getLiveXdr,getGateway:()=>productionRuntime().authorizeGateway});
+export default createAuthHandler(fetch,{getXdr:()=>productionRuntime().xdr,getGateway:()=>productionRuntime().authorizeGateway});

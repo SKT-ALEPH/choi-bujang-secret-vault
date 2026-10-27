@@ -1,0 +1,12 @@
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const path='.local/server-redesign/runtime/config/runtime.json',c=JSON.parse(readFileSync(path));
+const info=JSON.parse(execFileSync('docker',['exec','keshev-wazuh-manager','/var/ossec/bin/agent_control','-l','-j'],{encoding:'utf8'}));
+const a=info.data.find(a=>a.name==='keshev-local-server-a');if(!a)throw Error('SERVER_A_NOT_ENROLLED');
+c.registeredAgents=[{serverId:'server-a',agentId:a.id}];c.aiUrl='http://host.docker.internal:5297/risk';
+writeFileSync(path,JSON.stringify(c,null,2)+'\n',{mode:0o644});
+const trustPath='config/netbird-gateway.json',trust=JSON.parse(readFileSync(trustPath));
+trust.publicKeys=[...new Set([trust.publicKey,...(trust.publicKeys??[]),c.aPublicKey])];
+trust.centralPublicKeys=[...new Set([...(trust.centralPublicKeys??[]),c.aPublicKey])];
+writeFileSync(trustPath,JSON.stringify(trust,null,2)+'\n');
+console.log(JSON.stringify({registeredCompanyAgent:a.id,status:a.status,additionalPublicKeyRegistered:true,privateKeysExported:false}));

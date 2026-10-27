@@ -1,0 +1,12 @@
+.git
+.local
+.env*
+**/node_modules
+artifacts
+bundle-notes.json
+personal-ai
+package/self-check
+docs/history
+pc-security/windows-sensor/bin
+pc-security/windows-sensor/obj
+**/__pycache__

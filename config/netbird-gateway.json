@@ -1,4 +1,11 @@
 {
   "required": true,
-  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA7L8HfCI4OzjzUuwCK29O0SPAQot5eYi2K8OIlTOjL6w=\n-----END PUBLIC KEY-----\n"
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA7L8HfCI4OzjzUuwCK29O0SPAQot5eYi2K8OIlTOjL6w=\n-----END PUBLIC KEY-----\n",
+  "publicKeys": [
+    "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA7L8HfCI4OzjzUuwCK29O0SPAQot5eYi2K8OIlTOjL6w=\n-----END PUBLIC KEY-----\n",
+    "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAnnk8mOEUR8hW6XWMD8AAheXKqDq3vhhpRyo4NVfWKM0=\n-----END PUBLIC KEY-----"
+  ],
+  "centralPublicKeys": [
+    "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAnnk8mOEUR8hW6XWMD8AAheXKqDq3vhhpRyo4NVfWKM0=\n-----END PUBLIC KEY-----"
+  ]
 }

@@ -1,0 +1,121 @@
+name: keshev-local-security
+services:
+  netbird-control:
+    image: netbirdio/netbird-server:0.81.5@sha256:6799c37020ff70b9708d0e13bfe7b7a5004084caad86ba165ffe5ea1c84c0ea2
+    restart: unless-stopped
+    environment:
+      NB_SETUP_PAT_ENABLED: ${NB_SETUP_PAT_ENABLED:-false}
+    command: ["--config","/etc/netbird/config.yaml"]
+    volumes:
+      - ${KESHEV_LOCAL_DIR}/netbird:/etc/netbird:ro
+      - netbird-control:/var/lib/netbird
+    ports:
+      - "127.0.0.1:5295:443"
+    networks: [transport]
+  netbird-a:
+    image: netbirdio/netbird:0.81.5@sha256:220974287a42cc2815a77d4fb662edb55a1bf32e6ed73a2ecfc6bde16b5043e1
+    hostname: keshev-local-server-a
+    restart: unless-stopped
+    cap_add: [NET_ADMIN,NET_RAW]
+    devices: ["/dev/net/tun:/dev/net/tun"]
+    env_file: ["${KESHEV_LOCAL_DIR}/a.env"]
+    environment:
+      NB_MANAGEMENT_URL: https://netbird-control:443
+      SSL_CERT_FILE: /config/ca.pem
+    volumes:
+      - netbird-a:/var/lib/netbird
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+    networks: [transport,wazuh]
+    depends_on: [netbird-control]
+  netbird-b:
+    image: netbirdio/netbird:0.81.5@sha256:220974287a42cc2815a77d4fb662edb55a1bf32e6ed73a2ecfc6bde16b5043e1
+    hostname: keshev-local-server-b
+    restart: unless-stopped
+    cap_add: [NET_ADMIN,NET_RAW]
+    devices: ["/dev/net/tun:/dev/net/tun"]
+    env_file: ["${KESHEV_LOCAL_DIR}/b.env"]
+    environment:
+      NB_MANAGEMENT_URL: https://netbird-control:443
+      SSL_CERT_FILE: /config/ca.pem
+    volumes:
+      - netbird-b:/var/lib/netbird
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+    networks: [transport]
+    depends_on: [netbird-control]
+  netbird-accessor:
+    image: netbirdio/netbird:0.81.5@sha256:220974287a42cc2815a77d4fb662edb55a1bf32e6ed73a2ecfc6bde16b5043e1
+    hostname: keshev-local-accessor
+    restart: unless-stopped
+    cap_add: [NET_ADMIN,NET_RAW]
+    devices: ["/dev/net/tun:/dev/net/tun"]
+    env_file: ["${KESHEV_LOCAL_DIR}/accessor.env"]
+    environment:
+      NB_MANAGEMENT_URL: https://netbird-control:443
+      SSL_CERT_FILE: /config/ca.pem
+    volumes:
+      - netbird-accessor:/var/lib/netbird
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+    ports:
+      - "127.0.0.1:5289:8085"
+    networks: [transport]
+    depends_on: [netbird-control]
+  server-a:
+    build:
+      context: ..
+      dockerfile: server-security/Dockerfile
+    image: keshev-server-security:local
+    restart: unless-stopped
+    network_mode: service:netbird-a
+    command: ["node","server-security/start-a.mjs"]
+    volumes:
+      - server-a:/state
+      - agent-a:/var/ossec
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+    depends_on: [netbird-a]
+  server-b:
+    image: keshev-server-security:local
+    restart: unless-stopped
+    network_mode: service:netbird-b
+    user: "0:0"
+    command: ["node","server-security/server-b.mjs"]
+    volumes:
+      - server-b:/state
+      - backup-b:/backup
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+      - type: volume
+        source: existing-wazuh
+        target: /wazuh
+        read_only: true
+        volume:
+          subpath: logs/alerts
+    depends_on: [netbird-b]
+  accessor:
+    image: keshev-server-security:local
+    restart: unless-stopped
+    network_mode: service:netbird-accessor
+    user: "1000:1000"
+    command: ["node","server-security/accessor.mjs"]
+    volumes:
+      - ${KESHEV_LOCAL_DIR}/config:/config:ro
+    depends_on: [netbird-accessor,server-a,server-b]
+networks:
+  transport: {}
+  wazuh:
+    external: true
+    name: keshev-wazuh-transport
+volumes:
+  netbird-control: {}
+  netbird-a: {}
+  netbird-b: {}
+  netbird-accessor: {}
+  server-a:
+    external: true
+    name: keshev-local-security_server-a
+  server-b:
+    external: true
+    name: keshev-local-security_server-b
+  agent-a: {}
+  backup-b: {}
+  existing-wazuh:
+    external: true
+    name: keshev-wazuh-data

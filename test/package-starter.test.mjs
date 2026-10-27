@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 
 const baseline = JSON.parse(await readFile(new URL('../package/baseline-functions.json', import.meta.url)));
 
-test('패키징 함수 기준표는 12단계의 실제 기존 API와 일치하며 신규 함수는 지정된 두 개뿐이다', async () => {
+test('과거 패키징 기준표를 보존하며 이후 서버 중심 확장의 두 API를 별도로 식별한다', async () => {
   const actual = (await readdir(new URL('../api/', import.meta.url),{recursive:true}))
     .filter(name => /\.(?:m?js|ts)$/u.test(name))
     .map(name => join('api', name).replaceAll('\\', '/')).sort();
@@ -17,7 +17,9 @@ test('패키징 함수 기준표는 12단계의 실제 기존 API와 일치하�
     .filter(file=>/\.(?:m?js|ts)$/.test(file)&&!baseline.allowedNew.includes(file)).sort();
   assert.deepEqual(baseline.functions,historical);
   assert.deepEqual(baseline.allowedNew, ['api/ai.js', 'api/threat-intel.js']);
-  assert.deepEqual(actual, [...baseline.functions, ...baseline.allowedNew].sort());
+  const central=JSON.parse(await readFile(new URL('../server-security/functions.json',import.meta.url)));
+  assert.deepEqual(central.functions,['api/gateway-context.js','api/security-key.js']);
+  assert.deepEqual(actual, [...baseline.functions, ...baseline.allowedNew,...central.functions].sort());
 });
 
 test('두 패키지 API는 로그인 없는 요청에서 원천이나 비밀값을 읽기 전에 401로 거부한다', async () => {

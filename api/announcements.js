@@ -1,4 +1,6 @@
 import { productionRuntime } from './notes.js';
+import {gatewayRecordLimit} from '../src/netbird-gateway.mjs';
+import {withWebEvent} from '../src/server-events.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const publicAnnouncement = ({ id, title, content }) => ({ id, title, body: content });
@@ -18,6 +20,8 @@ export function createAnnouncementsHandler(getRuntime = productionRuntime) {
     if (!identity) return response.status(401).json({ error: 'INVALID_LOGIN' });
     try {if(deviceCheck&&!await deviceCheck(request,identity))return response.status(403).json({error:'DEVICE_NOT_APPROVED'});}
     catch{return response.status(503).json({error:'DEVICE_SERVICE_UNAVAILABLE'});}
+    request.keshevIdentity=identity;
+    let recordLimit;try{recordLimit=gatewayRecordLimit(request);}catch{return response.status(403).json({error:'GATEWAY_POLICY_REJECTED'});}
     const method = request.method;
     if (!['GET', 'PUT'].includes(method)) {
       response.setHeader('Allow', 'GET, PUT');
@@ -49,7 +53,7 @@ export function createAnnouncementsHandler(getRuntime = productionRuntime) {
       let query;
       if (method === 'GET') {
         query = database.from('announcements').select('id,title,content');
-        query = id ? query.eq('id', id).maybeSingle() : query.order('id').limit(100);
+        query = id ? query.eq('id', id).maybeSingle() : query.order('id').limit(recordLimit);
       } else {
         // The RPC checks the stored, per-resource instructor grant in the UPDATE itself.
         query = database.rpc('edit_announcement', { p_user: identity.userId, p_id: id,
@@ -67,4 +71,4 @@ export function createAnnouncementsHandler(getRuntime = productionRuntime) {
   };
 }
 
-export default createAnnouncementsHandler();
+export default withWebEvent(createAnnouncementsHandler());
