@@ -35,13 +35,16 @@ function tokenSession(authorization){
   const v=sha(authorization),s=v.slice(0,12)+'4'+v.slice(13,16)+'8'+v.slice(17,32);
   return [s.slice(0,8),s.slice(8,12),s.slice(12,16),s.slice(16,20),s.slice(20)].join('-');
 }
-export function createVaultGateway({privateKey,deviceId,store,xdr,origin=config.publicAppUrl,request=fetch}){
+export function createVaultGateway({privateKey,deviceId,store,xdr,origin=config.publicAppUrl,packageOrigin=config.packageServicesUrl??origin,request=fetch}){
   if(new URL(origin).origin!==origin||!origin.startsWith('https://'))throw Error('VAULT_ORIGIN_INVALID');
+  const packageUrl=new URL(packageOrigin);
+  if(packageUrl.origin!==packageOrigin||packageUrl.protocol!=='https:'||!packageUrl.hostname.endsWith('.vercel.app')||packageUrl.username||packageUrl.password)throw Error('PACKAGE_ORIGIN_INVALID');
   const identities=new Map();
   const engineGeneration=parseInt(sha(createPublicKey(privateKey).export({type:'spki',format:'pem'})).slice(0,12),16)||1;
   async function fetchVault(path,method,headers,body){
     const proof=signGatewayRequest(privateKey,{method,url:path,headers,body:body||undefined});
-    let r;try{r=await request(origin+path,{method,headers:{...headers,...proof},body:['GET','HEAD'].includes(method)?undefined:body||undefined,redirect:'error',signal:AbortSignal.timeout(12000)});}catch{throw fault('VAULT_UNAVAILABLE',503);}
+    const packageRequest=['/api/ai','/api/threat-intel'].includes(new URL(path,'https://fixed.invalid').pathname);
+    let r;try{r=await request((packageRequest?packageOrigin:origin)+path,{method,headers:{...headers,...proof},body:['GET','HEAD'].includes(method)?undefined:body||undefined,redirect:'error',signal:AbortSignal.timeout(packageRequest?35000:12000)});}catch{throw fault('VAULT_UNAVAILABLE',503);}
     const chunks=[];let size=0;const reader=r.body?.getReader();if(!reader)throw fault('VAULT_RESPONSE_INVALID',503);
     try{while(true){const p=await reader.read();if(p.done)break;size+=p.value.length;if(size>2*1024*1024)throw fault('VAULT_RESPONSE_INVALID',503);chunks.push(p.value);}}finally{await reader.cancel();}
     let data;try{data=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw fault('VAULT_RESPONSE_INVALID',503);}
@@ -90,6 +93,15 @@ export function createVaultGateway({privateKey,deviceId,store,xdr,origin=config.
     const who=await principal(input.authorization),{actor,subjectId}=who;
     const baseStatus=store.route('/agent/status',{actor,input:{}}),blocked=xdr?await xdr.check():null;
     const status=blocked?{...baseStatus,decision:'deny',reason:blocked.code}:baseStatus,context=vaultContext(status,subjectId,engineGeneration);
+    if(['package-ai','package-intel'].includes(input.operation)){
+      store.requireAccess(actor);if(blocked)throw fault('PACKAGE_ACCESS_BLOCKED',403);
+      if(input.operation==='package-ai'){
+        if(!exact(input.input,['level','failureCount','accountCount','multiAccount','samePassword']))throw fault('VAULT_REQUEST_INVALID',400);
+        return fetchVault('/api/ai','POST',{authorization:input.authorization,'content-type':'application/json'},JSON.stringify(input.input));
+      }
+      if(!exact(input.input,['component','page'])||!['node','jose','supabase','esbuild','wazuh'].includes(input.input.component)||!Number.isInteger(input.input.page)||input.input.page<0||input.input.page>39)throw fault('VAULT_REQUEST_INVALID',400);
+      return fetchVault('/api/threat-intel?'+new URLSearchParams({component:input.input.component,page:String(input.input.page)}),'GET',{authorization:input.authorization},'');
+    }
     if(input.operation==='context')return {context,status,subjectId};
     if(input.operation==='actionEvents')return store.route('/agent/events',{actor,input:{}}).events.map(e=>projectVaultEvent(e,subjectId,{action:true}));
     if(input.operation==='authorizeCommand'){

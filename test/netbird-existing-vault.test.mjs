@@ -7,9 +7,12 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {createAiHandler} from '../api/ai.js';
+import {createThreatIntelHandler} from '../api/threat-intel.js';
 import {createNotesHandler} from '../api/notes.js';
 import {createDeviceHandler} from '../api/device.js';
-import {createAuthHandler} from '../api/auth.js';
+import {createAuthHandler as createProductionAuthHandler} from '../api/auth.js';
+const createAuthHandler=(fetch,options={})=>createProductionAuthHandler(fetch,{getPublishableKey:()=> 'fixture-only-public-key',...options});
 import {authorizeDevice} from '../src/device-session.mjs';
 import {authorizeGateway,signGatewayRequest,verifyGatewayRequest} from '../src/netbird-gateway.mjs';
 import {enrollmentMessage,requestMessage} from '../public/device-message.mjs';
@@ -66,6 +69,8 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
  const gate=request=>authorizeGateway(database,request,{required:true,publicKey});let xdrChecks=0;
  const services={database,authorizeGateway:gate,verifyLoginAuthorization:async authorization=>tokens.has(authorization?.slice(7))?{kind:'student',userId:tokens.get(authorization.slice(7))}:null,
    authorizeDevice:async(request,identity)=>await gate(request)&&await authorizeDevice(database,request,identity),xdr:{check:async()=>{xdrChecks++;return null;}}};
+ let aiCalls=0;const quota=new Map();database.rpc=(name,args)=>({abortSignal:async()=>{assert.equal(name,'package_reserve_ai_call');const before=quota.get(args.p_user)??0,allowed=before<1,used=allowed?before+1:before;if(allowed)quota.set(args.p_user,used);return {data:{allowed,used,limit:1,remaining:Math.max(0,1-used),resetsAt:'2030-01-02T00:00:00Z'}};}});
+ const ai=createAiHandler({getRuntime:()=>services,dailyLimit:1,ask:async()=>{aiCalls++;return 0.2;}}),intel=createThreatIntelHandler({getRuntime:()=>services,read:async component=>({component:{id:component},fixture:true})});
  const notes=createNotesHandler(()=>services),devices=createDeviceHandler(()=>services),auth=createAuthHandler(async(url,options)=>{
    if(url.pathname.endsWith('/user')){const id=tokens.get(options.headers.Authorization?.slice(7));return Response.json(id?{id}:{error:'bad'},{status:id?200:401});}
    if(url.pathname.endsWith('/token')){const input=JSON.parse(options.body),user=input.email==='fixture-b'?userB:userA;return Response.json({access_token:jwt(user),user:{id:user},expires_in:3600,refresh_token:'fixture-only',token_type:'bearer'});}
@@ -75,13 +80,13 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
    const bytes=[];for await(const c of req)bytes.push(c);req.body=bytes.length?Buffer.concat(bytes).toString('utf8'):undefined;
    const url=new URL(req.url,'http://fixture.invalid');req.query=Object.fromEntries(url.searchParams);
    res.status=n=>{res.statusCode=n;return res;};res.json=value=>{res.setHeader('content-type','application/json');res.end(JSON.stringify(value));};
-   await (url.pathname==='/api/auth'?auth:url.pathname==='/api/device'?devices:notes)(req,res);
+   await (url.pathname==='/api/auth'?auth:url.pathname==='/api/device'?devices:url.pathname==='/api/ai'?ai:url.pathname==='/api/threat-intel'?intel:notes)(req,res);
  });upstream.listen(0,'127.0.0.1');await once(upstream,'listening');const upstreamOrigin=`http://127.0.0.1:${upstream.address().port}`;
  const store=createWorkspaceStore(join(directory,'windows.sqlite'),{deviceId:signer.deviceId});
  // The actual Windows VM is a few hundred milliseconds ahead of the Mac.
  // The observer timestamps its receipt read locally without changing source effect.
  const readCommand=store.readCommand;store.readCommand=(...args)=>({...readCommand(...args),observedAt:new Date(Date.now()+750).toISOString()});
- const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,request:(url,options)=>fetch(upstreamOrigin+new URL(url).pathname+new URL(url).search,options)});
+ const vault=createVaultGateway({privateKey:gatewayKeys.privateKey,deviceId:signer.deviceId,store,packageOrigin:'https://fixture-package.vercel.app',request:(url,options)=>{const path=new URL(url).pathname;assert.equal(new URL(url).origin,['/api/ai','/api/threat-intel'].includes(path)?'https://fixture-package.vercel.app':'https://choi-bujang-secret-vault-ecru.vercel.app');return fetch(upstreamOrigin+path+new URL(url).search,options);}});
  const resource=createResourceServer({client:'127.0.0.1',publicKey:signer.publicKey,store,vault});resource.listen(0,'127.0.0.1');await once(resource,'listening');const resourceOrigin=`http://127.0.0.1:${resource.address().port}`;
  const appDb=join(directory,'agent.sqlite');new DatabaseSync(appDb).close();
  const client={getSession:async()=>({status:'connected',sharing:true,profileId:'unrelated-chatgpt-fixture'}),listProfiles:async()=>[],cancelSignIn(){}};
@@ -100,6 +105,11 @@ test('existing Vault handlers, Agent and signed Windows gateway share original n
    device={id:pending.body.id,key:pair.privateKey};
    const signature=sign('sha256',Buffer.from(enrollmentMessage(device.id,pending.body.challenge,sha(authorization))),{key:device.key,dsaEncoding:'ieee-p1363'}).toString('base64url');
    assert.equal((await call('/api/device?operation=approve',{id:device.id,signature},{authorization})).body.approved,true);
+   const numeric={level:0,failureCount:0,accountCount:0,multiAccount:false,samePassword:false};
+   const model=await call('/api/package/ai',numeric);assert.equal(model.status,200,JSON.stringify(model.body));assert.equal(model.body.data.inferenceCompleted,true);
+   assert.equal((await call('/api/package/ai',numeric)).status,429);assert.equal(aiCalls,1);
+   assert.equal((await call('/api/package/intel?component=wazuh&page=0')).body.data.component.id,'wazuh');
+   assert.equal((await call('/api/package/intel?component=wazuh&page=0&url=https://outside.invalid')).status,409);
    const path='/api/my/notes',first=await call(path,undefined,await browserHeaders(path));assert.equal(first.status,200,JSON.stringify(first.body));assert.deepEqual(first.body.map(n=>n.title),['Owned fixture A']);assert.ok(xdrChecks>0);
    const delegated=(await call('/api/netbird/session')).body;assert.equal(delegated.data.user.id,userA);assert.equal(Object.hasOwn(delegated.data,'refresh_token'),false);
    const comparison=(await call('/api/netbird/verify-direct',{headers:await browserHeaders(path)})).body.data;assert.equal(comparison.directStatus,403);assert.equal(comparison.privateStatus,200);assert.equal(comparison.sameBrowserProof,true);assert.equal(comparison.passed,true);

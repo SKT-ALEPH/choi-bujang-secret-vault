@@ -7,8 +7,8 @@ import {runAttackChecks} from '../src/attack-check.mjs';
 
 // Only new disposable B notes are changed. Their private backup/audit history is retained.
 export async function runRecoveryCheck(config) {
-  const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY?.trim();
-  if(!url||!secret||url!==new URL(config.identityProvider.issuer).origin)throw Error('RECOVERY_CHECK_CONFIG_MISSING');
+  const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY?.trim(),publicKey=process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+  if(!url||!secret||!publicKey||url!==new URL(config.identityProvider.issuer).origin)throw Error('RECOVERY_CHECK_CONFIG_MISSING');
   const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
     global:{fetch:(target,init)=>fetch(target,{...init,redirect:'error',signal:AbortSignal.timeout(20000)})}};
   const admin=createClient(url,secret,options),users=[],notes=[];
@@ -66,9 +66,8 @@ export async function runRecoveryCheck(config) {
     check('body_owner_forgery_denied',await call(b,restore,'POST',{owner_id:users[1]}),400);
     check('function_query_denied',await call(b,restore+'?action=all','POST',{}),400);
     check('restore_get_denied',await call(b,restore),405);
-    const settings=JSON.parse(await readFile(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
     const direct=await fetch(new URL('/rest/v1/rpc/restore_aleph_note',url),{method:'POST',redirect:'error',signal:AbortSignal.timeout(20000),
-      headers:{apikey:settings.publishableKey,Authorization:'Bearer '+b.access_token,'Content-Type':'application/json'},
+      headers:{apikey:publicKey,Authorization:'Bearer '+b.access_token,'Content-Type':'application/json'},
       body:JSON.stringify({p_actor:users[0],p_note:id,p_policy_hash:'0'.repeat(64)})});
     proof.checks.push({name:'browser_direct_rpc_denied',status:direct.status,passed:direct.status===403});
     // Run these only after both actual restoration requests, before fixture cleanup.

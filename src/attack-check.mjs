@@ -66,8 +66,10 @@ export async function runAttackChecks(config) {
       const publicConfig = JSON.parse(await readFile(new URL(config.step >= 5 ? '../config/supabase-public.json' : '../public/auth-config.json', import.meta.url), 'utf8'));
       const directUrl = config.step >= 5 ? new URL(config.originalApiUrl) : new URL('/rest/v1/notes',publicConfig.url);
       directUrl.searchParams.set('select','id');
+      const publicKey = config.step >= 5 ? process.env.SUPABASE_PUBLISHABLE_KEY?.trim() : publicConfig.publishableKey;
+      if (!publicKey) throw new Error('DIRECT_DATABASE_CHECK_PUBLISHABLE_KEY_REQUIRED');
       const direct = await fetch(directUrl, {
-        headers: { apikey: publicConfig.publishableKey }, redirect: 'error', signal: AbortSignal.timeout(10000),
+        headers: { apikey: publicKey }, redirect: 'error', signal: AbortSignal.timeout(10000),
         alephEvidence: { caseId: 'anonymous_direct_database', requestKey: 'read' },
       });
       let denied = false;

@@ -1,6 +1,19 @@
 {
   "version": 1,
   "starter": "ChoiTimo/aleph-defense-starter",
-  "functions": [],
-  "allowedNew": ["api/ai.js", "api/threat-intel.js"]
+  "functions": [
+    "api/announcements.js",
+    "api/auth.js",
+    "api/checks.js",
+    "api/device.js",
+    "api/my/notes.js",
+    "api/notes.js",
+    "api/restore.js"
+  ],
+  "allowedNew": [
+    "api/ai.js",
+    "api/threat-intel.js"
+  ],
+  "baselineCommit": "27e6474bed35c53b70e02bc52bec816659b36f7d",
+  "basis": "12단계 실제 검증 커밋의 기존 서버 함수; 포장 API 두 개는 신규 구현 대상"
 }

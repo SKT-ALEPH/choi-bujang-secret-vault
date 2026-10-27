@@ -1,10 +1,14 @@
-> **2026-10-27 현재 제출 안내:** 기존 자료실·XDR·Agent의 NetBird 통합과 두 PC의 Wazuh 송신 차단·자동 복구를 실제 확인했다. 현재 범위·실행 방법·필수 조건 대조는 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)를 따른다. 아래의 날짜별 단계 설명은 당시 기록이며 최신 연결 상태를 대신하지 않는다.
+> **2026-10-27 제출 보류 · 검증 중:** GitHub 주소와 커밋으로 접수할 수 있다는 안내를 구현 조건의 생략 허용으로 해석한 판단을 철회했다. 접수했던 마무리 과제는 되돌렸으며, `codex/defense-requirements-repair`에서 요구사항을 다시 대조하고 보완한다. 실제로 확인한 기존 자료실·NetBird·Wazuh 결과와 아직 충족하지 못한 조건은 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)를 따른다. 과거 단계 통과를 최신 결과물 전체의 완성 판정으로 사용하지 않는다.
 
 # BYTE BACK 자료실 · 12단계
 
 ## 2026-10-26 · 케셰브 개인 운영 추가
 
 현재 케셰브의 단일 실행은 Node 24.19.0에서 `node personal-workspace/start.mjs`이며 주소는 http://127.0.0.1:5189/ 입니다. 원래 Supabase 자료실·로그인·기기 승인과 기존 Agent를 NetBird Windows 게이트웨이에 연결합니다. ChatGPT OAuth는 AI 설명에만 사용하며, PC 감시는 별도 Wazuh 서비스가 담당합니다. 별도 SQLite 메모 화면은 현재 업무 자료 경로로 제공하지 않습니다. 범위·저장 위치·재실행·검증은 [통합 실행기 안내](personal-workspace/README.md)와 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)에 있습니다.
+
+## 2026-10-27 패키지 보완
+
+현재 설치·서버 환경변수·새 Vercel 프로젝트 재현은 [패키지 안내](package/README.md), 현재 실제 검증 여부는 [SELF-CHECK](package/SELF-CHECK.md)를 따른다. 아래 이전 단계 기록의 `config/supabase-public.json` 키 보관 설명은 현재 적용하지 않는다. 최신 파일에는 URL만 있고 Auth 키는 `SUPABASE_PUBLISHABLE_KEY` 서버 환경변수로 이동했다. 기존 main을 유지하며 새 브랜치에서 보완한다.
 
 ## 현재 상태
 
@@ -97,9 +101,9 @@ ChoiTimo/aleph-defense-starter R5입니다.
    UPDATE는 USING과 WITH CHECK 모두 auth.uid()=owner_id로 제한합니다. 다른 영구 테이블은 변경하지 않습니다.
 3. 5단계에서는 `sql/stage5-revoke.sql`로 notes의 PUBLIC·anon·authenticated 직접
    권한을 모두 회수합니다. 기존 행과 RLS 정책 및 서버 service_role 권한은 보존합니다.
-   공개 키는 서버 전용 `config/supabase-public.json`에 둡니다. 빌드가 만드는
+   공개 키는 서버 환경변수 `SUPABASE_PUBLISHABLE_KEY`에 둡니다. 설정 JSON에는 URL만 남기며 빌드가 만드는
    `public/auth-config.json`에는 URL만 있으며 키는 없습니다. Secret key는 이 설정에도 넣지 않습니다.
-4. Vercel Production에 `SUPABASE_URL`과 `SUPABASE_SECRET_KEY`를 직접 저장합니다.
+4. Vercel Production에 `SUPABASE_URL`·`SUPABASE_SECRET_KEY`·`SUPABASE_PUBLISHABLE_KEY`를 직접 저장합니다.
    실제 키·비밀번호·JWT는 채팅, Git, 로그, 응답, 제출 묶음에 넣지 않습니다.
 5. Supabase Auth의 Site URL을 실제 배포 주소로 설정합니다. 이메일 확인을
    비활성화하지 않습니다. 테스트 계정과 비밀번호는 사용자가 공식 화면에서

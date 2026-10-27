@@ -49,6 +49,8 @@
     }
   ],
   "functions": {
+    "api/ai.js": {"maxDuration": 30},
+    "api/threat-intel.js": {"maxDuration": 45},
     "api/restore.js": {
       "includeFiles": "backups/stage9-safe-policy/**"
     },

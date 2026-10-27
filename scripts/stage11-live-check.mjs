@@ -8,8 +8,8 @@ import {CHECK_CASES} from '../src/operations.mjs';
 // Run the actual browser device client with WebCrypto and real deployed HTTP.
 // This exercises its protocol; it is not a claim of manual browser interaction.
 export async function runDeviceCheck(config){
- const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY?.trim();
- if(!url||!secret||url!==new URL(config.identityProvider.issuer).origin)throw Error('DEVICE_CHECK_CONFIG_MISSING');
+ const url=process.env.SUPABASE_URL,secret=process.env.SUPABASE_SECRET_KEY?.trim(),publicKey=process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+ if(!url||!secret||!publicKey||url!==new URL(config.identityProvider.issuer).origin)throw Error('DEVICE_CHECK_CONFIG_MISSING');
  const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(u,o)=>fetch(u,{...o,redirect:'error',signal:AbortSignal.timeout(20000)})}};
  const admin=createClient(url,secret,options),users=[],notes=[];
  const proof={kind:'live_device_client_protocol',at:new Date().toISOString(),buildCommit:process.env.VERCEL_GIT_COMMIT_SHA,checks:[],result:'INCONCLUSIVE'};
@@ -74,8 +74,7 @@ export async function runDeviceCheck(config){
   check('approved_restore_allowed',await send(b,config.restoreRoute.replace(':noteId',id),'POST',{},bc),200);
   const restored=await send(b,path,'GET',undefined,bc);check('restore_preserves_prior_security_and_content',restored,200,restored.data?.body===original.body);
   check('approved_announcement_read',await send(b,'/api/announcements','GET',undefined,bc),200);
-  const settings=JSON.parse(await readFile(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
-  const direct=await fetch(new URL('/rest/v1/aleph_device_sessions?select=id',url),{headers:{apikey:settings.publishableKey,Authorization:'Bearer '+b.access_token},redirect:'error'});
+  const direct=await fetch(new URL('/rest/v1/aleph_device_sessions?select=id',url),{headers:{apikey:publicKey,Authorization:'Bearer '+b.access_token},redirect:'error'});
   proof.checks.push({name:'browser_direct_device_registry_denied',status:direct.status,passed:[401,403].includes(direct.status)});
   if(config.step===12){
    check('student_announcement_write_denied',await send(b,'/api/announcements/'+randomUUID(),'PUT',{title:'Synthetic',body:'Synthetic'},bc),403);
@@ -100,7 +99,7 @@ export async function runDeviceCheck(config){
    }
    const r=await send(null,'/api/my/notes');check('s03-unauth-list',r,401);proof.records.at(-1).stage=3;
    const invalid=await send({access_token:'invalid.invalid.invalid'},'/api/my/notes');check('s03-invalid-token',invalid,401);proof.records.at(-1).stage=3;
-   const directNotes=await fetch(new URL('/rest/v1/notes?select=id',url),{headers:{apikey:settings.publishableKey,Authorization:'Bearer '+b.access_token},redirect:'error',signal:AbortSignal.timeout(10000)});
+   const directNotes=await fetch(new URL('/rest/v1/notes?select=id',url),{headers:{apikey:publicKey,Authorization:'Bearer '+b.access_token},redirect:'error',signal:AbortSignal.timeout(10000)});
    proof.records.push({stage:5,type:'forbidden',kind:'live_api_protocol',caseId:'s05-direct-notes',method:'GET',path:'/rest/v1/notes',expected:'HTTP 401/403',actual:'HTTP '+directNotes.status,result:[401,403].includes(directNotes.status)?'passed':'failed',requestId:directNotes.headers.get('sb-request-id')??directNotes.headers.get('x-request-id'),checkedAt:new Date().toISOString()});
   }
   const old=await runAttackChecks(config);proof.retests=old;proof.priorChecksPassed=old.every(c=>!c.observed.includes('실패'));
