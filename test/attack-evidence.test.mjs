@@ -6,9 +6,10 @@ import {runAttackChecks} from '../src/attack-check.mjs';
 test('each HTTP check has distinct runner evidence without transmitting metadata, and a leaked response fails',async()=>{
   const config=JSON.parse(await readFile(new URL('../aleph.config.json',import.meta.url),'utf8'));
   config.step=11; // Regression of the original stage11 checker; stage12 has its own HTTP contract test.
-  const actualFetch=globalThis.fetch,requests=[];
+  const actualFetch=globalThis.fetch,requests=[],actualKey=process.env.SUPABASE_PUBLISHABLE_KEY;
   let leak=false;
   try{
+    process.env.SUPABASE_PUBLISHABLE_KEY='fixture-only-public-key';
     globalThis.fetch=async(target,options)=>{
       const url=new URL(target);requests.push({url,options});
       if(url.pathname==='/aleph.json')return Response.json(config);
@@ -39,5 +40,5 @@ test('each HTTP check has distinct runner evidence without transmitting metadata
     leak=true;
     const failed=await runAttackChecks(config);
     assert.ok(failed.find(a=>a.attackId==='anonymous_note_crud').observed.startsWith('실패'));
-  }finally{globalThis.fetch=actualFetch;}
+  }finally{globalThis.fetch=actualFetch;if(actualKey===undefined)delete process.env.SUPABASE_PUBLISHABLE_KEY;else process.env.SUPABASE_PUBLISHABLE_KEY=actualKey;}
 });

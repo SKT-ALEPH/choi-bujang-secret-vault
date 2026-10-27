@@ -12,7 +12,8 @@ export function createWorkspaceHost({client,signer,target=process.env.KESHEV_NET
  async function transmit(path,envelope,signal){
   const n=await readNetwork();if(n.daemonStatus!=='Connected'||!n.management.connected||!overlayIp(target)||!Array.isArray(n.peers?.details)||!n.peers.details.some(p=>typeof p?.netbirdIp==='string'&&p.netbirdIp.split('/')[0]===target))throw fault('PEER_UNAVAILABLE',503);
   const bytes=Buffer.from(JSON.stringify(envelope));let response;
-  try{response=await request(`http://${target}:54123${path}`,{method:'POST',headers:{'content-type':'application/json',...signer.headers(path,bytes)},body:bytes,redirect:'error',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(10000)]):AbortSignal.timeout(10000)});}catch{throw fault('REMOTE_UNAVAILABLE',503);}
+  const timeout=path==='/agent/vault/control'&&['package-ai','package-intel'].includes(envelope.input?.operation)?40000:10000;
+  try{response=await request(`http://${target}:54123${path}`,{method:'POST',headers:{'content-type':'application/json',...signer.headers(path,bytes)},body:bytes,redirect:'error',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(timeout)]):AbortSignal.timeout(timeout)});}catch{throw fault('REMOTE_UNAVAILABLE',503);}
   const chunks=[];let length=0;const reader=response.body.getReader();try{while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>8*1024*1024)throw fault('response_unverified',503);chunks.push(part.value);}}finally{await reader.cancel();}
   let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw fault('response_unverified',503);}
   if(!response.ok||value.ok!==true)throw fault(Object.hasOwn(messages,value.error?.code)?value.error.code:'REMOTE_UNAVAILABLE',response.status===403?403:response.status===404?404:409);

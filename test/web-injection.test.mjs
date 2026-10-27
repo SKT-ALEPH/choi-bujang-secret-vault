@@ -13,7 +13,8 @@ import { respond } from '../xdr/web-injection/respond.mjs';
 import { createXdrGuard } from '../xdr/brute-force/guard.mjs';
 import { readDenyRules } from '../xdr/brute-force/rule-store.mjs';
 import { createLiveWebXdr } from '../xdr/web-injection/live.mjs';
-import { createAuthHandler } from '../api/auth.js';
+import {createAuthHandler as createProductionAuthHandler} from '../api/auth.js';
+const createAuthHandler=(fetch,options={})=>createProductionAuthHandler(fetch,{getPublishableKey:()=> 'fixture-only-public-key',...options});
 const fixture = JSON.parse(await readFile(new URL('../xdr/fixtures/web-injection.json', import.meta.url)));
 
 test('26 original/extracted events produce 8/9/9 in an empty VM with changed IDs and order', async () => {

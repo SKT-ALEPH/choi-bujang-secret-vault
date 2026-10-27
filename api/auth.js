@@ -6,7 +6,7 @@ import {productionRuntime} from './notes.js';
 const routes = { token: ['POST'], signup: ['POST'], recover: ['POST'], otp:['POST'], verify:['POST'], user: ['GET', 'PUT'], logout: ['POST'] };
 
 // Only Auth is proxied. The public credential never enters the browser bundle.
-export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, getGateway = () => null } = {}) {
+export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, getGateway = () => null, getPublishableKey=()=>process.env.SUPABASE_PUBLISHABLE_KEY } = {}) {
   return async function handler(request, response) {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
@@ -29,7 +29,7 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, 
     if (['signup', 'recover','otp'].includes(path)) target.searchParams.set('redirect_to', config.publicAppUrl + '/');
     if (path === 'logout') target.searchParams.set('scope', 'global');
     const authorization = request.headers?.authorization;
-    const headers = { apikey: settings.publishableKey, 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json' };
     if (authorization && authorization !== 'Bearer auth-via-server') {
       if (typeof authorization !== 'string' || !/^Bearer [A-Za-z0-9._~-]+$/u.test(authorization)) {
         return response.status(401).json({ error: 'INVALID_LOGIN' });
@@ -39,6 +39,9 @@ export function createAuthHandler(upstreamFetch = fetch, { getXdr = () => null, 
     if (['user', 'logout'].includes(path) && !headers.Authorization) {
       return response.status(401).json({ error: 'LOGIN_REQUIRED' });
     }
+    const publishableKey=getPublishableKey();
+    if(typeof publishableKey!=='string'||!publishableKey.trim()||publishableKey!==publishableKey.trim())return response.status(503).json({error:'AUTH_NOT_CONFIGURED'});
+    headers.apikey=publishableKey;
     let body;
     if (request.method !== 'GET') {
       body = typeof request.body === 'string' ? request.body : JSON.stringify(request.body ?? {});

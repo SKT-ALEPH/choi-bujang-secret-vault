@@ -8,7 +8,10 @@
     xdr_brute_force:'로그인 실패가 반복돼 접근이 잠시 제한됐습니다. 최대 15분 뒤 다시 시도해 주세요.',
     email_not_confirmed:'가입 확인 이메일의 링크를 먼저 눌러 주세요.',
     netbird_gateway_required:'NetBird로 연결된 케셰브의 기존 자료실 열기로 접속해 주세요.',
-    over_email_send_rate_limit:'확인 이메일 요청이 많습니다. 잠시 뒤 다시 시도해 주세요.',
+    over_email_send_rate_limit:'메일 제공자의 발송 한도에 도달했습니다. 연속으로 다시 누르지 말고, 한도가 풀린 뒤 요청해 주세요. 기존 비밀번호 로그인도 사용할 수 있습니다.',
+    ACCOUNT_BUSY:'다른 이메일 인증 요청을 처리 중입니다. 결과를 기다린 뒤 다시 요청해 주세요.',
+    ACCOUNT_SETUP_UNAVAILABLE:'Windows 게이트웨이 또는 인증 원천의 응답을 끝까지 확인하지 못했습니다. NetBird 연결을 확인해 주세요. 메일 발송 성공으로 처리하지 않았습니다.',
+    auth_unavailable:'인증 서버의 응답을 확인하지 못했습니다. 연결이 복구된 뒤 다시 요청해 주세요.',
     weak_password:'더 긴 비밀번호를 입력해 주세요.', signup_disabled:'현재 새 계정 가입이 비활성화돼 있습니다.' }[error.code] || '인증 요청에 실패했습니다. 입력 내용과 연결 상태를 확인해 주세요.');
   let client, signedIn = false, approved = false, signup = false, editingId = null, revision = 0, agentSession=null;
   async function currentSession(){
@@ -39,6 +42,7 @@
   }
   async function loadNotes() {
     const current = revision;
+    status('내 메모를 불러오는 중입니다.');
     $('#notes').replaceChildren();
     $('#workspace').hidden=true;
     $('#notes').setAttribute('aria-busy','true');

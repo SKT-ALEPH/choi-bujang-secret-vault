@@ -1,7 +1,7 @@
 {
   "step": 12,
   "repoUrl": "https://github.com/SKT-ALEPH/choi-bujang-secret-vault",
-  "publicAppUrl": "https://choi-bujang-secret-vault-ecru.vercel.app",
+  "publicAppUrl": "https://keshev-defense-package-20261027.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
   "judgeIssuer": "https://aleph-judge-production.up.railway.app/defense/judge",
   "identityProvider": {
@@ -138,5 +138,6 @@
     }
   ],
   "originalApiUrl": "https://ghsdcculokaxprelnvdv.supabase.co/rest/v1/notes",
-  "restoreRoute": "/api/restore/:noteId"
+  "restoreRoute": "/api/restore/:noteId",
+  "packageServicesUrl": "https://keshev-defense-package-20261027.vercel.app"
 }

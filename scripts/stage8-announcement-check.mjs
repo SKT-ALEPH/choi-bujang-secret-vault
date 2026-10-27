@@ -105,6 +105,5 @@ export async function runAnnouncementCheck(config,publicKey) {
 
 if(process.argv?.[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const config=JSON.parse(await readFile(new URL('../aleph.config.json',import.meta.url),'utf8'));
-  const settings=JSON.parse(await readFile(new URL('../config/supabase-public.json',import.meta.url),'utf8'));
-  await runAnnouncementCheck(config,settings.publishableKey);
+  await runAnnouncementCheck(config,process.env.SUPABASE_PUBLISHABLE_KEY?.trim());
 }

@@ -2,18 +2,26 @@ import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createClient } from '@supabase/supabase-js';
-import { createAuthHandler } from '../api/auth.js';
+import {createAuthHandler as createProductionAuthHandler} from '../api/auth.js';
+const createAuthHandler=(fetch,options={})=>createProductionAuthHandler(fetch,{getPublishableKey:()=> 'fixture-only-public-key',...options});
 import settings from '../config/supabase-public.json' with { type: 'json' };
 
 const response = () => ({ headers:{},statusCode:null,body:null,
   setHeader(k,v){this.headers[k]=v;},status(c){this.statusCode=c;return this;},json(v){this.body=v;return this;} });
+
+test('missing server Auth credential fails closed without an upstream call',async()=>{
+  let called=false;
+  const handler=createProductionAuthHandler(async()=>{called=true;throw Error('must not run');},{getPublishableKey:()=>undefined});
+  const result=response();await handler({method:'POST',query:{path:'token',grant_type:'password'},headers:{},body:{}},result);
+  assert.equal(result.statusCode,503);assert.equal(called,false);
+});
 
 test('Auth proxy permits only fixed Auth routes, keeps public key upstream, and suppresses diagnostics', async () => {
   let calls=0;
   const handler=createAuthHandler(async(target, options)=>{
     calls++; const url=new URL(target);
     assert.equal(url.origin,settings.url); assert.equal(url.pathname,'/auth/v1/token');
-    assert.equal(options.headers.apikey,settings.publishableKey);
+    assert.equal(options.headers.apikey,'fixture-only-public-key');
     assert.equal(options.headers.Authorization,undefined); assert.equal(options.redirect,'error');
     return new Response(JSON.stringify({code:400,error_code:'invalid_credentials',msg:'private diagnostic'}),{status:400});
   });
@@ -28,7 +36,7 @@ test('Auth proxy permits only fixed Auth routes, keeps public key upstream, and 
   assert.equal(result.statusCode,400); assert.equal(result.headers['Cache-Control'],'no-store');
   assert.equal(result.body.code,'invalid_credentials'); assert.equal(JSON.stringify(result.body).includes('private diagnostic'),false);
   assert.equal(result.body.error_code,'invalid_credentials');
-  assert.equal(JSON.stringify(result.body).includes(settings.publishableKey),false);
+  assert.equal(JSON.stringify(result.body).includes('fixture-only-public-key'),false);
   const client=createClient(settings.url,'auth-via-server',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
     global:{fetch:async(target,options)=>{
       const url=new URL(target),res=response();
@@ -44,7 +52,7 @@ test('official SDK signs in, refreshes and signs out through the Auth proxy with
   const seen=[];const accessToken=randomUUID(),refreshToken=randomUUID();
   const handler=createAuthHandler(async(target,options)=>{
     const url=new URL(target);seen.push(url.pathname);
-    assert.equal(options.headers.apikey,settings.publishableKey);
+    assert.equal(options.headers.apikey,'fixture-only-public-key');
     if(url.pathname==='/auth/v1/logout') {assert.equal(options.headers.Authorization,'Bearer '+accessToken);return new Response(null,{status:204});}
     if(url.pathname==='/auth/v1/user') return Response.json({id:'fixture-user'});
     assert.equal(url.pathname,'/auth/v1/token');

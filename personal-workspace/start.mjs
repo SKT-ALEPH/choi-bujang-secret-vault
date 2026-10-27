@@ -1,7 +1,7 @@
 // One local command starts the owned Windows resource and this Mac app. No secrets are printed/copied.
 import {execFile,spawn} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdir,copyFile,access} from 'node:fs/promises';
+import {mkdir,copyFile} from 'node:fs/promises';
 import {join,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {homedir} from 'node:os';
@@ -13,16 +13,15 @@ try{
  if(process.platform!=='darwin'||process.version!=='v24.19.0')throw Error('MAC_NODE_24_19_REQUIRED');
  const args=process.argv.slice(2);if(args.some(x=>!/^--adopt-pid=\d+$/.test(x))||args.length>1)throw Error('UNKNOWN_ARGUMENT');
  const adoptPid=args.length?Number(args[0].split('=')[1]):undefined;
- let pcInstalled=false;try{await access(join(root,'.local/pc-security/manager-ca.pem'));pcInstalled=true;}catch{}
- if(pcInstalled){
-  try{
+ // The installed manager belongs to this Mac, not to one source checkout.
+ // A fresh clone must not need a copy of the install folder's credentials.
+ try{
    console.log('설치된 PC 감시 서버를 준비합니다.');
    await run('docker',['desktop','start'],{timeout:60000,maxBuffer:16384});
    const role=await run('docker',['inspect','--format','{{index .Config.Labels "app.keshev.role"}}','keshev-wazuh-manager'],{timeout:5000,maxBuffer:1024});
    if(role.stdout.trim()!=='pc-security-manager')throw Error('MANAGER_NOT_OWNED');
    await run('docker',['start','keshev-wazuh-manager'],{timeout:15000,maxBuffer:1024});
-  }catch{console.log('PC 감시 서버 준비를 확인하지 못했습니다. 앱의 PC 감시 상태에서 확인하세요.');}
- }
+ }catch{console.log('PC 감시 서버 준비를 확인하지 못했습니다. 앱의 PC 감시 상태에서 확인하세요.');}
  const n=await readNetBirdStatus(),macAddress=n.netbirdIp?.split('/')[0];if(n.daemonStatus!=='Connected'||!overlayIp(macAddress))throw Error('MAC_NETBIRD_NOT_CONNECTED');
  const plan=await run('/usr/local/bin/prlctl',['list','--all','--json'],{timeout:10000,maxBuffer:1048576});const vm=JSON.parse(plan.stdout).find(x=>x.name==='Windows 11');if(!vm)throw Error('WINDOWS_VM_NOT_FOUND');
  if(vm.status!=='running')await run('/usr/local/bin/prlctl',['start','Windows 11'],{timeout:60000});

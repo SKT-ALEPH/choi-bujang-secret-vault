@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createLiveXdr, trustedVercelSource } from '../xdr/brute-force/live.mjs';
-import { createAuthHandler } from '../api/auth.js';
+import {createAuthHandler as createProductionAuthHandler} from '../api/auth.js';
+const createAuthHandler=(fetch,options={})=>createProductionAuthHandler(fetch,{getPublishableKey:()=> 'fixture-only-public-key',...options});
 import { createNotesHandler } from '../api/notes.js';
 
 const response=()=>({headers:{},statusCode:null,body:null,setHeader(k,v){this.headers[k]=v;},
