@@ -38,7 +38,7 @@
 
 ## 통합 앱 시작과 사용
 
-저장소 루트에서 `node personal-workspace/start.mjs`를 실행하고 http://127.0.0.1:5189/ 를 연다. 자세한 기기 등록·키 보관·초기 준비는 [NetBird 안내](../on-client/docs/STUDENT_NETBIRD.md), [AI 안내](../personal-ai/README.md), [전체 실행 설명](../personal-workspace/README.md)을 따른다. 설명서만으로 다른 폴더에서 재현한 결과는 실측표에 별도로 기록한다.
+저장소 루트에서 `node personal-workspace/start.mjs`를 실행하고 http://127.0.0.1:5189/ 를 연다. 자세한 기기 등록·키 보관·초기 준비는 [NetBird 안내](../on-client/docs/STUDENT_NETBIRD.md), [AI 안내](../personal-ai/README.md), [전체 실행 설명](../personal-workspace/README.md)을 따른다. 별도 폴더의 실제 준비·시작·재시작과 기존 인증 재연결은 [재현 기록](REPRODUCTION.md)에 있다. 앱을 재시작하면 먼저 첫 화면을 새로고침한 뒤 자료실 목록/복구 조회를 눌러 로컬 세션을 갱신한다.
 
 1. 기존 자료실 열기 → 원래 계정 로그인 → 기기 승인 → 본인 자료 조회. 인증·기기·서버 권한이 없으면 거부돼야 한다.
 2. Windows 상태 다시 조회 → CPU·메모리·디스크의 시각/단위와 이전 성공값 비교. 읽지 못한 값은 확인 불가다. System/Application 건수는 공격 판정이 아니다.
