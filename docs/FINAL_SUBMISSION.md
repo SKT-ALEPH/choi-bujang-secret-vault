@@ -1,0 +1,69 @@
+# 케셰브 마무리 제출 · 2026-10-27
+
+기존 자료실에 인증·기기 승인·접근 제한을 적용하고, 기존 보안 Agent에서 접속 사건을 확인하고 대응하는 앱이다. 사용자 요청에 따라 수업용 SDP 대신 NetBird를 연결했고, PC 감시에는 공식 Wazuh 에이전트와 운영체제별 송신 센서를 추가했다. 새 자료실로 원래 자료를 대체하지 않는다.
+
+## 최신 제출 조건
+
+2026-10-27 실제 [방어전](https://aleph-omega.vercel.app/defense)과 [마무리 자료 제출 과제](https://aleph-omega.vercel.app/cortex?panel=tasks)를 읽었다.
+
+- 결과 주소에는 `https://github.com/SKT-ALEPH/choi-bujang-secret-vault`, 검증 메모에는 GitHub에 실제 올라간 최종 커밋 번호 40자리를 적는다.
+- 서버가 해당 커밋을 직접 받아 확인한다. 접수와 판정은 구분한다. 이전 단계 통과를 이 최신 커밋의 최종 판정으로 보고하지 않는다.
+- 사진과 포장 결과는 선택 첨부다. 최신 6일차는 `package-app` 명령이 없는 예전 시작 틀의 포장 생략을 허용한다. 현재 시작 틀에는 그 명령이 없다. 승인 host나 manifest를 임의로 만들어 포장 성공으로 표시하지 않는다.
+- setup.exe 제작은 사용자 요청으로 제외했다. 네 외부 서비스의 참고 연동도 최신 공통 안내에서 선택 사항이다.
+- 1~7일차는 권장 작업이며 새 단계 점수나 진도를 부여하지 않는다. 핵심 기능의 실제 동작, 근거의 정직성, 사용 편의, 재현 가능성을 본다.
+
+현재 포털에서 13~22단계 통과 10/10과 XDR 완료 6/6을 다시 확인했다. 이는 각 과거 제출 커밋에 대한 기록이다. 21단계·22단계 안내는 서버 AI의 소스 검토 판정이며 서버의 실제 실행 시험이 아니라고 명시한다.
+
+## 요구사항과 구현·근거
+
+| 요구·기능 | 구현 위치 | 실제 확인·경계 |
+|---|---|---|
+| 기존 프로젝트와 자료 보존 | `personal-workspace/server.mjs`, `on-client/student/netbird-agent.mjs`, 기존 `api/notes.js` | 원래 Supabase 계정·메모·P256 기기 승인 재사용. 별도 SQLite 메모 경로는 제공하지 않음 |
+| PC 자원 실측 | `on-client/student/pc-observation.mjs`, `personal-workspace/resource.mjs` | Mac·Windows CPU/메모리/디스크 실측. 출처·단위·시각, 실패와 0을 분리 |
+| 연결·방화벽·Windows 기록 조회 | `on-client/student/connection-observation.mjs`, `windows-readonly.ps1` | 일반 권한·기본 Restricted 정책에서 실제 수집/HTTP 성공. 기록 건수만으로 침해를 판정하지 않음 |
+| 화면과 오류 안내 | `on-client/student/netbird-layout.mjs`, 기존 화면·스타일 | 기존 Agent 화면에서 네트워크·PC 감시·AI·자료실 연결. 대기·실패·현재 관측과 과거 영수증 분리 |
+| 자료실 접근 경계 | `config/netbird-gateway.json`, `src/netbird-gateway.mjs`, Windows 중계 | 같은 유효 로그인·기기 증명으로 직접 Vercel 403 / NetBird 200. 실제 정책 중지 시 거부·복구 시 같은 자료 조회 |
+| 기존 XDR 6종과 Agent | `xdr/`, `on-client/student/netbird-xdr.mjs`, `on-client/src/actions/` | 기존 판단기 보존. 실제 권한 회수·기기 철회·효과 재조회·복구, 15분 추가 거부의 재시작 유지와 만료 복구 확인. 모든 PC 사건을 자료실 사용자와 자동 결속한다고 주장하지 않음 |
+| AI 설명 | `personal-ai/`, `on-client/student/` | 기존 승인 OAuth로 GPT-6-Luna 실제 설명·진단 응답 확인. AI는 허용된 최소 근거를 설명하며 OS 차단을 스스로 결정·집행하지 않음 |
+| PC 감시·목적지 송신 차단 | `pc-security/`, `personal-workspace/server.mjs` | 공식 Wazuh 두 에이전트 연결, 실제 FIM 수집, 양 OS의 생성 바이트 송신 → 경보 → OS 차단 → 같은 포트 거부·옆 포트 허용 → 실제 900초 자동 복구 확인 |
+| 다른 경로 재현과 실행 설명 | `on-client/docs/STUDENT_DAILY_START.md`, `personal-workspace/README.md` | 초기 PC 조회 기능은 자격 없는 새 경로에서 실행·브라우저 재현. 전체 NetBird/Wazuh는 아래 기기별 설치·등록을 별도로 필요로 함 |
+| 한계·증빙·시연 | 이 문서, `docs/PC_SECURITY_VERIFICATION.md`, `on-client/docs/STUDENT_NETBIRD.md` | 실제 측정·예제·미연결·확인 불가를 구분. 아래 순서와 상세 검증 문서로 확인 |
+
+## 실행과 시연
+
+현재 통합 실행은 Apple Silicon Mac과 Parallels Windows 11 ARM64 조합이다. Node **24.19.0**, Parallels의 Windows 사용자 로그인과 Mac 홈 공유, 두 기기의 공식 NetBird 설치·등록, Mac → Windows TCP 54123 한정 정책, 기존 자료실 계정·기기 승인이 필요하다. Node 버전 검사는 실제 실행기 조건이며 임의의 최신 버전으로 바꾸지 않는다.
+
+최초 준비는 [NetBird 연결 안내](../on-client/docs/STUDENT_NETBIRD.md), [AI 준비](../personal-ai/README.md), [PC 감시 설치·복구 안내](../pc-security/README.md)를 따른다. PC 감시는 Docker Desktop과 이미 등록된 전용 Wazuh manager, 공식 에이전트, 관리자 권한으로 설치한 센서를 필요로 한다. 이 저장소만 내려받아 인증·기기 등록 없이 전부 자동 연결되는 제품은 아니다. 키·자격·사용자 자료·Wazuh 원문을 Git으로 전달하지 않는다.
+
+설정된 현재 환경에서는 저장소 루트에서 다음을 실행한다.
+
+```sh
+node --version
+node personal-workspace/start.mjs
+```
+
+1. `http://127.0.0.1:5189/`의 보호 현황에서 NetBird 자원 응답과 두 PC의 감시 상태를 다시 조회한다. 관측 시각과 현재 상태를 확인한다. Docker가 내려가거나 원천이 오래되면 확인 불가가 정상이다.
+2. **기존 자료실 열기**에서 원래 계정으로 로그인하고 기기를 승인한 뒤 본인 자료를 조회한다. 직접 우회 차단 확인은 동일한 유효 증명에서 공개 403 / NetBird 200을 비교한다. 실제 자료 본문은 비교 결과나 AI에 포함하지 않는다.
+3. 보안 기록의 사건을 열어 근거·규칙·상태를 확인한다. AI는 기존 승인 계정으로 최소 근거만 설명한다. 사람 확인 뒤 Agent 조치를 실행하면 원천 효과를 다시 조회한다. OS 송신 차단과 자료실 권한 회수는 서로 다른 범위다.
+
+실제 OS 차단·복구 시연 근거는 [PC 감시 검증표](PC_SECURITY_VERIFICATION.md)에 있다. 기록된 시험은 생성한 상수 바이트를 두 사설 기기 사이에서 보내 수행했으며 실제 사용자 파일이나 인터넷 수신지로 유출하지 않았다. 서비스·manager 재시작 뒤에도 원래 해제 기한을 보존했고, 시간을 앞당기지 않고 15분 자동 복구를 기다렸다. 시험 수신기와 임시 inbound 규칙은 정리했다.
+
+앱은 Ctrl+C로 종료한다. NetBird와 PC 센서는 별도 OS 서비스이므로 앱 종료만으로 중지되지 않는다. Wazuh manager 중지·복구는 PC 감시 안내를 따른다. Docker volume·원래 자료·감사 DB를 삭제해 복구하지 않는다.
+
+## 동작 범위와 미달성 범위
+
+- 공식 ALEPH SDP/native host는 현재 통합 경로가 아니다. NetBird가 개인 연결 경계를, 기존 Supabase가 사용자 인증을 담당한다. ChatGPT OAuth는 자료실 로그인이나 공식 수업 자격을 대신하지 않는다.
+- Wazuh는 PC 중앙 경보·새 자동 OS 대응에 필요하다. 자료실·NetBird·AI 자체의 필수 구성은 아니다. 원천 단절 시 화면은 확인 불가이며 이미 적용된 자체 차단은 원래 기한까지 남을 수 있다.
+- Mac 송신은 표본 관측이라 짧은 연결을 놓칠 수 있다. PF 신규 연결 차단을 검증했으며 이미 열린 연결 강제 종료는 보장하지 않는다. Windows는 커널 송신 메타데이터를 사용한다.
+- 전체 파일 내용 검사·모든 외부 유출 방지 DLP·모든 공격 탐지·PC 전원 재부팅 시험을 완료한 것은 아니다. Wazuh indexer/취약점 모듈은 구성하지 않았고 기존 OSV 프로젝트 조회와 구분한다.
+- 정상 ChatGPT 대량 송신의 실제 오탐을 수정했다. 승인된 OpenAI 네 서비스의 최근 DNS 주소·443만 예외이며, 같은 CDN 주소의 다른 서비스를 내용별로 구분하지 못한다.
+- Windows 수집/HTTP와 Mac 브라우저를 실제 확인했다. 초기 Windows PC 조회 화면의 버튼 직접 조작·제3자 첫 사용·화면 낭독기·전체 모바일 실기기 시험은 수행하지 않았다.
+- 과거 `package/`의 메모리얼 P1~P8은 별도 패키징 양식이다. `api/ai.js`·`api/threat-intel.js`는 여전히 501 뼈대이며 NVD/KEV와 서버 AI 호출 한도·새 Vercel 배포 재현을 완성했다고 주장하지 않는다. 현재 마무리 과제의 URL+커밋 제출과 혼동하지 않는다. 로컬 OAuth AI·OSV의 실제 성공도 이 두 서버 기능의 완료 증거로 쓰지 않는다.
+
+이번 제출은 현재의 로컬 통합 앱 소스와 정직한 검증·한계 기록이다. setup.exe, 공식 host 포장, 모든 보안 제품 기능, 과거 별도 메모리얼 패키지 전체 완성을 제출 주장에 포함하지 않는다.
+
+## 이번 제출 전 점검
+
+2026-10-27 Node 24.19.0에서 PC 정책·통합 서버·기존 자료실 게이트웨이·XDR 6종·개인 AI·PC 실측·연결 조회·13~20단계 관련 회귀 시험 **34개 통과, 실패 0개**를 확인했다. 외부 모델을 다시 호출한 시험이 아니며 실제 연결 증거는 위의 10월26일 기록을 따른다. 전체 저장소의 모든 시험이나 최종 심판 판정으로 확대하지 않는다.
+
+추적 파일과 새 문서 총 355개에서 공급자 API 키·JWT·개인키 본문 패턴이 발견되지 않았다. 등록 비밀·환경 파일·개인키 파일·실제 감사 DB·원문 로그는 추적하지 않는다. 이번 후속 수정은 현재 제출 조건과 정본 링크를 맞춘 문서 수정이며, 확인된 Mac 관리자 설치본이나 Windows 센서 코드를 변경하지 않았다.

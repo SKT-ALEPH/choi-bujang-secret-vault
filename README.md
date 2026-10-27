@@ -1,10 +1,10 @@
-> **2026-10-26 기존 시스템 NetBird 통합 수정 중:** 기존 Agent와 자료실/Supabase를 재사용하는 연결은 [현재 작업 안내](on-client/docs/STUDENT_NETBIRD.md)를 따른다. 이전 별도 개인 경로의 완료는 전체 통합 완료가 아니며, 실제 배포·기존 계정·차단/복구 검증이 남아 있다.
+> **2026-10-27 현재 제출 안내:** 기존 자료실·XDR·Agent의 NetBird 통합과 두 PC의 Wazuh 송신 차단·자동 복구를 실제 확인했다. 현재 범위·실행 방법·필수 조건 대조는 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)를 따른다. 아래의 날짜별 단계 설명은 당시 기록이며 최신 연결 상태를 대신하지 않는다.
 
 # BYTE BACK 자료실 · 12단계
 
 ## 2026-10-26 · 케셰브 개인 운영 추가
 
-현재 개인 케셰브의 단일 실행은 `node personal-workspace/start.mjs`이며 주소는 http://127.0.0.1:5189/ 입니다. 기존 ChatGPT 연결·NetBird·Windows 개인 업무 자료·본인 기록·조치·AI·OSV를 연결합니다. 원래 과제용 자료실과 제공 엔진은 보존합니다. 범위·저장 위치·재실행·검증은 [개인 운영 설명서](personal-workspace/README.md)에 있습니다.
+현재 케셰브의 단일 실행은 Node 24.19.0에서 `node personal-workspace/start.mjs`이며 주소는 http://127.0.0.1:5189/ 입니다. 원래 Supabase 자료실·로그인·기기 승인과 기존 Agent를 NetBird Windows 게이트웨이에 연결합니다. ChatGPT OAuth는 AI 설명에만 사용하며, PC 감시는 별도 Wazuh 서비스가 담당합니다. 별도 SQLite 메모 화면은 현재 업무 자료 경로로 제공하지 않습니다. 범위·저장 위치·재실행·검증은 [통합 실행기 안내](personal-workspace/README.md)와 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)에 있습니다.
 
 ## 현재 상태
 
