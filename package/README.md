@@ -28,7 +28,7 @@
 ## 새 Vercel 프로젝트에 배포
 
 1. Node24.19.0에서 `npm ci`를 실행한다. Supabase SQL Editor에서 `sql/package-services.sql`을 적용한다. 기존 notes·Auth 사용자를 수정하지 않으며 서비스 전용 사용량/캐시 두 테이블과 원자적 한도 함수만 추가한다. RLS·anon/authenticated 접근 회수를 확인한다.
-2. Vercel에서 **새 프로젝트**를 만들어 위 저장소를 연결한다. Import가 main만 표시하면 새 프로젝트 생성 뒤 Settings → Environments → Production → Branch Tracking에 `codex/defense-requirements-repair`를 저장하고, 그 브랜치의 배포만 실제 검증 대상으로 삼는다. 기존 프로젝트의 Production Branch를 바꾸지 않는다. Root Directory는 `./`, Application Preset은 **Other**다. 자동 감지되는 `on-client`/`personal-ai` 다중 서비스 제안을 적용하지 않는다. 두 폴더는 PC용이며 클라우드 웹의 대체물이 아니다.
+2. Vercel에서 **새 프로젝트**를 만들어 위 저장소를 연결한다. 제출된 최신 코드를 포함한 기본 브랜치를 사용한다. main이 아직 이전 버전인 보완 검증 중에는 새 프로젝트 생성 뒤 Settings → Environments → Production → Branch Tracking에 `codex/defense-requirements-repair`를 저장한다. 어느 경우든 실제 선택한 브랜치/커밋과 배포를 대조한다. 기존 프로젝트의 Production Branch를 바꾸지 않는다. Root Directory는 `./`, Application Preset은 **Other**다. 자동 감지되는 `on-client`/`personal-ai` 다중 서비스 제안을 적용하지 않는다. 두 폴더는 PC용이며 클라우드 웹의 대체물이 아니다.
 3. 위 환경변수를 새 프로젝트의 Production에 설정한다. 이전 프로젝트에서 자동 복사됐다고 가정하지 않는다. 키가 없으면 Auth/AI는 정상처럼 응답하지 않으며 AI의 알려진 미설정 상태는 상류 전송·사용량 예약 전에503으로 거부한다. 값이 보이지 않는 환경변수 이름 화면을 `self-check/P7-1.png`로 남긴다.
 4. 저장소 `vercel.json`의 빌드 `npm run build`, 출력 `public`을 사용한다. **Vercel이 제공하는 저장소·커밋·배포 URL 정보**가 자동 입력돼야 한다. 시스템 변수를 손으로 위조하거나 로컬 빌드로 배포 신원을 대신하지 않는다. 로컬 정적 확인만 `npm run build -- --local`을 쓴다.
 5. 배포 완료 화면과 실제 새 주소의 첫 화면을 `self-check/P7-2.png`, `self-check/P7-3.png`로 저장한다. `/aleph.json`의40자리 commit을 GitHub 원격과 비교한다. 비로그인 두 API401, 가짜 토큰401, 직접 우회403, 정상 NetBird API200은 각각 따로 확인한다.
