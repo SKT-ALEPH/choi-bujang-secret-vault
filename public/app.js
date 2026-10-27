@@ -42,6 +42,7 @@
   }
   async function loadNotes() {
     const current = revision;
+    status('내 메모를 불러오는 중입니다.');
     $('#notes').replaceChildren();
     $('#workspace').hidden=true;
     $('#notes').setAttribute('aria-busy','true');

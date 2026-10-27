@@ -5,7 +5,7 @@
 ## 준비물과 실행 경계
 
 - 저장소: https://github.com/SKT-ALEPH/choi-bujang-secret-vault
-- 보완 브랜치: `codex/defense-requirements-repair`. 기존 main과 기존 Vercel 프로젝트를 변경하지 않는다.
+- 보완 브랜치: `codex/defense-requirements-repair`. 병합 전까지 기존 main과 기존 Vercel 프로젝트를 유지한다. 기본 브랜치 승격 시 기존 Auth에도 SUPABASE_PUBLISHABLE_KEY 서버 설정을 먼저 적용해야 원래 로그인이 유지된다.
 - 웹: GitHub·Vercel·Supabase 계정. 기존 Supabase 프로젝트의 Auth와 스키마를 재사용한다. 새 빈 DB를 쓰려면 루트 README의 2~12단계 스키마와 기기/게이트웨이 nonce 스키마를 먼저 적용하고 실제 계정·기기를 등록해야 한다. 이 문서의 P7은 새 Vercel 프로젝트 재현이며 빈 DB 이관 시험이 아니다.
 - 통합 앱: Apple Silicon Mac, Parallels Windows 11 ARM64 일반 사용자 로그인, 두 기기에 Node **24.19.0**, Mac 홈 공유, 공식 NetBird 설치·등록. Mac→Windows TCP **54123** 한정 정책을 사용한다. 전체망 허용·SSH·RDP가 필요하지 않다.
 - PC 감시: Docker Desktop의 전용 Wazuh manager와 두 OS의 공식 에이전트·송신량 센서. 관리자 설치는 [PC 감시 안내](../pc-security/README.md)를 따른다. 이 구성 없이도 자료실·NetBird·개인 AI를 쓸 수 있으나 PC 경보·새 OS 자동 대응은 제공되지 않는다.
@@ -38,7 +38,7 @@
 
 ## 통합 앱 시작과 사용
 
-저장소 루트에서 `node personal-workspace/start.mjs`를 실행하고 http://127.0.0.1:5189/ 를 연다. 자세한 기기 등록·키 보관·초기 준비는 [NetBird 안내](../on-client/docs/STUDENT_NETBIRD.md), [AI 안내](../personal-ai/README.md), [전체 실행 설명](../personal-workspace/README.md)을 따른다. 별도 폴더의 실제 준비·시작·재시작과 기존 인증 재연결은 [재현 기록](REPRODUCTION.md)에 있다. 앱을 재시작하면 먼저 첫 화면을 새로고침한 뒤 자료실 목록/복구 조회를 눌러 로컬 세션을 갱신한다.
+저장소 루트에서 `node personal-workspace/start.mjs`를 실행하고 http://127.0.0.1:5189/ 를 연다. 자세한 기기 등록·키 보관·초기 준비는 [NetBird 안내](../on-client/docs/STUDENT_NETBIRD.md), [AI 안내](../personal-ai/README.md), [전체 실행 설명](../personal-workspace/README.md)을 따른다. 별도 폴더의 실제 준비·시작·재시작과 기존 인증 재연결은 [재현 기록](REPRODUCTION.md)에 있다. 앱을 재시작하면 먼저 첫 화면을 새로고침한 뒤 자료실 목록/복구 조회를 눌러 로컬 세션을 갱신한다. 공유되지 않은 새 소스 폴더에서 이미 설치된 Windows 서버를 재사용하는 방법은 통합 실행기 안내의 수동 실행을 따른다.
 
 1. 기존 자료실 열기 → 원래 계정 로그인 → 기기 승인 → 본인 자료 조회. 인증·기기·서버 권한이 없으면 거부돼야 한다.
 2. Windows 상태 다시 조회 → CPU·메모리·디스크의 시각/단위와 이전 성공값 비교. 읽지 못한 값은 확인 불가다. System/Application 건수는 공격 판정이 아니다.

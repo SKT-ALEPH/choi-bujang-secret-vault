@@ -10,4 +10,4 @@
 6. 실제 보안 기록의 근거·규칙을 열고 지원 Agent 조치의 사람 확인→원천 효과→복구를 보여 준다. 이전900초 OS 차단 실측은 [PC 검증표](../docs/PC_SECURITY_VERIFICATION.md)로 확인한다. 새 위험 송신이나 실제 자료 유출을 시연용으로 실행하지 않는다.
 7. Ctrl+C로 앱을 닫고 같은 명령으로 재시작한다. 기존 사용자 자료·감사·권한과 DB 호출 한도/캐시가 유지되는지 확인한다. OS 서비스는 별도로 작동한다.
 
-실제 캡처는 `self-check/`의 SELF-CHECK 링크를 따른다. 현재 DB 스키마/권한 확인: [schema.png](self-check/schema.png). P3·P5·P7 캡처는 실측표에 연결했다. P4 실제 응답/429와 최종 커밋 재현은 아직 검증 중이다. Windows 실측은 [대조 기록](WINDOWS-COMPARISON.md)을 따른다. 캡처를 만들기 위해 가상 성공 화면을 합성하지 않는다.
+실제 캡처는 `self-check/`의 SELF-CHECK 링크를 따른다. 현재 DB 스키마/권한 확인: [schema.png](self-check/schema.png). P3·P5·P7 캡처는 실측표에 연결했다. P4 실제 성공 응답은 화면 추출 텍스트이며,429 화면과 재시작 후 한도 보존을 확인했다. 최종 접수 커밋은 별도로 대조한다. Windows 실측은 [대조 기록](WINDOWS-COMPARISON.md)을 따른다. 캡처를 만들기 위해 가상 성공 화면을 합성하지 않는다.
