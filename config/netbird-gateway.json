@@ -5,6 +5,14 @@
     "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA7L8HfCI4OzjzUuwCK29O0SPAQot5eYi2K8OIlTOjL6w=\n-----END PUBLIC KEY-----\n",
     "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAnnk8mOEUR8hW6XWMD8AAheXKqDq3vhhpRyo4NVfWKM0=\n-----END PUBLIC KEY-----"
   ],
+  "centralRequiredPaths": [
+    "/api/notes",
+    "/api/my/notes",
+    "/api/announcements",
+    "/api/restore",
+    "/api/device",
+    "/api/gateway-context"
+  ],
   "centralPublicKeys": [
     "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAnnk8mOEUR8hW6XWMD8AAheXKqDq3vhhpRyo4NVfWKM0=\n-----END PUBLIC KEY-----"
   ]

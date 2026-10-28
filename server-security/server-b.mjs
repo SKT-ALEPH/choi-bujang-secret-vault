@@ -46,7 +46,7 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
     if(!exact(data,['eventId','requestId','subjectId','sessionId','deviceCredentialId','resource','kind','status','bytes','reasonCode','contextDigest','webEvent'])||!uuid(data.eventId)||!uuid(data.requestId)
       ||data.subjectId!==null&&!uuid(data.subjectId)||data.sessionId!==null&&(typeof data.sessionId!=='string'||data.sessionId.length>80)
       ||data.deviceCredentialId!==null&&!uuid(data.deviceCredentialId)||typeof data.resource!=='string'||data.resource.length>100
-      ||!['access-decision','access-result','recovery-request'].includes(data.kind)||!Number.isSafeInteger(data.status)||data.status<100||data.status>599
+      ||!['access-decision','access-result','recovery-request','recovery-approved'].includes(data.kind)||!Number.isSafeInteger(data.status)||data.status<100||data.status>599
       ||!Number.isSafeInteger(data.bytes)||data.bytes<0||data.bytes>policy.maxResponseBytes||typeof data.reasonCode!=='string'||!/^[A-Z0-9_]{1,80}$/.test(data.reasonCode)||!/^[a-f0-9]{64}$/.test(data.contextDigest))throw fault('INVALID_EVENT',400);
     const previous=store.db.prepare('SELECT data FROM events WHERE id=?').get(data.eventId);
     if(previous){if(previous.data!==JSON.stringify(data))throw fault('EVENT_CONFLICT',409);return;}

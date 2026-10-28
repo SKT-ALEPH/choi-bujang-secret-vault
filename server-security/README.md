@@ -25,7 +25,7 @@ NetBird의 Management·Signal·Relay는 별도 로컬 관리형 컨테이너로 
 5. 웹서버는 직접 만든 처리 결과에 서명한다. A는 이를 B에 전달하고 B의 검증·수신 확인 후에만 응답을 제공한다. A·B의 감사 기록에는 메모 본문과 인증값을 저장하지 않는다.
 6. 보안 제한 복구 요청은 검토 접수이며, 직원 화면에서 차단을 직접 해제하지 않는다. 기존 **본인 메모 백업 복원** API와 보안 차단 해제는 별개다.
 
-기존 Windows 경로와 과제 판단기 계약은 보존한다. 새 중앙 키로 검증된 경로에서는 이전 웹 XDR의 공유 egress IP 차단 대신 A의 NetBird 접속 주체별 로그인 제한 및 B의 검증된 사용자·세션·자원별 제한을 적용한다. 임의 요청 헤더만으로 이 경로를 선택할 수 없다.
+과제 판단기 계약과 기존 Windows 망·자료는 보존한다. 자료실·공지·백업 복원·기기 등록·게이트웨이 컨텍스트는 `centralRequiredPaths`에 선언해 **중앙 A 키만 수락**한다. 직원 Windows에 남아 있는 이전 키로 이 경로를 우회할 수 없다. 이전 키는 기존 Auth·과제용 AI·위협 정보 호환 경로에만 남으며 자료실의 새 진입점은 `5289`다. 새 중앙 경로에서는 이전 웹 XDR의 공유 egress IP 차단 대신 A의 NetBird 접속 주체별 로그인 제한 및 B의 검증된 사용자·세션·자원별 제한을 적용한다. 임의 요청 헤더만으로 이 경로를 선택할 수 없다.
 
 ## 시작과 관리
 
@@ -57,6 +57,10 @@ docker compose --env-file .local/server-redesign/runtime/compose.env -f server-s
 ```
 
 검토 후 특정 제한만 해제하려면 `recover <restriction-id> --confirm-local-operator`를 사용한다. 해제 응답은 승인 사실만 기록하며, 실제 자료 요청이 다시 성공해야 복구 검증이 끝난다. 로컬 Docker 콘솔 소유자 권한은 회사 관리자 계정의 MFA를 대신하지 않는다.
+
+복구 승인은 A의 제한 갱신·감사·전송 큐를 같은 트랜잭션에 저장하며 B에도 서명된 `recovery-approved` 사건으로 전달한다. 이는 승인 기록이며 실제 자료 복구 성공 기록과 구분한다. 본인 메모의 백업 복원은 기존 **최초 버전 1** 계약을 따르며 최신 편집본으로 바뀌지 않는다.
+
+로컬 접근자 피어의 연결 복구가 필요하면 저장 볼륨을 보존한 채 `docker compose --env-file .local/server-redesign/runtime/compose.env -f server-security/compose.yaml up -d --force-recreate --no-deps netbird-accessor accessor`로 피어와 전달자를 함께 재연결한다. 단절 중에는 보호 자료가 반환되지 않아야 하고, 재연결 후 실제 자료 조회까지 성공해야 복구다.
 
 ## 보존과 검증 범위
 

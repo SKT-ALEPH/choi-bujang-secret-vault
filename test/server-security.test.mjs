@@ -103,6 +103,12 @@ test('known CVE syntax is denied by B before any write and the scoped block can 
   f.aStore.db.prepare('UPDATE restrictions SET released=? WHERE id=?').run(Date.now(),blocked.id);
   assert.equal((await f.A.relay(f.input({path:'/api/notes'}))).status,200);
 });
+test('B durably accepts an authenticated recovery approval as a proposal, preserving the actual access result separately',async t=>{
+  const f=await fixture(t),event={eventId:randomUUID(),requestId:randomUUID(),subjectId:f.state.subjectId,sessionId:f.state.sessionId,deviceCredentialId:f.state.deviceCredentialId,resource:'/api/notes',kind:'recovery-approved',status:202,bytes:0,reasonCode:'LOCAL_OPERATOR_REVIEW',contextDigest:sha('synthetic approval context'),webEvent:null};
+  const r=await fetch(f.bOrigin+'/internal/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(packet(f.a.privateKey,'/internal/events',event))});
+  assert.equal(r.status,200);const saved=JSON.parse(f.bStore.db.prepare('SELECT data FROM events WHERE id=?').get(event.eventId).data);
+  assert.equal(saved.kind,'recovery-approved');assert.equal(saved.status,202);assert.equal(f.state.webCalls,0);
+});
 test('atomic reservation prevents parallel requests from exceeding the response budget',async t=>{
   const f=await fixture(t,{policy:{maxConcurrent:1}});f.state.delayWeb=100;
   const results=await Promise.allSettled([f.A.relay(f.input()),f.A.relay(f.input())]);
@@ -121,6 +127,17 @@ test('A binds the maximum returned record count into gateway proof v2',()=>{
   const req={method:'GET',url:'/api/my/notes',headers};Object.assign(headers,signGatewayRequest(k.privateKey,req));
   assert.equal(verifyGatewayRequest(req,{required:true,publicKey:pem(k.publicKey)}),true);
   headers['x-keshev-max-records']='100';assert.equal(verifyGatewayRequest(req,{required:true,publicKey:pem(k.publicKey)}),false);
+});
+test('the retired employee gateway key cannot bypass central A for protected vault routes or aliases',()=>{
+  const old=keys(),central=keys(),id=randomUUID();
+  const settings={required:true,publicKey:pem(old.publicKey),publicKeys:[pem(old.publicKey),pem(central.publicKey)],centralPublicKeys:[pem(central.publicKey)],centralRequiredPaths:['/api/notes','/api/my/notes','/api/announcements','/api/restore','/api/device','/api/gateway-context']};
+  for(const url of ['/api/notes','/notes/'+id,'/api/my/notes','/my/notes','/api/announcements/'+id,'/api/restore/'+id,'/api/device?operation=status','/api/gateway-context']){
+    const request={method:'GET',url,headers:{authorization:'Bearer synthetic'}};
+    Object.assign(request.headers,signGatewayRequest(old.privateKey,request));assert.equal(verifyGatewayRequest(request,settings),false,url);
+    Object.assign(request.headers,signGatewayRequest(central.privateKey,request));assert.equal(verifyGatewayRequest(request,settings),true,url);
+  }
+  const historical={method:'GET',url:'/api/threat-intel?component=node&page=0',headers:{authorization:'Bearer synthetic'}};
+  Object.assign(historical.headers,signGatewayRequest(old.privateKey,historical));assert.equal(verifyGatewayRequest(historical,settings),true);
 });
 test('assessment requires current request, policy, valid time and allowlisted controls',()=>{
   const p=policyDefault,request={requestId:randomUUID(),contextDigest:sha('context')},now=Date.now();

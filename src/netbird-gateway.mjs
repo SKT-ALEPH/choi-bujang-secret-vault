@@ -20,15 +20,17 @@ export function signGatewayRequest(privateKey,request){
   return {'x-keshev-gateway-at':at,'x-keshev-gateway-nonce':nonce,
     'x-keshev-gateway-signature':sign(null,message(request,at,nonce),privateKey).toString('base64')};
 }
-function verifiedGatewayKey(request,{required=settings.required,publicKey=settings.publicKey,publicKeys=publicKey===settings.publicKey?settings.publicKeys:undefined,clock=Date.now}={}){
+function verifiedGatewayKey(request,{required=settings.required,publicKey=settings.publicKey,publicKeys=publicKey===settings.publicKey?settings.publicKeys:undefined,centralPublicKeys=publicKey===settings.publicKey?settings.centralPublicKeys:[],centralRequiredPaths=publicKey===settings.publicKey?settings.centralRequiredPaths:[],clock=Date.now}={}){
   if(required!==true)return true;
   try{
     const h=request.headers??{},at=h['x-keshev-gateway-at'],nonce=h['x-keshev-gateway-nonce'],signature=h['x-keshev-gateway-signature'];
     if(typeof at!=='string'||!/^\d{13}$/.test(at)||Math.abs(clock()-Number(at))>30000
       ||typeof nonce!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(nonce)
       ||typeof signature!=='string'||!/^[A-Za-z0-9+/]{86}==$/.test(signature))return false;
+    const target=new URL(canonicalTarget(request.url),'https://fixed.invalid').pathname;
+    const candidates=(centralRequiredPaths??[]).includes(target)?centralPublicKeys??[]:publicKeys??[publicKey];
     // The existing device verifier consumes its signed nonce after this check.
-    return (publicKeys??[publicKey]).find(pem=>{const key=createPublicKey(pem);return key.asymmetricKeyType==='ed25519'&&verify(null,message(request,at,nonce),key,Buffer.from(signature,'base64'));})??false;
+    return candidates.find(pem=>{const key=createPublicKey(pem);return key.asymmetricKeyType==='ed25519'&&verify(null,message(request,at,nonce),key,Buffer.from(signature,'base64'));})??false;
   }catch{return false;}
 }
 export function verifyGatewayRequest(request,options){return Boolean(verifiedGatewayKey(request,options));}
