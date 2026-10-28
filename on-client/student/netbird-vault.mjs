@@ -18,6 +18,11 @@ export function validateVaultRequest(input){
     ||Object.values(input.headers).some(v=>typeof v!=='string'||v.length>8192||/[\r\n]/.test(v)))throw fault('VAULT_REQUEST_INVALID',400);
   const url=new URL(input.path,'https://fixed.invalid');
   if(url.origin!=='https://fixed.invalid'||url.hash||url.pathname.includes('%')||!input.path.startsWith('/api/'))throw fault('VAULT_REQUEST_INVALID',400);
+  const item=/^\/api\/(notes|announcements|restore)\/([^/]+)$/.exec(url.pathname);
+  if(item){
+    if(!uuid(item[2])||url.search)throw fault('VAULT_REQUEST_INVALID',400);
+    url.pathname='/api/'+item[1];url.searchParams.set('id',item[2]);
+  }
   if(url.pathname==='/api/auth'){
     const auth={token:['POST'],signup:['POST'],recover:['POST'],otp:['POST'],verify:['POST'],user:['GET','PUT'],logout:['POST']},path=url.searchParams.get('path');
     if(!auth[path]?.includes(input.method)||[...url.searchParams.keys()].some(k=>!['path','grant_type','redirect_to','scope'].includes(k))||[...url.searchParams.keys()].some(k=>url.searchParams.getAll(k).length!==1))throw fault('VAULT_REQUEST_INVALID',400);

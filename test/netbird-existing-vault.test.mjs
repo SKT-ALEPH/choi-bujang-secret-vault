@@ -20,13 +20,22 @@ import {sha,createSigner} from '../personal-workspace/wire.mjs';
 import {createResourceServer} from '../personal-workspace/resource.mjs';
 import {createWorkspaceStore} from '../personal-workspace/store.mjs';
 import {createWorkspaceServer} from '../personal-workspace/server.mjs';
-import {createVaultGateway} from '../on-client/student/netbird-vault.mjs';
+import {createVaultGateway,validateVaultRequest} from '../on-client/student/netbird-vault.mjs';
 import {createManagedAccount} from '../on-client/student/managed-account.mjs';
 
 const userA='00000000-0000-4000-8000-00000000000a',userB='00000000-0000-4000-8000-00000000000b';
 // The token fixture must not change when setup crosses a wall-clock second.
 const fixtureExpiresAt=Math.floor(Date.now()/1000)+3600;
 const jwt=user=>'e30.'+Buffer.from(JSON.stringify({sub:user,exp:fixtureExpiresAt})).toString('base64url')+'.fixture';
+test('existing vault item URLs resolve to the signed canonical API target and reject ambiguous selectors',()=>{
+ const base={method:'PUT',path:'/api/notes/'+userA,headers:{},body:'{}'};
+ assert.equal(validateVaultRequest(base),'/api/notes?id='+userA);
+ assert.equal(requestMessage({id:'device',at:'at',nonce:'nonce',method:'PUT',path:base.path,bodyHash:'body',tokenHash:'token'}),requestMessage({id:'device',at:'at',nonce:'nonce',method:'PUT',path:validateVaultRequest(base),bodyHash:'body',tokenHash:'token'}));
+ assert.equal(validateVaultRequest({...base,method:'DELETE',body:''}),'/api/notes?id='+userA);
+ assert.equal(validateVaultRequest({...base,path:'/api/announcements/'+userA}),'/api/announcements?id='+userA);
+ assert.equal(validateVaultRequest({...base,method:'POST',path:'/api/restore/'+userA}),'/api/restore?id='+userA);
+ for(const path of ['/api/notes/invalid','/api/notes/'+userA+'?id='+userB,'/api/notes/'+userA+'?id='+userA,'/api/notes/'+userA+'/extra','/api/notes/%2e%2e'])assert.throws(()=>validateVaultRequest({...base,path}));
+});
 test('account automation uses normal email OTP; no password generation, admin creation or confirmation bypass',async()=>{
  const calls=[],account=createManagedAccount({transport:async(path,input)=>{calls.push({path,input});return {status:200,data:input.path.endsWith('verify')?{user:{email:'fixture@example.invalid'}}:{}};}});
  await account({operation:'signup',email:'fixture@example.invalid'});assert.equal(calls[0].input.path,'/api/auth?path=otp');assert.equal(JSON.parse(calls[0].input.body).create_user,true);assert.equal(Object.hasOwn(JSON.parse(calls[0].input.body),'password'),false);
