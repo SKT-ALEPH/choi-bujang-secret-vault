@@ -32,6 +32,7 @@ test('account automation uses normal email OTP; no password generation, admin cr
  await account({operation:'signup',email:'fixture@example.invalid'});assert.equal(calls[0].input.path,'/api/auth?path=otp');assert.equal(JSON.parse(calls[0].input.body).create_user,true);assert.equal(Object.hasOwn(JSON.parse(calls[0].input.body),'password'),false);
  assert.equal((await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'a'.repeat(64)})).status,200);assert.equal(calls[1].input.path,'/api/auth?path=verify');assert.equal(JSON.parse(calls[1].input.body).type,'email');
  await assert.rejects(account({operation:'signup',email:'invalid'}));assert.equal(calls.length,2);
+ await account({operation:'verify',email:'fixture@example.invalid',tokenHash:'123456'});assert.deepEqual(JSON.parse(calls[2].input.body),{email:'fixture@example.invalid',token:'123456',type:'email'});
 });
 test('email verification cannot attach a different account',async()=>{
  const account=createManagedAccount({transport:async()=>({status:200,data:{access_token:'fixture',user:{email:'other@example.invalid'}}})});

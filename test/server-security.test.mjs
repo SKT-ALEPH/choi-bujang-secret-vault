@@ -29,6 +29,11 @@ async function fixture(t,{policy={},ai}={}){
     let data;if(req.method==='POST')data=await jsonBody(req);
     const original={method:req.method,url:req.url,headers:req.headers,body:data};
     if(!verifyGatewayRequest(original,{required:true,publicKey:pem(a.publicKey)})){send(res,403,{error:'NETBIRD_GATEWAY_REQUIRED'});return;}
+    if(req.url==='/api/auth?path=otp'){state.steps.push('otp');send(res,200,{});return;}
+    if(req.url==='/api/auth?path=verify'){
+      state.steps.push('verify');assert.equal(data.token,'123456');assert.equal(data.email,'fixture@example.invalid');
+      send(res,200,{access_token:'synthetic-test-token',refresh_token:'synthetic-test-refresh',user:{email:'fixture@example.invalid'}});return;
+    }
     if(req.url==='/api/gateway-context'){
       state.steps.push('context');state.onContext?.();
       if(state.revoked){send(res,403,{error:'DEVICE_NOT_APPROVED'});return;}
@@ -58,6 +63,16 @@ test('central A waits for authenticated B then rechecks authority before the act
   assert.ok(f.bStore.db.prepare("SELECT count(*) n FROM events WHERE source='server-b'").get().n>=1);
   const all=JSON.stringify(f.bStore.db.prepare('SELECT data FROM events').all());
   assert.ok(!all.includes('synthetic.token.only'));assert.ok(!all.includes('Synthetic fixture only'));
+});
+test('A exposes normal email authentication without a stored password and rejects anonymous protected access',async t=>{
+  const f=await fixture(t);
+  const missing=await fetch(f.aOrigin+'/api/my/notes');assert.equal(missing.status,401);assert.equal((await missing.json()).error,'LOGIN_REQUIRED');assert.deepEqual(f.state.steps,[]);
+  const submit=input=>fetch(f.aOrigin+'/api/netbird/account',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});
+  assert.equal((await submit({operation:'login',email:'fixture@example.invalid'})).status,200);
+  const verified=await submit({operation:'verify',email:'fixture@example.invalid',tokenHash:'123456'});
+  assert.equal(verified.status,200);assert.equal((await verified.json()).user.email,'fixture@example.invalid');
+  assert.equal((await submit({operation:'verify',email:'fixture@example.invalid',tokenHash:'invalid'})).status,400);
+  assert.deepEqual(f.state.steps,['otp','verify']);assert.equal(f.state.webCalls,0);
 });
 test('B unavailable fails closed without sending a protected request',async t=>{
   const f=await fixture(t);await close(f.B.server);

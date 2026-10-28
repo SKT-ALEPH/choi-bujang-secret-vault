@@ -26,7 +26,7 @@ if(process.argv.includes('--ai')){
 }
 if(process.argv.includes('--fim')){
   const target='/app/server-security/README.md',started=Date.now();
-  const alter=`const f=await import('node:fs');const p=${JSON.stringify(target)},bytes=f.readFileSync(p);f.writeFileSync('/state/canary-original',bytes,{mode:0o600});f.appendFileSync(p,'\nLocal verification canary change.\n');console.log(JSON.stringify({modified:true}));`;
+  const alter=`const f=await import('node:fs');const p=${JSON.stringify(target)},bytes=f.readFileSync(p);f.writeFileSync('/state/canary-original',bytes,{mode:0o600});f.appendFileSync(p,String.fromCharCode(10)+'Local verification canary change.'+String.fromCharCode(10));console.log(JSON.stringify({modified:true}));`;
   inside('server-a',alter);
   const observations=()=>inside('server-b',`import {DatabaseSync} from 'node:sqlite';import {sha} from './server-security/common.mjs';const d=new DatabaseSync('/state/server-b.sqlite',{readOnly:true});console.log(JSON.stringify(d.prepare("SELECT id,data FROM events WHERE source='wazuh' AND at>? ORDER BY at").all(${started}).filter(e=>JSON.parse(e.data).fileHash===sha(${JSON.stringify(target)})).map(e=>({id:e.id,level:JSON.parse(e.data).level}))));`);
   let seen=[];

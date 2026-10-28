@@ -10,6 +10,9 @@
     netbird_gateway_required:'NetBird로 연결된 케셰브의 기존 자료실 열기로 접속해 주세요.',
     over_email_send_rate_limit:'메일 제공자의 발송 한도에 도달했습니다. 연속으로 다시 누르지 말고, 한도가 풀린 뒤 요청해 주세요. 기존 비밀번호 로그인도 사용할 수 있습니다.',
     ACCOUNT_BUSY:'다른 이메일 인증 요청을 처리 중입니다. 결과를 기다린 뒤 다시 요청해 주세요.',
+    ACCOUNT_INPUT_INVALID:'이메일과 확인 메일의 링크 또는 코드를 확인해 주세요.',
+    ACCOUNT_IDENTITY_MISMATCH:'입력한 이메일과 인증된 계정이 다릅니다. 같은 계정의 확인 메일을 사용해 주세요.',
+    otp_expired:'인증 링크 또는 코드가 만료됐습니다. 새 로그인 메일을 받아 주세요.',
     ACCOUNT_SETUP_UNAVAILABLE:'Windows 게이트웨이 또는 인증 원천의 응답을 끝까지 확인하지 못했습니다. NetBird 연결을 확인해 주세요. 메일 발송 성공으로 처리하지 않았습니다.',
     auth_unavailable:'인증 서버의 응답을 확인하지 못했습니다. 연결이 복구된 뒤 다시 요청해 주세요.',
     weak_password:'더 긴 비밀번호를 입력해 주세요.', signup_disabled:'현재 새 계정 가입이 비활성화돼 있습니다.' }[error.code] || '인증 요청에 실패했습니다. 입력 내용과 연결 상태를 확인해 주세요.');
@@ -180,17 +183,25 @@
         status(`XDR 검사: HTTP ${d.data.status}, ${d.data.code}. ${d.data.passed?'기존 known-cve 판단기가 이 기기의 자료 접근을 15분 차단했습니다. 만료 후 다시 조회하세요.':'차단 조건을 충족하지 못했습니다.'}`);
       }catch(e){status(e.message);}finally{verifyXdr.disabled=false;}
     });$('#refresh').after(verifyXdr);
+  }
+  if(location.pathname.startsWith('/vault/')||['127.0.0.1','localhost'].includes(location.hostname)){
     const row=document.createElement('div');row.className='actions';
-    const tokenLabel=document.createElement('label');tokenLabel.textContent='메일 확인 코드';
+    const tokenLabel=document.createElement('label');tokenLabel.textContent='확인 메일의 링크 또는 코드';
     const tokenInput=document.createElement('input');tokenInput.type='password';tokenInput.autocomplete='one-time-code';tokenInput.id='mail-confirm-token';tokenLabel.htmlFor=tokenInput.id;row.append(tokenLabel,tokenInput);
-    for(const [operation,label] of [['signup','확인 메일로 계정 준비'],['login','확인 메일로 로그인'],['verify','메일 인증 완료']]){
+    for(const [operation,label] of [['signup','가입 메일 받기'],['login','로그인 메일 받기'],['verify','인증 완료']]){
       const button=document.createElement('button');button.type='button';button.textContent=label;
       button.addEventListener('click',async()=>{
         if(!$('#email').reportValidity())return;button.disabled=true;authError('');
         try{
-          const input={operation,email:$('#email').value.trim(),...(operation==='verify'?{tokenHash:tokenInput.value,type:tokenInput.dataset.type??'email'}:{})};
+          let tokenHash=tokenInput.value.trim(),type=tokenInput.dataset.type??'email';
+          if(operation==='verify'&&tokenHash.startsWith('https://')){
+            const link=new URL(tokenHash);
+            if(!['ghsdcculokaxprelnvdv.supabase.co','choi-bujang-secret-vault-ecru.vercel.app','keshev-defense-package-20261027.vercel.app'].includes(link.hostname))throw Error('확인 메일의 인증 링크를 넣어 주세요.');
+            tokenHash=link.searchParams.get('token_hash')??link.searchParams.get('token')??'';type=link.searchParams.get('type')??type;
+          }
+          const input={operation,email:$('#email').value.trim(),...(operation==='verify'?{tokenHash,type}:{})};
           const response=await fetch('/api/netbird/account',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)}),result=await response.json();
-          if(!response.ok){authError(authMessage({code:result.error_code??result.code}));return;}
+          if(!response.ok){authError(authMessage({code:result.error_code??result.code??result.error}));return;}
           if(result.access_token&&result.refresh_token){tokenInput.value='';const {error}=await client.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});if(error)throw error;status('이메일 확인으로 로그인했습니다. 기기 승인을 요청해 주세요.');}
           else status('확인 메일을 보냈습니다. 해당 메일의 인증으로 계정 연결을 완료하세요.');
         }catch{authError('이메일 인증을 완료하지 못했습니다. 연결 상태를 확인하세요.');}

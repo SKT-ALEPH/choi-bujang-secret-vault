@@ -7,6 +7,7 @@ import {randomUUID} from 'node:crypto';
 import {signGatewayRequest} from '../src/netbird-gateway.mjs';
 import {validateVaultRequest} from '../on-client/student/netbird-vault.mjs';
 import {inputSignals} from '../xdr/web-injection/signals.mjs';
+import {createManagedAccount} from '../on-client/student/managed-account.mjs';
 import {decide as knownCve} from '../xdr/known-cve/decide.mjs';
 import {openStore} from './store.mjs';
 import {packet,unpack,jsonBody,readJson,send,loadConfig,fault,sha,uuid,checkAssessment} from './common.mjs';
@@ -63,6 +64,7 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       if(login&&[400,401].includes(r.status)&&['invalid_credentials','invalid_grant'].includes(result.data.code??result.data.error_code))store.db.prepare('INSERT INTO auth_failures VALUES(?,?)').run(peerHash,Date.now());
       return {status:r.status,...result,headers:{}};
     }
+    if(typeof input.headers.authorization!=='string'||!/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(input.headers.authorization))throw fault('LOGIN_REQUIRED',401);
     let c={requestId:randomUUID()},reservation,bytes=0;
     try{
       c={...c,...await context(input,signal)};
@@ -114,6 +116,10 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
     const controller=new AbortController();res.on('close',()=>{if(!res.writableEnded)controller.abort();});
     try{
       if(req.method==='GET'&&req.url==='/health'){send(res,200,{role:'server-a',policyVersion:policy.version,transport:'netbird-required',pendingAudit:store.db.prepare('SELECT count(*) n FROM outbox').get().n});return;}
+      if(req.method==='POST'&&req.url==='/api/netbird/account'){
+        const account=createManagedAccount({transport:(_path,input)=>relay(input,{signal:controller.signal,peer:req.socket.remoteAddress})});
+        const result=await account(await jsonBody(req,2048));send(res,result.status,result.data);return;
+      }
       const path=req.url==='/'?'/index.html':req.url;
       if(serveFiles&&req.method==='GET'&&assets.has(path)){
         const bytes=await read(new URL('../public/'+assets.get(path),import.meta.url));
@@ -130,7 +136,7 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>20000)throw fault('INPUT_TOO_LARGE',413);chunks.push(c);}
       const result=await relay({method:req.method,path:req.url,headers:Object.fromEntries(headerNames.filter(k=>typeof req.headers[k]==='string').map(k=>[k,req.headers[k]])),body:Buffer.concat(chunks).toString('utf8')},{signal:controller.signal,peer:req.socket.remoteAddress});
       send(res,result.status,result.data,result.headers);
-    }catch(e){send(res,e.status??503,{error:e.code??'ACCESS_UNAVAILABLE'});}
+    }catch(e){send(res,e.code==='ACCOUNT_INPUT_INVALID'?400:e.status??503,{error:e.code??'ACCESS_UNAVAILABLE'});}
   });
   server.requestTimeout=30000;server.headersTimeout=15000;
   return {server,relay,context,flush};

@@ -2,6 +2,10 @@
 
 # BYTE BACK 자료실 · 12단계
 
+## 2026-10-28 · 서버 중심 로컬 구성
+
+새 로컬 구성은 기존 자료실의 `http://127.0.0.1:5289/` 진입점에서 **접근자 NetBird → 서버 A ↔ 서버 B → 같은 A → 기존 웹 API**로 연결한다. 실행과 신뢰 경계는 [서버 중심 구성 안내](server-security/README.md)를 따른다. A의 공식 Linux Wazuh 에이전트, B의 등록된 서버 관측·XDR·서명 평가·암호화 감사 보관을 사용한다. 기존 Windows 경로와 자료는 새 계정 경로가 검증될 때까지 보존한다. 서버 간 망·Wazuh 실제 FIM·복원 검증과 기존 회귀는 수행했으며, **현재 자료실 로그인 세션 재연결 및 실제 계정의 자료 차단·복구는 미완료**다. 아래 날짜별 기존 단계의 통과 기록이 새 경로의 미검증 항목을 대신하지 않는다.
+
 ## 2026-10-26 · 케셰브 개인 운영 추가
 
 현재 케셰브의 단일 실행은 Node 24.19.0에서 `node personal-workspace/start.mjs`이며 주소는 http://127.0.0.1:5189/ 입니다. 원래 Supabase 자료실·로그인·기기 승인과 기존 Agent를 NetBird Windows 게이트웨이에 연결합니다. ChatGPT OAuth는 AI 설명에만 사용하며, PC 감시는 별도 Wazuh 서비스가 담당합니다. 별도 SQLite 메모 화면은 현재 업무 자료 경로로 제공하지 않습니다. 범위·저장 위치·재실행·검증은 [통합 실행기 안내](personal-workspace/README.md)와 [마무리 제출 설명서](docs/FINAL_SUBMISSION.md)에 있습니다.
