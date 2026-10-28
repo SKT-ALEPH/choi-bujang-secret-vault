@@ -1,0 +1,209 @@
+{
+  "schema": "keshev.local.validation.summary.v1",
+  "verifiedCodeCommit": "effad1ef64a64a9dce96ec5c7931e3233621e3df",
+  "policyVersion": "local-risk-v3",
+  "checkedAt": "2026-10-28T01:25:52.002Z",
+  "environment": {
+    "mode": "same-Mac Docker validation",
+    "independentCompanyHostIsolation": false
+  },
+  "automatedRegression": {
+    "passed": 141,
+    "failed": 0
+  },
+  "actualAuthenticatedAccount": {
+    "passed": 28,
+    "checks": [
+      {
+        "name": "Existing Auth confirms the authenticated account",
+        "passed": true
+      },
+      {
+        "name": "Normal test-device enrollment",
+        "passed": true
+      },
+      {
+        "name": "Normal device ownership proof is approved",
+        "passed": true
+      },
+      {
+        "name": "Direct public API with the same valid login and device proof is denied",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "Same original proof through NetBird A and B succeeds",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "The actual old Windows gateway key cannot access the protected vault",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "Create one controlled synthetic note",
+        "passed": true,
+        "status": 201
+      },
+      {
+        "name": "Read the controlled note through the real web API",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Update the controlled note",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Actual XDR denies literal known-CVE syntax before the write",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "Normal request to the same note remains blocked",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "A persists the scoped test restriction",
+        "passed": true
+      },
+      {
+        "name": "Restart does not clear the active restriction",
+        "passed": true,
+        "status": 403
+      },
+      {
+        "name": "Operator approves only the controlled restriction",
+        "passed": true
+      },
+      {
+        "name": "Actual read recovers and the denied write did not change the note",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "B outage prevents actual protected-data delivery",
+        "passed": true,
+        "status": 503
+      },
+      {
+        "name": "Actual note read recovers after B restarts",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Actual Wazuh manager outage becomes unknown and prevents protected-data delivery",
+        "passed": true,
+        "status": 503
+      },
+      {
+        "name": "Actual note read recovers only after company Wazuh liveness is fresh again",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Actual NetBird disconnection prevents protected-data delivery",
+        "passed": true,
+        "status": 0,
+        "transportFailed": true
+      },
+      {
+        "name": "Actual note read recovers after NetBird reconnects",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Delete only the controlled note",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Restore the same own note from the actual verified backup",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Read the original version-1 backup through A and B",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "Remove only the controlled note after the restore test",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "B retains independently authenticated web events for the actual controlled resource",
+        "passed": true,
+        "events": 47,
+        "independentlySignedWebEvents": 9,
+        "recoveryApprovals": 1
+      },
+      {
+        "name": "Revoke only the controlled test device",
+        "passed": true
+      },
+      {
+        "name": "A rejects the actually revoked device despite its retained client key",
+        "passed": true,
+        "status": 403
+      }
+    ],
+    "legacyWindowsGateway": {
+      "available": true,
+      "protectedRequestDenied": true
+    }
+  },
+  "existingVaultUi": {
+    "passed": 6,
+    "authenticationSource": "Normal verified email session resumed with official Supabase SDK in a dedicated test browser",
+    "checks": [
+      {
+        "name": "Existing UI accepts the legitimately email-verified session using its real SDK",
+        "passed": true
+      },
+      {
+        "name": "Existing UI performs actual device approval and protected read",
+        "passed": true
+      },
+      {
+        "name": "Existing UI creates one actual controlled note",
+        "passed": true
+      },
+      {
+        "name": "Existing UI edits through its original item URL",
+        "passed": true
+      },
+      {
+        "name": "Existing UI deletes through its original item URL",
+        "passed": true
+      },
+      {
+        "name": "Existing UI removes the controlled note and keeps the real workspace usable",
+        "passed": true
+      }
+    ]
+  },
+  "encryptedAuditBackup": {
+    "restoredIntegrity": true,
+    "restoredEventCount": 285,
+    "liveDataReplaced": false
+  },
+  "wazuh": {
+    "registeredAgentsActive": 3,
+    "trustedCompanyAgents": 1,
+    "managerOutageTested": true,
+    "newEnrollmentDisabled": true
+  },
+  "preservedCompatibility": [
+    "Historical Auth and package AI/threat-intelligence routes retain their existing compatibility key; protected vault routes require central A."
+  ],
+  "limits": [
+    "Local Docker does not isolate A/B from the Mac administrator.",
+    "Company administrator MFA, independent hosts, production load, retention, off-host backup and operational key rotation require separate operating setup.",
+    "No additional model inference was performed; the previous one-call OAuth validation cap remains."
+  ]
+}
