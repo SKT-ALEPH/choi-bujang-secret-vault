@@ -60,6 +60,9 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
     }
     store.db.exec('BEGIN IMMEDIATE');
     try{
+    // Another delivery can commit while the independent web key is being fetched.
+    const delivered=store.db.prepare('SELECT data FROM events WHERE id=?').get(data.eventId);
+    if(delivered){if(delivered.data!==JSON.stringify(data))throw fault('EVENT_CONFLICT',409);store.db.exec('COMMIT');return;}
     if(data.webEvent!==null){
       web=unpack(webPublicKey,'web-event',data.webEvent,store.consume,Date.now(),policy.auditReplayWindowMs);
       if(web.schema!=='keshev.web.event.v1'||web.requestId!==data.requestId||web.contextDigest!==data.contextDigest||web.subjectId!==data.subjectId||web.status!==data.status

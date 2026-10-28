@@ -25,7 +25,7 @@ async function fixture(t,{policy={},ai}={}){
   const p={...policyDefault,...policy};
   const state={subjectId:randomUUID(),sessionId:randomUUID(),deviceCredentialId:randomUUID(),revoked:false,version:1,webCalls:0,steps:[],onContext:null,delayWeb:0};
   const web=createServer(async(req,res)=>{
-    if(req.url==='/api/security-key'){send(res,200,{schema:'keshev.web-key.v1',publicKey:pem(w.publicKey)});return;}
+    if(req.url==='/api/security-key'){if(state.delayKey)await new Promise(r=>setTimeout(r,state.delayKey));send(res,200,{schema:'keshev.web-key.v1',publicKey:pem(w.publicKey)});return;}
     let data;if(req.method==='POST')data=await jsonBody(req);
     const original={method:req.method,url:req.url,headers:req.headers,body:data};
     if(!verifyGatewayRequest(original,{required:true,publicKey:pem(a.publicKey)})){send(res,403,{error:'NETBIRD_GATEWAY_REQUIRED'});return;}
@@ -54,7 +54,7 @@ async function fixture(t,{policy={},ai}={}){
   const aOrigin=await listen(A.server);
   t.after(async()=>{await close(A.server);await close(B.server);await close(web);aStore.close();bStore.close();});
   const input=(overrides={})=>({method:'GET',path:'/api/my/notes',headers:{authorization:'Bearer synthetic.token.only','x-aleph-device':state.deviceCredentialId,'x-aleph-at':String(Date.now()),'x-aleph-nonce':randomUUID(),'x-aleph-signature':'test-fixture-only'},body:'',...overrides});
-  return {a,b,A,B,state,p,aStore,bStore,input,webOrigin,bOrigin,aOrigin};
+  return {a,b,w,A,B,state,p,aStore,bStore,input,webOrigin,bOrigin,aOrigin};
 }
 
 test('central A waits for authenticated B then rechecks authority before the actual web request',async t=>{
@@ -108,6 +108,14 @@ test('B durably accepts an authenticated recovery approval as a proposal, preser
   const r=await fetch(f.bOrigin+'/internal/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(packet(f.a.privateKey,'/internal/events',event))});
   assert.equal(r.status,200);const saved=JSON.parse(f.bStore.db.prepare('SELECT data FROM events WHERE id=?').get(event.eventId).data);
   assert.equal(saved.kind,'recovery-approved');assert.equal(saved.status,202);assert.equal(f.state.webCalls,0);
+});
+test('concurrent authenticated delivery during a cold web-key fetch stores one event and acknowledges both senders',async t=>{
+  const f=await fixture(t);f.state.delayKey=40;
+  const requestId=randomUUID(),contextDigest=sha('synthetic concurrent delivery'),web={schema:'keshev.web.event.v1',eventId:randomUUID(),requestId,contextDigest,subjectId:f.state.subjectId,status:200,records:0,bytes:2,responseDigest:sha('[]'),observedAt:new Date().toISOString()};
+  const event={eventId:randomUUID(),requestId,subjectId:f.state.subjectId,sessionId:f.state.sessionId,deviceCredentialId:f.state.deviceCredentialId,resource:'/api/my/notes',kind:'access-result',status:200,bytes:2,reasonCode:'NORMAL_REQUEST',contextDigest,webEvent:packet(f.w.privateKey,'web-event',web)};
+  const deliver=()=>fetch(f.bOrigin+'/internal/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(packet(f.a.privateKey,'/internal/events',event))});
+  const results=await Promise.all([deliver(),deliver()]);assert.deepEqual(results.map(r=>r.status),[200,200]);
+  assert.equal(f.bStore.db.prepare('SELECT count(*) n FROM events WHERE id IN (?,?)').get(event.eventId,web.eventId).n,2);
 });
 test('atomic reservation prevents parallel requests from exceeding the response budget',async t=>{
   const f=await fixture(t,{policy:{maxConcurrent:1}});f.state.delayWeb=100;
