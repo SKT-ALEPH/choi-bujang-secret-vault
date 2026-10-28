@@ -65,7 +65,8 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       return {status:r.status,...result,headers:{}};
     }
     if(typeof input.headers.authorization!=='string'||!/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(input.headers.authorization))throw fault('LOGIN_REQUIRED',401);
-    let c={requestId:randomUUID()},reservation,bytes=0;
+    let c={requestId:randomUUID()},reservation,bytes=0,assessmentDeadline=null;
+    const requireFreshAssessment=()=>{if(assessmentDeadline!==null&&Date.now()>=assessmentDeadline)throw fault('ASSESSMENT_EXPIRED');};
     try{
       c={...c,...await context(input,signal)};
       c.contextDigest=sha(JSON.stringify([c.subjectId,c.sessionId,c.deviceCredentialId,c.resource,c.operation,c.stateVersion,input.path,sha(input.body),policy.version]));
@@ -79,6 +80,7 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
           deviceCredentialId:c.deviceCredentialId,resource:c.resource,operation:c.operation,counts:{...counts,webInputCount:signalCount+(Object.values(signals).some(Boolean)?1:0)},signals,evidenceIds:[evidenceId]};
         let assessment;try{assessment=checkAssessment(await rpc('/internal/evaluate',request,signal),request,policy);}catch(e){throw fault(e.code??'ASSESSMENT_UNAVAILABLE',e.status??503);}
         if(assessment.riskLevel==='unknown')throw fault('ASSESSMENT_UNKNOWN',503);
+        assessmentDeadline=Date.parse(assessment.validUntil);
         if(assessment.recommendedControl==='deny'){
           store.restrict(c,{control:'deny',until:Date.now()+policy.restrictionMs,evidenceId:assessment.assessmentId});throw fault('XDR_ACCESS_DENIED',403);
         }
@@ -88,6 +90,7 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       const fresh=await context(input,signal);
       if(fresh.subjectId!==c.subjectId||fresh.sessionId!==c.sessionId||fresh.deviceCredentialId!==c.deviceCredentialId||fresh.stateVersion!==c.stateVersion)throw fault('AUTHORITY_CHANGED',403);
       enforce(fresh);
+      requireFreshAssessment();
       reservation=store.reserve(c,policy);
       const maxRecords=limited?1:policy.maxRecords;
       const headers={...input.headers,'x-keshev-request-id':c.requestId,'x-keshev-context':c.contextDigest,'x-keshev-max-records':String(maxRecords)};
@@ -100,12 +103,15 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       // B authenticates the independently signed API event before any data reaches the accessor.
       const e=audit(c,{kind:'access-result',status:r.status,bytes,webEvent});
       const queued=store.db.prepare("SELECT id,data FROM outbox WHERE json_extract(data,'$.eventId')=?").get(e);
-      if(!(await rpc('/internal/events',JSON.parse(queued.data),signal)).accepted)throw fault('AUDIT_UNAVAILABLE');
+      const received=await rpc('/internal/events',JSON.parse(queued.data),signal);
+      if(!received.accepted)throw fault('AUDIT_UNAVAILABLE');
+      if(policy.requireCompanyMonitor&&received.companyMonitorReady!==true)throw fault('MONITOR_UNAVAILABLE');
       store.db.prepare('DELETE FROM outbox WHERE id=?').run(queued.id);
       enforce(c);
       const completedDelete=input.method==='DELETE'&&r.status===200&&result.data?.deleted===true&&result.data.id===new URL(input.path,'https://fixed.invalid').searchParams.get('id');
       const final=await context(input,signal,{completedDelete});
       if(final.stateVersion!==c.stateVersion||final.subjectId!==c.subjectId||final.sessionId!==c.sessionId)throw fault('AUTHORITY_CHANGED',403);
+      requireFreshAssessment();
       return {status:r.status,data:result.data,bytes,headers:{'x-keshev-request-id':c.requestId}};
     }catch(e){
       try{audit(c,{kind:'access-result',status:e.status??503,reasonCode:e.code??'ACCESS_UNAVAILABLE'});}catch{}

@@ -101,6 +101,15 @@ test('missing company monitor cannot become low risk and restoring it cannot cle
   f.aStore.restrict({...f.state,resource:'/api/my/notes'},{until:Date.now()+60000,evidenceId:randomUUID()});
   await assert.rejects(f.A.relay(f.input()),{code:'ACCESS_REVOKED'});
 });
+test('a monitor failure during the web operation withholds the actual response while retaining the audit event',async t=>{
+  let f;f=await fixture(t,{monitorHealthy:()=>f.state.webCalls===0});
+  await assert.rejects(f.A.relay(f.input()),{code:'MONITOR_UNAVAILABLE'});assert.equal(f.state.webCalls,1);
+  assert.equal(f.bStore.db.prepare("SELECT count(*) n FROM events WHERE source='web-api'").get().n,1);
+});
+test('an assessment that expires during the web operation cannot release protected data',async t=>{
+  const f=await fixture(t,{policy:{assessmentTtlMs:20}});f.state.delayWeb=50;
+  await assert.rejects(f.A.relay(f.input()),{code:'ASSESSMENT_EXPIRED'});assert.equal(f.state.webCalls,1);
+});
 test('revocation while B evaluates prevents delivery to the web server',async t=>{
   const f=await fixture(t,{policy:{aiRequired:true},ai:async()=>{f.state.revoked=true;return {riskLevel:'low',recommendedControl:'none',reasonCodes:['NORMAL_REQUEST'],evidenceIds:[]};}});
   await assert.rejects(f.A.relay(f.input()),{code:'DEVICE_NOT_APPROVED'});assert.equal(f.state.webCalls,0);

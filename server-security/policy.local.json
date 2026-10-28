@@ -1,7 +1,7 @@
 {
   "environment":"local-validation",
-  "version":"local-risk-v2",
-  "assessmentTtlMs":10000,
+  "version":"local-risk-v3",
+  "assessmentTtlMs":30000,
   "assessmentTimeoutMs":15000,
   "auditReplayWindowMs":86400000,
   "restrictionMs":60000,

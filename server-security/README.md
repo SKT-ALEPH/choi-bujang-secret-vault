@@ -16,7 +16,7 @@ NetBird의 Management·Signal·Relay는 별도 로컬 관리형 컨테이너로 
 
 기존 `keshev-wazuh-manager`와 그 볼륨은 보존한다. 새 Linux A의 에이전트를 해당 manager에 등록하고 B는 관리자 볼륨의 **alerts 하위 경로만 읽기 전용**으로 연결한다. 레지스트리에 등록된 회사 A 에이전트의 정해진 메타데이터만 사용한다. 기존 직원 Mac·Windows의 상태를 A의 권한 근거로 사용하지 않는다.
 
-`setup-manager-monitor.mjs`는 관리자 컨테이너의 [Wazuh Command 모듈](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/wodle-command.html)에 고정된 상태 확인 명령을 등록한다. 등록된 회사 에이전트의 연결 상태·최종 수신 시각만 10초마다 원자적으로 게시하고 B는 이를 읽기 전용으로 확인한다. 정책 v2에서는 게시가 30초, 에이전트 수신이 90초보다 오래되거나 연결을 확인하지 못하면 위험을 `unknown`으로 처리해 자료 제공을 거절한다. 이 값은 로컬 검증용이다. 기존 에이전트 키는 보존하며 새 자동 등록은 닫아 이전 직원 기기의 등록 비밀번호로 서버 A를 대체하지 못하게 한다. 신규 회사 서버 등록은 운영자가 명시적으로 준비해야 한다.
+`setup-manager-monitor.mjs`는 관리자 컨테이너의 [Wazuh Command 모듈](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/wodle-command.html)에 고정된 상태 확인 명령을 등록한다. 등록된 회사 에이전트의 연결 상태·최종 수신 시각만 10초마다 원자적으로 게시하고 B는 이를 읽기 전용으로 확인한다. 정책 v3에서는 게시가 30초, 에이전트 수신이 90초보다 오래되거나 연결을 확인하지 못하면 위험을 `unknown`으로 처리해 자료 제공을 거절한다. 평가 유효기간 30초는 전달 직전과 응답 제공 직전에 재검사하고, B의 감사 수신 확인에도 최신 감시 상태를 요구한다. 이 값은 로컬 검증용이다. 기존 에이전트 키는 보존하며 새 자동 등록은 닫아 이전 직원 기기의 등록 비밀번호로 서버 A를 대체하지 못하게 한다. 신규 회사 서버 등록은 운영자가 명시적으로 준비해야 한다.
 
 ## 보호 경로
 

@@ -103,7 +103,7 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
         serverEvents:store.db.prepare("SELECT count(*) n FROM events WHERE source='wazuh'").get().n,companyMonitor:monitorReady()?'ready':'unavailable'});return;}
       if(req.method!=='POST'||!['/internal/evaluate','/internal/events'].includes(req.url))throw fault('NOT_FOUND',404);
       const x=unpack(aPublicKey,req.url,await jsonBody(req),store.consume);
-      const result=req.url==='/internal/evaluate'?await evaluate(x):(await ingest(x),{accepted:true,eventId:x.eventId});
+      const result=req.url==='/internal/evaluate'?await evaluate(x):(await ingest(x),{accepted:true,eventId:x.eventId,companyMonitorReady:monitorReady()});
       send(res,200,packet(privateKey,req.url,result));
     }catch(e){send(res,e.status??503,{error:e.code??'ASSESSMENT_UNAVAILABLE'});}
   });
