@@ -26,9 +26,9 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       signal:signal?AbortSignal.any([signal,AbortSignal.timeout(policy.assessmentTimeoutMs)]):AbortSignal.timeout(policy.assessmentTimeoutMs)});
     if(!r.ok)throw fault('ASSESSMENT_UNAVAILABLE');return unpack(bPublicKey,path,(await readJson(r)).data,store.consume);
   }
-  async function context(input,signal){
+  async function context(input,signal,{completedDelete=false}={}){
     const h=input.headers;
-    const preflight={method:input.method,path:input.path,bodyHash:sha(input.body),deviceProof:{id:h['x-aleph-device'],at:h['x-aleph-at'],nonce:h['x-aleph-nonce'],signature:h['x-aleph-signature']}};
+    const preflight={method:input.method,path:input.path,bodyHash:sha(input.body),deviceProof:{id:h['x-aleph-device'],at:h['x-aleph-at'],nonce:h['x-aleph-nonce'],signature:h['x-aleph-signature']},...(completedDelete?{completedDelete:true}:{})};
     const r=await upstream('/api/gateway-context','POST',{'content-type':'application/json',authorization:h.authorization},JSON.stringify(preflight),signal);
     const d=(await readJson(r)).data;if(!r.ok)throw fault(['INVALID_LOGIN','DEVICE_NOT_APPROVED','RESOURCE_NOT_AUTHORIZED'].includes(d.error)?d.error:'AUTHORITY_UNAVAILABLE',r.status===401?401:r.status===403?403:503);
     if(d.schema!=='keshev.gateway.context.v1'||!uuid(d.subjectId)||!uuid(d.deviceCredentialId)||typeof d.sessionId!=='string'||d.sessionId.length>80||typeof d.resource!=='string'
@@ -103,7 +103,8 @@ export function createAccessServer({store,privateKey,bPublicKey,policy,webOrigin
       if(!(await rpc('/internal/events',JSON.parse(queued.data),signal)).accepted)throw fault('AUDIT_UNAVAILABLE');
       store.db.prepare('DELETE FROM outbox WHERE id=?').run(queued.id);
       enforce(c);
-      const final=await context(input,signal);
+      const completedDelete=input.method==='DELETE'&&r.status===200&&result.data?.deleted===true&&result.data.id===new URL(input.path,'https://fixed.invalid').searchParams.get('id');
+      const final=await context(input,signal,{completedDelete});
       if(final.stateVersion!==c.stateVersion||final.subjectId!==c.subjectId||final.sessionId!==c.sessionId)throw fault('AUTHORITY_CHANGED',403);
       return {status:r.status,data:result.data,bytes,headers:{'x-keshev-request-id':c.requestId}};
     }catch(e){

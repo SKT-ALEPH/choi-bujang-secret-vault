@@ -37,12 +37,14 @@ async function fixture(t,{policy={},ai}={}){
     if(req.url==='/api/gateway-context'){
       state.steps.push('context');state.onContext?.();
       if(state.revoked){send(res,403,{error:'DEVICE_NOT_APPROVED'});return;}
+      if(state.deleted&&!data.completedDelete){send(res,403,{error:'RESOURCE_NOT_AUTHORIZED'});return;}
       send(res,200,{schema:'keshev.gateway.context.v1',subjectId:state.subjectId,sessionId:state.sessionId,deviceCredentialId:state.deviceCredentialId,
         resource:data.path.split('?')[0],operation:data.method,stepUp:false,expiresAt:new Date(Date.now()+60000).toISOString(),stateVersion:sha(String(state.version))});return;
     }
     state.webCalls++;state.steps.push('web');if(state.delayWeb)await new Promise(r=>setTimeout(r,state.delayWeb));
-    const result=[{id:randomUUID(),title:'Synthetic test',body:'Synthetic fixture only'}];
-    const event={schema:'keshev.web.event.v1',eventId:randomUUID(),requestId:req.headers['x-keshev-request-id'],contextDigest:req.headers['x-keshev-context'],subjectId:state.subjectId,status:200,records:result.length,bytes:Buffer.byteLength(JSON.stringify(result)),responseDigest:sha(JSON.stringify(result)),observedAt:new Date().toISOString()};
+    const result=req.method==='DELETE'?{id:new URL(req.url,'http://fixture.invalid').searchParams.get('id'),deleted:true}:[{id:randomUUID(),title:'Synthetic test',body:'Synthetic fixture only'}];
+    if(req.method==='DELETE')state.deleted=true;
+    const event={schema:'keshev.web.event.v1',eventId:randomUUID(),requestId:req.headers['x-keshev-request-id'],contextDigest:req.headers['x-keshev-context'],subjectId:state.subjectId,status:200,records:Array.isArray(result)?result.length:1,bytes:Buffer.byteLength(JSON.stringify(result)),responseDigest:sha(JSON.stringify(result)),observedAt:new Date().toISOString()};
     send(res,200,result,{'x-keshev-web-event':Buffer.from(JSON.stringify(packet(w.privateKey,'web-event',event))).toString('base64url')});
   });
   const webOrigin=await listen(web);
@@ -73,6 +75,12 @@ test('A exposes normal email authentication without a stored password and reject
   assert.equal(verified.status,200);assert.equal((await verified.json()).user.email,'fixture@example.invalid');
   assert.equal((await submit({operation:'verify',email:'fixture@example.invalid',tokenHash:'invalid'})).status,400);
   assert.deepEqual(f.state.steps,['otp','verify']);assert.equal(f.state.webCalls,0);
+});
+test('successful deletion rechecks current login and device without requiring the removed note to still exist',async t=>{
+  const f=await fixture(t),id=randomUUID();
+  const r=await f.A.relay(f.input({method:'DELETE',path:'/api/notes/'+id}));
+  assert.equal(r.status,200);assert.deepEqual(r.data,{id,deleted:true});assert.equal(f.state.deleted,true);
+  assert.deepEqual(f.state.steps,['context','context','web','context']);
 });
 test('B unavailable fails closed without sending a protected request',async t=>{
   const f=await fixture(t);await close(f.B.server);
@@ -146,12 +154,12 @@ test('real gateway context verifier checks the original device proof without con
   const tables={aleph_device_sessions:[{id:device,user_id:subject,public_jwk:pair.publicKey.export({format:'jwk'}),token_hash:sha(token),approved:true,expires_at:new Date(Date.now()+60000).toISOString()}],
     notes:[{id:note,owner_id:subject},{id:other,owner_id:randomUUID()}],announcement_editors:[{user_id:subject,announcement_id:note}]};
   const database={from(name){assert.notEqual(name,'aleph_device_nonces');const filters=[];const q={select(){return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},maybeSingle(){return q;},async abortSignal(){return {data:tables[name].find(r=>filters.every(f=>f(r)))??null,error:null};}};return q;}};
-  const handler=createGatewayContextHandler(()=>({database,authorizeGateway:async()=>true,verifyLoginAuthorization:async()=>({kind:'student',userId:subject})}));
-  async function call(path,method='GET',extra={}){
+  const handler=createGatewayContextHandler(()=>({database,authorizeGateway:async req=>{req.keshevCentralGateway=req.testCentralGateway===true;return true;},verifyLoginAuthorization:async()=>({kind:'student',userId:subject})}));
+  async function call(path,method='GET',extra={},central=false){
     const at=String(Date.now()),nonce=randomUUID(),bodyHash=sha('');
     const signature=sign('sha256',Buffer.from(requestMessage({id:device,at,nonce,method,path,bodyHash,tokenHash:sha(token)})),{key:pair.privateKey,dsaEncoding:'ieee-p1363'}).toString('base64url');
     let status,data;const res={setHeader(){},status(n){status=n;return res;},json(v){data=v;}};
-    await handler({method:'POST',query:{},headers:{authorization:token},body:{method,path,bodyHash,deviceProof:{id:device,at,nonce,signature},...extra}},res);return {status,data};
+    await handler({method:'POST',query:{},headers:{authorization:token},testCentralGateway:central,body:{method,path,bodyHash,deviceProof:{id:device,at,nonce,signature},...extra}},res);return {status,data};
   }
   assert.equal((await call('/api/notes?id='+note)).status,200);
   assert.equal((await call('/api/notes?id='+other)).status,403);
@@ -159,5 +167,12 @@ test('real gateway context verifier checks the original device proof without con
   assert.equal((await call('/api/announcements?id='+note,'PUT')).status,200);
   tables.announcement_editors=[];assert.equal((await call('/api/announcements?id='+note,'PUT')).status,403);
   assert.equal((await call('/api/restore?id='+note,'POST')).status,200);
+  tables.notes=tables.notes.filter(r=>r.id!==note);
+  assert.equal((await call('/api/notes?id='+note,'DELETE')).status,403);
+  assert.equal((await call('/api/notes?id='+note,'DELETE',{completedDelete:true})).status,400);
+  assert.equal((await call('/api/notes?id='+note,'GET',{completedDelete:true},true)).status,400);
+  assert.equal((await call('/api/notes?id='+note,'DELETE',{completedDelete:true},true)).status,200);
+  assert.equal((await call('/api/notes','DELETE',{completedDelete:true},true)).status,400);
   tables.aleph_device_sessions[0].approved=false;assert.equal((await call('/api/notes?id='+note)).status,403);
+  assert.equal((await call('/api/notes?id='+note,'DELETE',{completedDelete:true},true)).status,403);
 });
