@@ -16,6 +16,8 @@ NetBird의 Management·Signal·Relay는 별도 로컬 관리형 컨테이너로 
 
 기존 `keshev-wazuh-manager`와 그 볼륨은 보존한다. 새 Linux A의 에이전트를 해당 manager에 등록하고 B는 관리자 볼륨의 **alerts 하위 경로만 읽기 전용**으로 연결한다. 레지스트리에 등록된 회사 A 에이전트의 정해진 메타데이터만 사용한다. 기존 직원 Mac·Windows의 상태를 A의 권한 근거로 사용하지 않는다.
 
+`setup-manager-monitor.mjs`는 관리자 컨테이너의 [Wazuh Command 모듈](https://documentation.wazuh.com/current/user-manual/reference/ossec-conf/wodle-command.html)에 고정된 상태 확인 명령을 등록한다. 등록된 회사 에이전트의 연결 상태·최종 수신 시각만 10초마다 원자적으로 게시하고 B는 이를 읽기 전용으로 확인한다. 정책 v2에서는 게시가 30초, 에이전트 수신이 90초보다 오래되거나 연결을 확인하지 못하면 위험을 `unknown`으로 처리해 자료 제공을 거절한다. 이 값은 로컬 검증용이다. 기존 에이전트 키는 보존하며 새 자동 등록은 닫아 이전 직원 기기의 등록 비밀번호로 서버 A를 대체하지 못하게 한다. 신규 회사 서버 등록은 운영자가 명시적으로 준비해야 한다.
+
 ## 보호 경로
 
 1. A는 고정 API·메서드·크기·헤더만 허용하고, 웹서버의 서명된 게이트웨이 컨텍스트 경로에서 로그인·현재 기기 승인·자료 권한을 매 요청 확인한다. 기존 기기 nonce는 실제 작업 때 한 번만 소비한다.
@@ -36,6 +38,7 @@ node server-security/bootstrap.mjs
 docker build -t keshev-server-security:local -f server-security/Dockerfile .
 docker compose --env-file .local/server-redesign/runtime/compose.env -f server-security/compose.yaml up -d server-a server-b accessor
 node server-security/finish-setup.mjs
+node server-security/setup-manager-monitor.mjs
 ```
 
 `finish-setup`은 A의 **공개키만** 기존 웹서버의 신뢰 설정에 추가한다. 새 경로가 검증되기 전 기존 Windows 공개키를 폐기하지 않는다. 변경한 웹 API와 공개키는 기존 Vercel 프로젝트에 배포해야 한다. 첫 로그인·기기 승인은 기존 자료실 계정과 공식 인증 흐름을 사용한다.

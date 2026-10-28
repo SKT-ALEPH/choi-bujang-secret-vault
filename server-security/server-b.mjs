@@ -6,11 +6,13 @@ import {randomUUID} from 'node:crypto';
 import {openStore} from './store.mjs';
 import {packet,unpack,jsonBody,readJson,send,loadConfig,fault,exact,uuid,controls,reasonCodes,sha} from './common.mjs';
 import {saveBackup} from './backup.mjs';
+import {readCompanyMonitor} from './monitor-health.mjs';
 
 const requestKeys=['requestId','contextDigest','policyVersion','subjectId','sessionId','deviceCredentialId','resource','operation','counts','signals','evidenceIds'];
-export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOrigin,ai,fetchImpl=fetch,registeredAgents=[]}){
+export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOrigin,ai,fetchImpl=fetch,registeredAgents=[],monitorHealthy}){
   let webPublicKey,webKeyAt=0,wazuhOffset=0;
   for(const row of registeredAgents)store.db.prepare('INSERT INTO server_registry VALUES(?,?,1) ON CONFLICT(id) DO UPDATE SET agent=excluded.agent,enabled=1').run(row.serverId,row.agentId);
+  const monitorReady=()=>!policy.requireCompanyMonitor||(monitorHealthy?monitorHealthy()===true:readCompanyMonitor('/wazuh/keshev-company-status.json',store.db.prepare('SELECT agent FROM server_registry WHERE enabled=1').all().map(r=>r.agent),policy));
   function validateRequest(x){
     if(!exact(x,requestKeys)||!uuid(x.requestId)||!/^[a-f0-9]{64}$/.test(x.contextDigest)||x.policyVersion!==policy.version||!uuid(x.subjectId)
       ||typeof x.sessionId!=='string'||x.sessionId.length>80||!uuid(x.deviceCredentialId)||!/^\/api\/(?:notes|my\/notes|announcements|restore)(?:\/[a-f0-9-]{36})?$/.test(x.resource)
@@ -22,6 +24,7 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
     const recent=store.db.prepare("SELECT id,data FROM events WHERE source='wazuh' AND at>? AND id NOT IN (SELECT id FROM acknowledged_observations) ORDER BY at DESC LIMIT 16").all(Date.now()-policy.restrictionMs);
     const evidenceIds=[...x.evidenceIds],reasons=[];
     let riskLevel='low',recommendedControl='none';
+    if(!monitorReady()){riskLevel='unknown';recommendedControl='deny';reasons.push('MONITOR_UNAVAILABLE');}
     if(x.signals.knownCve){riskLevel='high';recommendedControl='deny';reasons.push('KNOWN_CVE_REQUEST');}
     if(Object.values(x.signals).some(Boolean)&&x.counts.webInputCount>=policy.webInputRepeatLimit){riskLevel='high';recommendedControl='deny';reasons.push('WEB_INPUT_ATTACK');}
     if(x.counts.recentBytes>=policy.maxWindowBytes){riskLevel='high';recommendedControl='deny';reasons.push('UNUSUAL_BULK_READ');}
@@ -97,7 +100,7 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
   const server=createServer(async(req,res)=>{
     try{
       if(req.method==='GET'&&req.url==='/health'){send(res,200,{role:'server-b',policyVersion:policy.version,aiConfigured:Boolean(ai),registeredServers:store.db.prepare('SELECT count(*) n FROM server_registry WHERE enabled=1').get().n,
-        serverEvents:store.db.prepare("SELECT count(*) n FROM events WHERE source='wazuh'").get().n});return;}
+        serverEvents:store.db.prepare("SELECT count(*) n FROM events WHERE source='wazuh'").get().n,companyMonitor:monitorReady()?'ready':'unavailable'});return;}
       if(req.method!=='POST'||!['/internal/evaluate','/internal/events'].includes(req.url))throw fault('NOT_FOUND',404);
       const x=unpack(aPublicKey,req.url,await jsonBody(req),store.consume);
       const result=req.url==='/internal/evaluate'?await evaluate(x):(await ingest(x),{accepted:true,eventId:x.eventId});
@@ -105,7 +108,7 @@ export function createAssessmentServer({store,privateKey,aPublicKey,policy,webOr
     }catch(e){send(res,e.status??503,{error:e.code??'ASSESSMENT_UNAVAILABLE'});}
   });
   server.requestTimeout=15000;server.headersTimeout=15000;
-  return {server,evaluate,ingest,readWazuh};
+  return {server,evaluate,ingest,readWazuh,monitorReady};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   const config=loadConfig(process.env.KESHEV_CONFIG??'/config/runtime.json'),policy=loadConfig('/app/server-security/policy.local.json');

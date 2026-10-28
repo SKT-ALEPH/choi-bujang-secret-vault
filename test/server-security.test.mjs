@@ -12,6 +12,7 @@ import {openStore} from '../server-security/store.mjs';
 import {packet,unpack,sha,checkAssessment,jsonBody,send} from '../server-security/common.mjs';
 import {signGatewayRequest,verifyGatewayRequest} from '../src/netbird-gateway.mjs';
 import {sealBackup,openBackup} from '../server-security/backup.mjs';
+import {companyMonitorHealthy} from '../server-security/monitor-health.mjs';
 import {createGatewayContextHandler} from '../api/gateway-context.js';
 import {requestMessage} from '../public/device-message.mjs';
 import policyDefault from '../server-security/policy.local.json' with {type:'json'};
@@ -20,7 +21,7 @@ const keys=()=>generateKeyPairSync('ed25519');
 const pem=key=>key.export({format:'pem',type:'spki'});
 const listen=async server=>{server.listen(0,'127.0.0.1');await once(server,'listening');return 'http://127.0.0.1:'+server.address().port;};
 const close=async s=>{s.closeAllConnections();await new Promise(r=>s.close(r));};
-async function fixture(t,{policy={},ai}={}){
+async function fixture(t,{policy={},ai,monitorHealthy=()=>true}={}){
   const a=keys(),b=keys(),w=keys(),aStore=openStore(':memory:'),bStore=openStore(':memory:');
   const p={...policyDefault,...policy};
   const state={subjectId:randomUUID(),sessionId:randomUUID(),deviceCredentialId:randomUUID(),revoked:false,version:1,webCalls:0,steps:[],onContext:null,delayWeb:0};
@@ -48,7 +49,7 @@ async function fixture(t,{policy={},ai}={}){
     send(res,200,result,{'x-keshev-web-event':Buffer.from(JSON.stringify(packet(w.privateKey,'web-event',event))).toString('base64url')});
   });
   const webOrigin=await listen(web);
-  const B=createAssessmentServer({store:bStore,privateKey:b.privateKey,aPublicKey:pem(a.publicKey),policy:p,webOrigin,ai});
+  const B=createAssessmentServer({store:bStore,privateKey:b.privateKey,aPublicKey:pem(a.publicKey),policy:p,webOrigin,ai,monitorHealthy});
   const bOrigin=await listen(B.server);
   const A=createAccessServer({store:aStore,privateKey:a.privateKey,bPublicKey:pem(b.publicKey),policy:p,webOrigin,bOrigin,allowLocal:true,serveFiles:false});
   const aOrigin=await listen(A.server);
@@ -85,6 +86,20 @@ test('successful deletion rechecks current login and device without requiring th
 test('B unavailable fails closed without sending a protected request',async t=>{
   const f=await fixture(t);await close(f.B.server);
   await assert.rejects(f.A.relay(f.input()));assert.equal(f.state.webCalls,0);
+});
+test('company Wazuh liveness must be fresh, active, and match every registered server',()=>{
+  const now=Date.now(),p=policyDefault,document={schema:'keshev.company-monitor.v1',generatedAt:now,agents:[{id:'003',status:'Active',lastKeepAliveAt:now}]};
+  assert.equal(companyMonitorHealthy(document,['003'],p,now),true);
+  for(const altered of [{...document,generatedAt:now-p.monitorMaxAgeMs-1},{...document,generatedAt:now+6000},{...document,agents:[]},{...document,agents:[{id:'003',status:'Unavailable',lastKeepAliveAt:now}]},{...document,agents:[{id:'003',status:'Active',lastKeepAliveAt:now-p.agentKeepaliveMaxAgeMs-1}]}])assert.equal(companyMonitorHealthy(altered,['003'],p,now),false);
+  assert.equal(companyMonitorHealthy(document,['003','004'],p,now),false);
+  assert.equal(companyMonitorHealthy(document,[],p,now),false);
+});
+test('missing company monitor cannot become low risk and restoring it cannot clear an existing restriction',async t=>{
+  let available=false;const f=await fixture(t,{monitorHealthy:()=>available});
+  await assert.rejects(f.A.relay(f.input()),{code:'ASSESSMENT_UNKNOWN'});assert.equal(f.state.webCalls,0);
+  available=true;assert.equal((await f.A.relay(f.input())).status,200);
+  f.aStore.restrict({...f.state,resource:'/api/my/notes'},{until:Date.now()+60000,evidenceId:randomUUID()});
+  await assert.rejects(f.A.relay(f.input()),{code:'ACCESS_REVOKED'});
 });
 test('revocation while B evaluates prevents delivery to the web server',async t=>{
   const f=await fixture(t,{policy:{aiRequired:true},ai:async()=>{f.state.revoked=true;return {riskLevel:'low',recommendedControl:'none',reasonCodes:['NORMAL_REQUEST'],evidenceIds:[]};}});

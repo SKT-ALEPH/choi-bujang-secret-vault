@@ -5,7 +5,7 @@ export const sha=value=>createHash('sha256').update(value).digest('hex');
 export const fault=(code,status=503)=>Object.assign(Error(code),{code,status});
 export const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(x);
 export const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).length===keys.length&&keys.every(k=>Object.hasOwn(x,k));
-export const reasonCodes=['NORMAL_REQUEST','REPEATED_AUTH_FAILURES','WEB_INPUT_ATTACK','KNOWN_CVE_REQUEST','UNUSUAL_BULK_READ','SERVER_INTEGRITY_ALERT','EVIDENCE_UNAVAILABLE','AI_REQUIRED_UNAVAILABLE'];
+export const reasonCodes=['NORMAL_REQUEST','REPEATED_AUTH_FAILURES','WEB_INPUT_ATTACK','KNOWN_CVE_REQUEST','UNUSUAL_BULK_READ','SERVER_INTEGRITY_ALERT','EVIDENCE_UNAVAILABLE','AI_REQUIRED_UNAVAILABLE','MONITOR_UNAVAILABLE'];
 export const controls=['none','require_mfa','limit_response','deny'];
 export function packet(privateKey,scope,data){
   const value={scope,at:Date.now(),nonce:randomUUID(),data};
